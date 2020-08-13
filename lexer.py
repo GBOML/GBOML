@@ -1,0 +1,164 @@
+
+# lexer.py
+#
+# tokenizer
+# ------------
+import ply.lex as lex
+
+def tokenize(data):
+    """
+    Tokenize input data to stdout for testing purposes.
+    """
+    lexer = lex.lex()
+    lexer.input(data)
+    while True:
+        tok = lexer.token()
+        if not tok:
+            break
+        print(tok)
+
+
+def tokenize_file(filepath):
+    """
+    Tokenize input file to stdout for testing purposes.
+    :param fspec: Input file to parse.
+    """
+    with open(filepath, "r") as content:
+        data = content.read()
+    return tokenize(data)
+
+
+keywords = {
+    'min':'MIN',
+    'max':'MAX',
+    'input':'INPUT',
+    'output':'OUTPUT',
+    'internal':'INTERNAL',
+    'in':'IN',
+    'horizon':'HORIZON',
+    'step':'STEP',
+}
+
+reserved = {
+   '#NODE':'NODE',
+   '#PARAMETERS':'PARAM',
+   '#CONSTRAINTS':'CONS',
+   '#VARIABLES':'VAR',
+   '#OBJECTIVE':'OBJ',
+   '#TIMESCALE':'TIME'
+}
+
+# List of token names.   This is always required
+tokens = (
+'INT',
+'PLUS',
+'MINUS',
+'POW',
+'TIMES',
+'DIVIDE',
+'LPAR',
+'RPAR',
+'FLOAT',
+'NODE',
+'PARAM',
+'CONS',
+'VAR',
+'OBJ',
+'ID',
+'COMMA',
+'LCBRAC',
+'RCBRAC',
+'LBRAC',
+'RBRAC',
+'EQUAL',
+'LEQ',
+'BEQ',
+'COLON',
+'ERROR',
+'LOW',
+'BIG',
+'NAME',
+'INPUT',
+'OUTPUT',
+'INTERNAL',
+'MAX',
+'MIN',
+'IN',
+'UMINUS',
+'TIME',
+'HORIZON',
+'STEP'
+)
+
+# Regular expression rules for simple tokens
+t_PLUS    = r'\+'
+t_MINUS   = r'-'
+t_COMMA   = r'\,'
+t_LCBRAC  = r'\{'
+t_RCBRAC  = r'\}'
+t_LBRAC   = r'\['
+t_RBRAC   = r'\]'
+t_POW     = r'\*\*'
+t_TIMES   = r'\*'
+t_DIVIDE  = r'/'
+t_LPAR    = r'\('
+t_RPAR    = r'\)'
+t_EQUAL   = r'\='
+t_LEQ     = r'\<\='
+t_BEQ     = r'\>\='
+t_COLON   = r'\:'
+t_LOW     = r'\<'
+t_BIG     = r'\>'
+
+def t_ID(t):
+    r'[a-z][a-zA-Z_0-9]*'
+    if t.value in keywords:
+        t.type =  keywords.get(t.value,'ID') 
+    return t
+
+def t_ERROR(t):
+    r'[#][A-Z]+'
+    if t.value in reserved:
+        t.type =  reserved.get(t.value,'ID') 
+    else:
+        t_error(t)
+    return t
+
+def t_NAME(t):
+    r'[A-Z][a-zA-Z_0-9]*'
+    return t
+
+def t_COMMENT(t):
+     r'[/][/].*'
+     pass
+     # No return value. Token discarded
+
+# A regular expression rule with some action code
+
+def t_FLOAT(t):
+    r'[0-9]+[\.][0-9]*'
+    t.value = float(t.value)    
+    return t
+
+def t_INT(t):
+    r'[0-9]+'
+    t.value = int(t.value)
+    return t
+
+# Define a rule so we can track line numbers
+def t_newline(t):
+    r'\n+'
+    t.lexer.lineno += len(t.value)
+
+# A string containing ignored characters (spaces and tabs)
+t_ignore  = ' \t'
+
+# Error handling rule
+def t_error(t):
+    print("Illegal character '%s'" % t.value[0])
+    exit(-1)
+    
+
+lexer = lex.lex()
+
+#tokenize_file("text.txt")

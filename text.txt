@@ -1,0 +1,15 @@
+#TIMESCALE
+horizon: 24
+step: 1
+
+#NODE ABC
+#PARAMETERS
+c = 10 +10.01
+v = (5)**c
+#VARIABLES 
+internal : a
+output : b
+#CONSTRAINTS
+a = 3*a
+#OBJECTIVE
+min : a
