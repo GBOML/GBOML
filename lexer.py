@@ -1,21 +1,23 @@
 
 # lexer.py
 #
-# tokenizer
+# Writer : MIFTARI B
 # ------------
+
 import ply.lex as lex
 
 def tokenize(data):
     """
     Tokenize input data to stdout for testing purposes.
     """
-    lexer = lex.lex()
+    global lexer 
     lexer.input(data)
     while True:
         tok = lexer.token()
         if not tok:
             break
         print(tok)
+    lexer = lex.lex()
 
 
 def tokenize_file(filepath):
@@ -27,6 +29,9 @@ def tokenize_file(filepath):
         data = content.read()
     return tokenize(data)
 
+def find_column(input,token):
+    line_start = input.rfind('\n', 0, token.lexpos) + 1
+    return (token.lexpos - line_start) + 1
 
 keywords = {
     'min':'MIN',
@@ -45,7 +50,8 @@ reserved = {
    '#CONSTRAINTS':'CONS',
    '#VARIABLES':'VAR',
    '#OBJECTIVE':'OBJ',
-   '#TIMESCALE':'TIME'
+   '#TIMESCALE':'TIME',
+   '#LINKS':'LINKS'
 }
 
 # List of token names.   This is always required
@@ -74,20 +80,20 @@ tokens = (
 'LEQ',
 'BEQ',
 'COLON',
-'ERROR',
 'LOW',
 'BIG',
 'NAME',
 'INPUT',
 'OUTPUT',
 'INTERNAL',
+'DOT',
 'MAX',
 'MIN',
 'IN',
-'UMINUS',
 'TIME',
 'HORIZON',
-'STEP'
+'STEP',
+'LINKS'
 )
 
 # Regular expression rules for simple tokens
@@ -109,6 +115,7 @@ t_BEQ     = r'\>\='
 t_COLON   = r'\:'
 t_LOW     = r'\<'
 t_BIG     = r'\>'
+t_DOT     = r'\.'
 
 def t_ID(t):
     r'[a-z][a-zA-Z_0-9]*'
@@ -116,13 +123,13 @@ def t_ID(t):
         t.type =  keywords.get(t.value,'ID') 
     return t
 
-def t_ERROR(t):
+def t_keyword(t):
     r'[#][A-Z]+'
     if t.value in reserved:
         t.type =  reserved.get(t.value,'ID') 
+        return t
     else:
         t_error(t)
-    return t
 
 def t_NAME(t):
     r'[A-Z][a-zA-Z_0-9]*'
@@ -155,10 +162,9 @@ t_ignore  = ' \t'
 
 # Error handling rule
 def t_error(t):
-    print("Illegal character '%s'" % t.value[0])
+    print('Lexing error:'+str(t.lineno)+':'+str(find_column(lexer.lexdata,t))+":Illegal character '%s'" % t.value[0])
     exit(-1)
     
-
 lexer = lex.lex()
 
 #tokenize_file("text.txt")

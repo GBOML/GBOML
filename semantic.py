@@ -1,3 +1,9 @@
+
+# semantic.py
+#
+# Writer : MIFTARI B
+# ------------
+
 from classes import *
 
 timevar = []
@@ -15,38 +21,48 @@ timevar = []
 #   if a variable has the same name as a parameter              DONE
 #   A LHS term shall not be in the RHS
 #   OUTPUT MUST HAVE A formula                                  DONE
-#   WARNING IF NOT USED
+#   Check that a certain variable is defined in a link
 
 def semantic(program):
     # WRAPPER that checks all the possible errors that could happen
     global timevar
-    print("timevar "+str(timevar))
+
+    #retrieve timevariables if defined
     time = program.get_time()
+
     if time!=None:
         timevar = ["t","T","step"] 
-    print("timevar "+str(timevar))
+    
+    
     root = program.get_nodes()
+    
     #CHECK If all nodes have different names
     check_names(root)
-
+    print("Nodes have different names : CHECKED")
     #CHECK If an objective function is defined
     find_objective(root)
+    print("At least one objective is defined : CHECKED")
 
     n = root.get_size()
     elements = root.get_elements()
+
+    #Inside each node 
     for i in range(n):
         #CHECK if all parameters of a node have different names
         all_parameters = check_names(elements[i].get_parameters())
+
         #CHECK if all variables of a node have different names
         all_variables = check_names(elements[i].get_variables())
+
         #CHECK if dont share the same name
         match_names(all_parameters,all_variables)
+
         #TRY to evaluate the parameters
         vector_parameters = parameter_evaluation(elements[i].get_parameters())
 
         check_expressions_dependancy(elements[i],all_variables,all_parameters)
 
-    check_input_output(root)
+    #check_input_output(root)
 
 def check_input_output(root):
     n = root.get_size()
@@ -97,63 +113,64 @@ def check_expressions_dependancy(node,variables,parameters):
     constraints = node.get_constraints()
     nb_cons = constraints.get_size()
     cons = constraints.get_elements()
-    for i in range(nb_cons):
-        expr = cons[i].get_expression()
-        name = cons[i].get_name()
-        found = False
-        for j in range(len(variables)):
-            if name == variables[i]:
-                found = True
-                break
-        if found == False: 
-            error_('Unknown variable "'+str(name)+'" at line '+str(cons[i].get_line()))
-        c_type = cons[i].get_type()
-        if c_type == "=":
-            contains_var = variables_in_expression(expr,variables,parameters)
-            if contains_var ==False:
-                error_('Variable "'+str(name)+'" at line '+str(cons[i].get_line()) +' only depends on constants should be a parameter not a variable')
 
+    for i in range(nb_cons):
+        rhs = cons[i].get_rhs()
+        lhs = cons[i].get_lhs()
+        found = False
+        var_in_right = variables_in_expression(rhs,variables,parameters)
+        var_in_left = variables_in_expression(lhs,variables,parameters)
+
+        if var_in_right == False and var_in_left == False:
+            error_('No variable in constraint at line '+str(cons[i].get_line()))
+
+        check_linear(rhs,variables,parameters)
+        check_linear(lhs,variables,parameters)
+        
     objectives = node.get_objectives()
     nb_obj = objectives.get_size()
     obj = objectives.get_elements()
+
     for i in range(nb_obj):
         expr = obj[i].get_expression()
         contains_var = variables_in_expression(expr,variables,parameters)
         if contains_var == False:
             error_('Objective only depends on constants not on variable at line '+str(expr.get_line()))
+        check_linear(expr,variables,parameters)
+    
 
 def variables_in_expression(expression,variables,parameters):
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     children = expression.get_children()
     is_variable = False
-    print(expression)
 
     if e_type == 'literal':
-        if type(expression.get_name())==str:
+        identifier = expression.get_name()
+
+        if type(identifier)!=int and type(identifier)!=float:
             for i in range(len(variables)):
-                if expression.get_name() == variables[i]:
+                if identifier.name_compare(variables[i]):
                     is_variable = True
                     break
 
             if is_variable == False:
                 defined = False
                 for i in range(len(parameters)):
-                    if expression.get_name() == parameters[i]:
+                    if identifier.name_compare(parameters[i]):
                         defined = True
                         break
 
                 for i in range(len(timevar)):
-                    if expression.get_name() == timevar[i]:
+                    if identifier.name_compare(timevar[i]):
                         defined = True
                         break
 
-                print("HERERRE")
-                print(expression.get_name())
 
                 if defined == False:
-                    print("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
-                    exit(-1)
+                    error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
+
+            check_in_brackets(identifier,variables,parameters)
     else:
         value = False
         for i in range(nb_child):
@@ -167,6 +184,7 @@ def check_linear(expression,variables,parameters):
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     children = expression.get_children()
+
     if e_type == 'literal':
         if nb_child !=0:
             error_("INTERNAL ERROR : literal expression must have zero child, got "+str(nb_child)+" check internal parser")
@@ -193,10 +211,10 @@ def check_linear(expression,variables,parameters):
                 if lin2 == False:
                     error_("Non linearity in expression : "+str(children[1])+" only linear problems are accepted at line "+str(children[0].get_line()))
 
-        elif e_type == "*" or e_type == "**" or e_type == "/":
-            if term1 == True and term2 == True:
+        elif e_type == "*" or e_type == "/":
+            if term2 == True:
                 string = "Operation '"+str(e_type)+"' between two expressions containing variables leading to a non linearity at line "+str(children[0].get_line())+"\n"
-                string +="Namely Expression 1 : " + str(children[0])+ "and Expression 2 : "+str(children[1])
+                string +="Namely Expression 1 : " + str(children[0])+ " and Expression 2 : "+str(children[1])
                 error_(string)
 
             if term1 == True:
@@ -204,10 +222,12 @@ def check_linear(expression,variables,parameters):
                 if lin1 == False:
                     error_("Non linearity in expression : "+str(children[0])+" only linear problems are accepted at line "+str(children[0].get_line()))
 
-            if term2 == True:
-                lin2 = check_linear(children[1],variables,parameters)
-                if lin2 == False: 
-                    error_("Non linearity in expression : "+str(children[1])+" only linear problems are accepted  at line "+str(children[0].get_line()))
+        elif e_type == "**":
+            if term1 == True or term2 == True:
+                string = "Operation '"+str(e_type)+"' between one expression containing variables leading to a non linearity at line "+str(children[0].get_line())+"\n"
+                string +="Namely Expression 1 : " + str(children[0])+ " and Expression 2 : "+str(children[1])
+                error_(string)
+
         else:
             error_("INTERNAL ERROR : unknown type '"+str(e_type)+"' check internal parser")
 
@@ -259,17 +279,14 @@ def parameter_evaluation(n_parameters):
     n = n_parameters.get_size()
     parameters = n_parameters.get_elements()
     all_values = Vector()
-    print("\n\nEvaluations : ")
+    
     for i in range(n):
         e = parameters[i].get_expression()
         name = parameters[i].get_name()
         value = evaluate_expression(e,all_values)
         name_value_tuple = [name,value]
-        print(name_value_tuple[0])
-        print(name_value_tuple[1])
 
         all_values.add_element(name_value_tuple)
-    print(all_values)
 
 def evaluate_expression(expression,definitions):
     e_type = expression.get_type()
@@ -288,19 +305,25 @@ def evaluate_expression(expression,definitions):
             error_("INTERNAL ERROR : literal must have zero child, got "+str(nb_child)+" check internal parser")
 
         identifier = expression.get_name()
+
         if type(expression.get_name())==float or type(expression.get_name())==int:
             value = identifier
         else:
+            id_type = identifier.get_type()
+
+            if id_type != 'basic':
+                error_('Parameter shall not have this type of structure '+str(identifier))
+            identifier = identifier.get_name()
+
             n = definitions.get_size()
             found = False
             defined = definitions.get_elements()
             for i in range(n):
                 if defined[i][0]==identifier: 
                     value = defined[i][1]
-                    print('value : '+str(value))
                     found = True
             if found == False:
-                print(timevar)
+                
                 for i in range(len(timevar)):
                     if identifier == timevar[i]:
                         error_('A Parameter can not depend on time variable :"'+str(timevar[i])+'" at line '+str(expression.get_line()))
@@ -326,16 +349,79 @@ def evaluate_expression(expression,definitions):
             error_("INTERNAL ERROR : unexpected e_type "+str(e_type)+" check internal parser")
 
     return value
-"""
-def check_in_brackets(expression,variables,parameters)
+
+def check_in_brackets(identifier,variables,parameters):
+    id_type = identifier.type_id
+    if id_type == 'assign' or id_type =='complex':
+        expr = identifier.expression
+        if expr == None:
+            error_("INTERNAL ERROR : expected expression for "+str(id_type)+" check internal parser")
+        check_expr_in_brackets(expr,variables,parameters)
+
+def check_expr_in_brackets(expression,variables,parameters):
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
-    children = expression.get_children()
-    if e_type == 'literal':
-        if nb_child !=0:
-            error_("INTERNAL ERROR : literal expression must have zero child, got "+str(nb_child)+" check internal parser")
+    found = False
+    is_time_var = False
+
+    if e_type =='literal':
+        if nb_child != 0:
+            error_("INTERNAL ERROR : literal must have zero child, got "+str(nb_child)+" check internal parser")
+        identifier = expression.get_name()
+
+        if type(expression.get_name())==float or type(expression.get_name())==int:
+            value = identifier
+        else:
+            id_type = identifier.get_type()
+            if id_type != 'basic':
+                error_('Parameter shall not have this type of structure '+str(identifier))
+            identifier = identifier.get_name()
+
+            for i in range(len(parameters)):
+                if identifier == parameters[i]:
+                    found = True
+                    break
+
+            for i in range(len(timevar)):
+                if identifier == timevar[i]:
+                    is_time_var = True
+                    found = True
+                    break
+            
+            for i in range(len(variables)):
+                if variables[i].name_compare(identifier):
+                    error_('Variable in brackets for assignement ')
+            if found == False:
+                error_('Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
+
     elif e_type == 'u-':
-"""     
+        if nb_child != 1:
+            error_("INTERNAL ERROR : unary minus must have one child, got "+str(nb_child)+" check internal parser")
+
+        children = expression.get_children()
+        is_time_var = check_expr_in_brackets(children[0],variables,parameters)
+    else:
+        if nb_child != 2:
+            error_("INTERNAL ERROR : binary operators must have two children, got "+str(nb_child)+" check internal parser")
+
+        children = expression.get_children()
+        is_time_var1 = check_expr_in_brackets(children[0],variables,parameters)
+        is_time_var2 = check_expr_in_brackets(children[1],variables,parameters)
+        if e_type == '+' or e_type == '-':
+            if is_time_var2 or is_time_var1:
+                is_time_var = True
+        elif e_type =='*' or e_type == '/':
+            if is_time_var2:
+                error_("Non linearity in assignement")
+            if is_time_var1:
+                is_time_var = True
+        elif e_type == '**':
+            if is_time_var2 or is_time_var1:
+                error_("Non linearity in assignement")
+        else:
+            error_("INTERNAL ERROR : unexpected e_type "+str(e_type)+" check internal parser")
+
+    return is_time_var
 
 def error_(message):
     print(message)

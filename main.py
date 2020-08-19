@@ -1,3 +1,9 @@
+
+# main.py
+#
+# Writer : MIFTARI B
+# ------------
+
 from lexer import *
 from Myparser import parse_file
 from semantic import semantic

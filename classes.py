@@ -1,35 +1,8 @@
-class Program: 
-    def __init__(self,vector_n,timescale = None):
-        self.vector_nodes = vector_n
-        self.time = timescale
 
-    def __str__(self):
-        string = "["+str(self.vector_nodes)
-        if self.time == None:
-            string += ']'
-        else: 
-            string += ' , '+str(self.time)+']'
-        return string
-
-    def get_nodes(self):
-        return self.vector_nodes
-
-    def get_time(self):
-        return self.time
-
-    def set_time(self,timescale):
-        self.time = timescale
-
-    def set_vector(self,vector_n):
-        self.vector_nodes = vector_n
-
-class Time:
-    def __init__(self,time,step):
-        self.time = time
-        self.step = step
-    def __str__(self):
-        string = 'time: '+str(self.time)+' step: '+str(self.step)
-        return string
+# classes.py
+#
+# Writer : MIFTARI B
+# ------------
 
 class Vector: 
     def __init__(self):
@@ -56,6 +29,47 @@ class Vector:
 
     def get_size(self):
         return self.n
+
+class Program: 
+    def __init__(self,vector_n,timescale = None,links = None):
+        self.vector_nodes = vector_n
+        self.time = timescale
+        self.links = links
+
+    def __str__(self):
+        string = "["+str(self.vector_nodes)
+        if self.time != None:
+            string += ' , '+str(self.time)
+
+        if self.links ==None:
+            string += ']'
+        else:
+            string += ' , '+str(self.links)+']'
+
+        return string
+
+    def get_nodes(self):
+        return self.vector_nodes
+
+    def get_time(self):
+        return self.time
+
+    def get_links(self):
+        return self.links
+
+    def set_time(self,timescale):
+        self.time = timescale
+
+    def set_vector(self,vector_n):
+        self.vector_nodes = vector_n
+
+class Time:
+    def __init__(self,time,step):
+        self.time = time
+        self.step = step
+    def __str__(self):
+        string = 'time: '+str(self.time)+' step: '+str(self.step)
+        return string
 
 class Node: 
     def __init__(self,name,line = 0):
@@ -182,25 +196,25 @@ class Variable:
         return self.name
 
 class Constraint: 
-    def __init__(self,c_type,name,expression,line=0):
+    def __init__(self,c_type,rhs,lhs,line=0):
         self.c_type = c_type
-        self.name = name
-        self.expression = expression
+        self.rhs = rhs
+        self.lhs = lhs
         self.line = line
 
     def __str__(self):
-        string = "["+str(self.name)+' , '+str(self.c_type)
-        string += " , "+str(self.expression)+']'
+        string = "["+str(self.c_type)+' , '+str(self.rhs)
+        string += " , "+str(self.lhs)+']'
         return string
 
     def get_type(self):
         return self.c_type
 
-    def get_expression(self):
-        return self.expression
+    def get_rhs(self):
+        return self.rhs
 
-    def get_name(self):
-        return self.name
+    def get_lhs(self):
+        return self.lhs
 
     def set_line(self,line):
         self.line = line
@@ -266,17 +280,64 @@ class Objective:
         return self.expression
 
 class Identifier:
-    def __init__(self,name,expression,line=0):
-        self.name = name
+    def __init__(self,type_id,name_id,value_id=None,expression=None,line=0):
+        self.type_id = type_id
+        self.name_id = name_id
         self.expression = expression
+        self.value_id = value_id
         self.line = line
 
     def __str__(self):
-        string = str(self.name)+"["+str(expression)+']'
+        string = str(self.name_id)
+        if self.value_id !=None:
+            string += '.'+str(self.value_id)
+        if self.expression != None:
+            string+="["+str(self.expression)+']'
         return string
 
+    def name_compare(self,identifier_i):
+        equal = False
+        if type(identifier_i)== type(self):
+            if self.name_id == identifier_i.name_id:
+                equal = True
+        elif type(identifier_i)==str:
+            if self.name_id == identifier_i:
+                equal = True
+        return equal
+
+    def compare(self,identifier_i):
+        equal = False
+        if type(identifier_i)== type(self) and self.type_id == identifier_i.type_id:
+            if (self.name_id == identifier_i.name_id) and (self.value_id ==identifier_i.value_id):
+                equal = True
+
+        return equal                
+
     def get_name(self):
-        return self.name
+        return self.name_id
+
+    def get_type(self):
+        return self.type_id
 
     def get_expression(self):
         return self.expression
+
+class Attribute:
+    def __init__(self,name_node,name_attribute=None):
+        self.node = name_node
+        self.attribute = name_attribute
+
+    def __str__(self):
+        string = str(self.node)
+        if self.attribute!=None:
+            string+='.'+str(self.attribute)
+        return string
+
+class Link: 
+    def __init__(self,attribute,vector):
+        self.attribute = attribute
+        self.vector = vector
+
+    def __str__(self):
+        string = '['+str(self.attribute)+' , '+str(self.vector)+']'
+        return string

@@ -1,21 +1,24 @@
-# Yacc example
+
+# Myparser.py
+#
+# Writer : MIFTARI B
+# ------------
 
 import ply.yacc as yacc
-
-# Get the token map from the lexer. This is required.
 from lexer import tokens
 from classes import *
 
 precedence = (
+    ('nonassoc','EQUAL','LOW','BIG','LEQ','BEQ'),
     ('left', 'PLUS', 'MINUS'),
     ('left', 'TIMES', 'DIVIDE'),
-    ('right', 'UMINUS'), 
-    ('left','POW'),         # Unary minus operator
+    ('left','POW'),
+    ('right', 'UMINUS'),# Unary minus operator 
 )
 
 def p_start(p):
-    '''start : time program'''
-    p[0]=Program(p[2],p[1])
+    '''start : time program links'''
+    p[0]=Program(p[2],p[1],p[3])
 
 def p_time(p):
     '''time : TIME time_def step_def
@@ -43,6 +46,57 @@ def p_step_def(p):
     p[0]=type_value
 
 
+def p_links(p):
+    '''links : LINKS link_def link_aux
+             | empty'''
+    if len(p)>2:
+        p[3].add_begin(p[2])
+        p[0]=p[3]
+
+
+def p_link_def(p):
+    '''link_def : NAME EQUAL NAME more_id
+                | NAME DOT ID EQUAL NAME DOT ID more_id_aux'''
+    if len(p)==5:
+        rhs = Attribute(p[1])
+        a = Attribute(p[3])
+        p[4].add_begin(a)
+        p[0] = Link(rhs,p[4])
+    else:
+        rhs = Attribute(p[1],p[3])
+        a = Attribute(p[5],p[7])
+        p[8].add_begin(a)
+        p[0] = Link(rhs,p[8])
+
+def p_more_id_aux(p):
+    '''more_id_aux : COMMA NAME DOT ID
+                   | empty'''
+    if len(p)==2:
+        p[0]=Vector()
+    else:
+        a = Attribute(p[2],p[4])
+        p[3].add_begin(a)
+        p[0]=p[3]
+
+def p_more_id(p):
+    '''more_id : COMMA NAME more_id
+               | empty'''
+    if len(p)==2:
+        p[0]=Vector()
+    else:
+        a = Attribute(p[2])
+        p[3].add_begin(a)
+        p[0]=p[3]
+
+def p_link_aux(p):
+    '''link_aux : link_def link_aux
+                | empty'''
+    if len(p)==2:
+        p[0]=Vector()
+    else:
+        p[2].add_begin(p[1])
+        p[0]=p[2]
+
 def p_program(p):
     '''program : node program
                 | empty '''
@@ -55,7 +109,6 @@ def p_program(p):
 def p_node(p):
     '''node : NODE NAME parameters variables constraints objectives'''
     p[0]=Node(p[2])
-    print(p.lexpos(2))
     p[0].set_line(p.lexer.lineno)
     p[0].set_parameters(p[3])
     p[0].set_variables(p[4])
@@ -67,7 +120,8 @@ def p_empty(p):
     pass
 
 def p_parameters(p):
-    '''parameters : PARAM define_parameters'''
+    '''parameters : PARAM define_parameters
+                  | empty'''
     p[0] = p[2]
 
 def p_define_parameters(p):
@@ -80,12 +134,12 @@ def p_define_parameters(p):
         p[0]=p[2]
 
 def p_parameter(p):
-    '''parameter : id unity EQUAL expr
-                 | id unity EQUAL LCBRAC term more_values RCBRAC'''
+    '''parameter : ID unity EQUAL expr
+                 | ID unity EQUAL LCBRAC term more_values RCBRAC'''
     if len(p) == 5:
-        p[0]=Parameter(p[1],p[4],p[2],line = p.lexer.lineno)
+        p[0]=Parameter(p[1],p[4],p[2],line = p.lineno(1))
     else:
-        p[0]=Parameter(p[1],None,line = p.lexer.lineno)
+        p[0]=Parameter(p[1],None,line = p.lineno(1))
         p[6].add_begin(p[5])
         p[0].set_value(p[6])
 
@@ -105,7 +159,7 @@ def p_define_variables(p):
     '''define_variables : INTERNAL COLON id unity var_aux
                         | OUTPUT COLON id unity var_aux
                         | INPUT COLON id unity var_aux'''
-    var = Variable(p[3],p[1],p[4],line = p.lexer.lineno)
+    var = Variable(p[3],p[1],p[4],line = p.lineno(1))
     p[5].add_begin(var)
     p[0]=p[5]
 
@@ -118,26 +172,30 @@ def p_var_aux(p):
         p[0]=p[1]
 
 def p_constraints(p):
-    '''constraints : CONS define_constraints '''
-    p[0]=p[2]
+    '''constraints : CONS define_constraints cons_aux
+                   | empty'''
+    if len(p)==2:
+        p[0]=None
+    else:
+        p[3].add_begin(p[2])
+        p[0]=p[3]
 
 def p_define_constraints(p):
-    '''define_constraints : id EQUAL expr cons_aux
-                          | id LEQ expr cons_aux
-                          | id BEQ expr cons_aux
-                          | id LOW expr cons_aux
-                          | id BIG expr cons_aux'''
-    cons = Constraint(p[2],p[1],p[3],line = p.lexer.lineno)
-    p[4].add_begin(cons)
-    p[0]=p[4]
+    '''define_constraints : expr EQUAL expr 
+                          | expr LEQ expr
+                          | expr BEQ expr 
+                          | expr LOW expr
+                          | expr BIG expr'''
+    p[0] = Constraint(p[2],p[1],p[3],line = p.lexer.lineno)
 
 def p_cons_aux(p):
-    '''cons_aux : define_constraints
+    '''cons_aux : define_constraints cons_aux
                 | empty'''
     if p[1]==None:
         p[0]=Vector()
     else:
-        p[0]=p[1]
+        p[2].add_begin(p[1])
+        p[0]=p[2]
 
 def p_objectives(p):
     '''objectives : OBJ define_objectives
@@ -151,7 +209,7 @@ def p_objectives(p):
 def p_define_objectives(p):
     '''define_objectives : MIN COLON expr obj_aux
                          | MAX COLON expr obj_aux'''
-    obj = Objective(p[1],p[3],line = p.lexer.lineno)
+    obj = Objective(p[1],p[3],line = p.lineno(1))
     p[4].add_begin(obj)
     p[0]=p[4]
 
@@ -165,8 +223,17 @@ def p_obj_aux(p):
 
 def p_id(p):
     '''id : ID LBRAC expr RBRAC
+          | ID DOT ID LBRAC expr RBRAC
+          | ID DOT ID
           | ID'''
-    p[0] = p[1]
+    if len(p)==2:
+        p[0]=Identifier('basic',p[1])
+    elif len(p)==4:
+        p[0]=Identifier('dot',p[1],value_id = p[3])
+    elif len(p)==5:
+        p[0]=Identifier('assign',p[1],expression=p[3])
+    else:
+        p[0]=Identifier('complex',p[1],value_id=p[3],expression=p[5])
 
 def p_expr(p):
     '''expr : expr PLUS expr %prec PLUS
@@ -190,11 +257,11 @@ def p_expr(p):
     else:
         p[0]=p[1]
 
-def p_factor(p):
+def p_term(p):
     '''term : INT
             | FLOAT
             | id'''
-    p[0]=Expression('literal',p[1],line = p.lexer.lineno)
+    p[0]=Expression('literal',p[1],line = p.lineno(1))
 
 def p_unity(p):
     '''unity : IN expr
@@ -207,13 +274,17 @@ def p_unity(p):
 
 # Error rule for syntax errors
 def p_error(p):
-    if p != None:
-        token = f"{p.type} namely ({p.value}) on line {p.lineno}"
-        print(f"Syntax error: Unexpected token {token}")
+    if p!= None:
+        print("Syntax error:"+str(p.lineno)+":"+str(find_column(p.lexer.lexdata,p))+": Unexpected token "+str(p.type)+" namely("+str(p.value)+")")
+
     else : 
-        print("Expected a certain token got nothing")
+        print("Syntax error: Expected a certain token got EOF(End Of File)")
     exit(-1)
 
+
+def find_column(input,p):
+    line_start = input.rfind('\n', 0, p.lexpos) + 1
+    return (p.lexpos - line_start) + 1
 
 def parse_file(name):
     # Build the parser
@@ -221,20 +292,6 @@ def parse_file(name):
 
     with open(name, "r") as content:
         data = content.read()
-
     #result = True
     result = parser.parse(data)
     return result
-
-#parse_file("text.txt")
-
-"""
-parser = yacc.yacc()
-
-with open(name, "r") as content:
-    data = content.read()
-
-#result = True
-result = parser.parse(data)
-print(result)
-"""
