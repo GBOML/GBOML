@@ -40,10 +40,9 @@ def semantic(program):
     
     #CHECK If all nodes have different names
     check_names(root)
-    print("Nodes have different names : CHECKED")
+
     #CHECK If an objective function is defined
     find_objective(root)
-    print("At least one objective is defined : CHECKED")
 
     n = root.get_size()
     elements = root.get_elements()
@@ -61,7 +60,7 @@ def semantic(program):
 
         #TRY to evaluate the parameters
         vector_parameters = parameter_evaluation(elements[i].get_parameters())
-        print(vector_parameters)
+
         check_expressions_dependancy(elements[i],all_variables,all_parameters)
 
         check_var(elements[i].get_constraints(),all_variables,vector_parameters,all_parameters,time)
@@ -447,7 +446,6 @@ def check_var(constraints,variables,parameters,param_name,time):
     else:
         T = 0
 
-    print("len : "+str(len(variables)))
     string = ''
     for k in range(T):
         for i in range(len(variables)):
