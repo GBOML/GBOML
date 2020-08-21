@@ -5,6 +5,8 @@
 # ------------
 
 from classes import *
+import copy
+
 
 timevar = []
 # To check
@@ -59,9 +61,10 @@ def semantic(program):
 
         #TRY to evaluate the parameters
         vector_parameters = parameter_evaluation(elements[i].get_parameters())
-
+        print(vector_parameters)
         check_expressions_dependancy(elements[i],all_variables,all_parameters)
 
+        check_var(elements[i].get_constraints(),all_variables,vector_parameters,all_parameters,time)
     #check_input_output(root)
 
 def check_input_output(root):
@@ -212,9 +215,13 @@ def check_linear(expression,variables,parameters):
                     error_("Non linearity in expression : "+str(children[1])+" only linear problems are accepted at line "+str(children[0].get_line()))
 
         elif e_type == "*" or e_type == "/":
-            if term2 == True:
+            if term2 == True & term1 == True:
                 string = "Operation '"+str(e_type)+"' between two expressions containing variables leading to a non linearity at line "+str(children[0].get_line())+"\n"
                 string +="Namely Expression 1 : " + str(children[0])+ " and Expression 2 : "+str(children[1])
+                error_(string)
+
+            if term2 == True and e_type == "/":
+                string = "A variable in the denominator of a division leads to a Non linearity at line "+str(children[0].get_line())
                 error_(string)
 
             if term1 == True:
@@ -287,6 +294,7 @@ def parameter_evaluation(n_parameters):
         name_value_tuple = [name,value]
 
         all_values.add_element(name_value_tuple)
+    return all_values
 
 def evaluate_expression(expression,definitions):
     e_type = expression.get_type()
@@ -352,7 +360,7 @@ def evaluate_expression(expression,definitions):
 
 def check_in_brackets(identifier,variables,parameters):
     id_type = identifier.type_id
-    if id_type == 'assign' or id_type =='complex':
+    if id_type == 'assign':
         expr = identifier.expression
         if expr == None:
             error_("INTERNAL ERROR : expected expression for "+str(id_type)+" check internal parser")
@@ -422,6 +430,220 @@ def check_expr_in_brackets(expression,variables,parameters):
             error_("INTERNAL ERROR : unexpected e_type "+str(e_type)+" check internal parser")
 
     return is_time_var
+
+
+def check_var(constraints,variables,parameters,param_name,time):
+    cons = constraints.get_elements()
+    nb_cons = constraints.get_size()
+
+    if time!=None:
+        T = time.time
+        step = time.step 
+
+        tuple_time = ["T",T]
+        parameters.add_element(tuple_time)
+        tuple_time = ["step",step]
+        parameters.add_element(tuple_time)
+    else:
+        T = 0
+
+    print("len : "+str(len(variables)))
+
+    for i in range(nb_cons):
+        constr = cons[i]
+        print('CONSTRAINT : '+str(i))
+        for k in range(T):
+            print("t : " + str(k))
+            current_parameter = copy.copy(parameters)
+            tuple_time = ['t',k] 
+            current_parameter.add_element(tuple_time)
+            for j in range(len(variables)):
+                var = copy.copy(variables[j])
+                string = ""
+                for l in range(T):
+                    expr = Expression('literal',l)
+                    var.set_expression(expr)
+                    
+                    term = variable_in_constraint(constr,var,current_parameter)
+                    string += str(term)+" "
+                print(string)
+        print('const : '+str(constant_in_constraint(constr,variables,current_parameter,param_name)))        
+
+def constant_in_constraint(constr,variables,constants,param_name):
+    rhs = constr.get_rhs()
+    lhs = constr.get_lhs()
+    value1 = constant_factor_in_expression(rhs,variables,constants,param_name)
+    value2 = constant_factor_in_expression(lhs,variables,constants,param_name)
+
+    value = value2 - value1
+    return value
+
+def constant_factor_in_expression(expression,variables,constants,param_name):
+    e_type = expression.get_type()
+    nb_child = expression.get_nb_children()
+    children = expression.get_children()
+    value = 0
+    if variables_in_expression(expression,variables,param_name)==False:
+        value = evaluate_expression(expression,constants)
+    else:
+        if e_type == 'u-':
+            is_var = variables_in_expression(children[0],variables,param_name)
+            if is_var==False:
+                value = evaluate_expression(children[0],constants)
+            else: 
+                value = constant_factor_in_expression(children[0],variables,constants,param_name)
+        elif e_type == "/":
+            is_var1 = variables_in_expression(children[0],variables,param_name)
+            is_var2 = variables_in_expression(children[1],variables,param_name)
+            if is_var1 == False and is_var2 == False:
+                value = evaluate_expression(children[0],constants)/evaluate_expression(children[1],constants)
+            elif is_var1 == True:
+                value = constant_factor_in_expression(expression,variables,constants,param_name)/evaluate_expression(children[1],constants)
+        elif e_type == "*":
+            is_var1 = variables_in_expression(children[0],variables,param_name)
+            is_var2 = variables_in_expression(children[1],variables,param_name)
+            if is_var1 == False and is_var2 == False:
+                value = evaluate_expression(children[0],constants)*evaluate_expression(children[1],constants)
+            else:
+                if is_var1:
+                    value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
+                else:
+                    value1 = evaluate_expression(children[0],constants)
+                if is_var2:
+                    value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
+                else:
+                    value2 = evaluate_expression(children[1],constants)
+
+                value = value1*value2
+        elif e_type == '+':
+            is_var1 = variables_in_expression(children[0],variables,param_name)
+            is_var2 = variables_in_expression(children[1],variables,param_name)
+            if is_var1 == False and is_var2 == False:
+                value = evaluate_expression(children[0],constants)+evaluate_expression(children[1],constants)
+            else:
+                if is_var1:
+                    value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
+                else:
+                    value1 = evaluate_expression(children[0],constants)
+                if is_var2:
+                    value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
+                else:
+                    value2 = evaluate_expression(children[1],constants)
+
+                value = value1+value2
+        elif e_type == '-':
+            is_var1 = variables_in_expression(children[0],variables,param_name)
+            is_var2 = variables_in_expression(children[1],variables,param_name)
+            if is_var1 == False and is_var2 == False:
+                value = evaluate_expression(children[0],constants)-evaluate_expression(children[1],constants)
+            else:
+                if is_var1:
+                    value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
+                else:
+                    value1 = evaluate_expression(children[0],constants)
+                if is_var2:
+                    value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
+                else:
+                    value2 = evaluate_expression(children[1],constants)
+
+                value = value1-value2
+        elif e_type == '**':
+            is_var1 = variables_in_expression(children[0],variables,param_name)
+            is_var2 = variables_in_expression(children[1],variables,param_name)
+            if is_var1 == False and is_var2 == False:
+                value = evaluate_expression(children[0],constants)**evaluate_expression(children[1],constants)
+            else:
+                if is_var1:
+                    value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
+                else:
+                    value1 = evaluate_expression(children[0],constants)
+                value2 = evaluate_expression(children[1],constants)
+
+                value = value1**value2
+    return value
+
+
+def variable_in_constraint(constr,variable,constants):
+    rhs = constr.get_rhs()
+    lhs = constr.get_lhs()
+
+    found1,value1 = variable_factor_in_expression(rhs,variable,constants)  
+    found2,value2 = variable_factor_in_expression(lhs,variable,constants)
+    
+    value = value1 - value2
+    return value
+
+def variable_factor_in_expression(expression,variable,constants):
+    e_type = expression.get_type()
+    nb_child = expression.get_nb_children()
+    found = False
+    value = 0
+
+    var_id = variable.type_id
+
+    if e_type == 'literal':
+        identifier = expression.get_name()
+        if type(expression.get_name())!=float and type(expression.get_name())!=int:
+            if identifier.name_compare(variable):
+                type_id = identifier.get_type()
+                if type_id == 'assign':
+                    t_expr = identifier.get_expression()
+                    t_value = evaluate_expression(t_expr,constants)
+                    value1 = evaluate_expression(variable.get_expression(),constants)
+                    if value1 == t_value:
+                        found = True
+                        value = 1
+                else:
+                    value1 = evaluate_expression(variable.get_expression(),constants)
+                    const = constants.get_elements()
+                    for i in range(constants.get_size()):
+                        if const[i][0]=='t':
+                            t = const[i][1]
+                    if t == value1:
+                        found = True
+                        value = 1
+    else:
+        children = expression.get_children()
+        if e_type == 'u-':
+            found,value = variable_factor_in_expression(children[0],variable,constants)
+            value = - value
+        else:
+            found1,value1 = variable_factor_in_expression(children[0],variable,constants)
+            found2,value2 = variable_factor_in_expression(children[1],variable,constants)
+            
+            if e_type == '+':
+                if found1 or found2:
+                    found = True
+                    if found1 and found2:
+                        value = value1+value2
+                    elif found1:
+                        value = value1
+                    else:
+                        value = value2
+            elif e_type == '-':
+                if found1 or found2:
+                    found = True
+                    if found1 and found2:
+                        value = value1-value2
+                    elif found1:
+                        value = value1
+                    else:
+                        value = -value2
+            elif e_type == '*':
+                if found1:
+                    child = children[1]
+                    value = value1
+                else:
+                    child = children[0]
+                    value = value2
+
+                constant = evaluate_expression(child,constants) #MUST BE ALL CONSTANTS AS DEFINITIONS
+                value = value*constant
+            elif e_type == '/':
+                if found1:
+                    constant = evaluate_expression(children[1],constants)
+                    value = value1/constant
+    return found,value
 
 def error_(message):
     print(message)

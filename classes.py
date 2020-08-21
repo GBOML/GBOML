@@ -16,6 +16,12 @@ class Vector:
         string += ']'
         return string
 
+    def __copy__(self):
+        v = Vector()
+        for i in range(self.n):
+            v.add_element(self.elements[i])
+        return v
+
     def add_begin(self,e):
         self.elements.insert(0,e)
         self.n = self.n+1
@@ -280,20 +286,20 @@ class Objective:
         return self.expression
 
 class Identifier:
-    def __init__(self,type_id,name_id,value_id=None,expression=None,line=0):
+    def __init__(self,type_id,name_id,expression=None,line=0):
         self.type_id = type_id
         self.name_id = name_id
         self.expression = expression
-        self.value_id = value_id
         self.line = line
 
     def __str__(self):
         string = str(self.name_id)
-        if self.value_id !=None:
-            string += '.'+str(self.value_id)
         if self.expression != None:
             string+="["+str(self.expression)+']'
         return string
+
+    def __copy__(self):
+        return Identifier(self.type_id,self.name_id,expression=None)
 
     def name_compare(self,identifier_i):
         equal = False
@@ -305,13 +311,8 @@ class Identifier:
                 equal = True
         return equal
 
-    def compare(self,identifier_i):
-        equal = False
-        if type(identifier_i)== type(self) and self.type_id == identifier_i.type_id:
-            if (self.name_id == identifier_i.name_id) and (self.value_id ==identifier_i.value_id):
-                equal = True
-
-        return equal                
+    def set_expression(self,expr):
+        self.expression = expr
 
     def get_name(self):
         return self.name_id

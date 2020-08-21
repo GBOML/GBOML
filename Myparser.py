@@ -223,17 +223,11 @@ def p_obj_aux(p):
 
 def p_id(p):
     '''id : ID LBRAC expr RBRAC
-          | ID DOT ID LBRAC expr RBRAC
-          | ID DOT ID
           | ID'''
     if len(p)==2:
         p[0]=Identifier('basic',p[1])
-    elif len(p)==4:
-        p[0]=Identifier('dot',p[1],value_id = p[3])
     elif len(p)==5:
         p[0]=Identifier('assign',p[1],expression=p[3])
-    else:
-        p[0]=Identifier('complex',p[1],value_id=p[3],expression=p[5])
 
 def p_expr(p):
     '''expr : expr PLUS expr %prec PLUS
