@@ -247,7 +247,7 @@ def p_expr(p):
             p[0]=p[2]
     elif len(p)==3:
         p[0]=Expression('u-')
-        p[0].add_child(p[1])
+        p[0].add_child(p[2])
     else:
         p[0]=p[1]
 

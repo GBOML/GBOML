@@ -448,7 +448,15 @@ def check_var(constraints,variables,parameters,param_name,time):
         T = 0
 
     print("len : "+str(len(variables)))
-
+    string = ''
+    for k in range(T):
+        for i in range(len(variables)):
+            var = copy.copy(variables[i])
+            expr = Expression('literal',k)
+            var.set_expression(expr)
+            string += str(var) +' '
+        string+= "\n"
+    print(string)
     for i in range(nb_cons):
         constr = cons[i]
         print('CONSTRAINT : '+str(i))
@@ -567,13 +575,13 @@ def variable_in_constraint(constr,variable,constants):
     rhs = constr.get_rhs()
     lhs = constr.get_lhs()
 
-    found1,value1 = variable_factor_in_expression(rhs,variable,constants)  
+    found1,value1 = variable_factor_in_expression(rhs,variable,constants)
     found2,value2 = variable_factor_in_expression(lhs,variable,constants)
-    
     value = value1 - value2
     return value
 
 def variable_factor_in_expression(expression,variable,constants):
+
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     found = False
@@ -629,14 +637,14 @@ def variable_factor_in_expression(expression,variable,constants):
                         value = value1
                     else:
                         value = -value2
-            elif e_type == '*':
+            elif e_type == '*' and (found1 or found2):
                 if found1:
                     child = children[1]
                     value = value1
                 else:
                     child = children[0]
                     value = value2
-
+                found = True
                 constant = evaluate_expression(child,constants) #MUST BE ALL CONSTANTS AS DEFINITIONS
                 value = value*constant
             elif e_type == '/':
