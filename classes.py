@@ -138,13 +138,16 @@ class Expression:
         self.line = line
 
     def __str__(self):
-        string = '['+str(self.n_type)
-        if self.name !="":
-            string += " , "+str(self.name) 
-        if self.children.get_size()==0:
-            string += ']'
+        if self.n_type != "literal":
+            string = '['+str(self.n_type)
+            if self.name !="":
+                string += " , "+str(self.name) 
+            if self.children.get_size()==0:
+                string += ']'
+            else:
+                string +=  ' , '+str(self.children)+']'
         else:
-            string +=  ' , '+str(self.children)+']'
+            string = str(self.name)
         return string
 
     def get_children(self):
