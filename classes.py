@@ -4,37 +4,40 @@
 # Writer : MIFTARI B
 # ------------
 
-class Vector: 
-    def __init__(self):
-        self.elements = []
-        self.n = 0
+from utils import Vector
 
-    def __str__(self):
-        string = '['
-        for i in range(self.n):
-            string = string + ' '+str(self.elements[i])
-        string += ']'
-        return string
 
-    def __copy__(self):
-        v = Vector()
-        for i in range(self.n):
-            v.add_element(self.elements[i])
-        return v
+class Type:
+    def __init__(self,type_id,line):
+        self.type = type_id
+        self.line = line
 
-    def add_begin(self,e):
-        self.elements.insert(0,e)
-        self.n = self.n+1
+    def set_line(self,line):
+        self.line = line
 
-    def add_element(self,e):
-        self.elements.append(e)
-        self.n = self.n+1
+    def get_line(self):
+        return self.line
 
-    def get_elements(self):
-        return self.elements
+    def get_type(self):
+        return self.type
 
-    def get_size(self):
-        return self.n
+    def set_type(self,type_id):
+        self.type = type_id
+
+class Symbol(Type):
+    def __init__(self,name,type_id,line):
+        Type.__init__(self, type_id, line)
+        if name == None:
+            self.name = ""
+        else:
+            self.name = name
+
+    def get_name(self):
+        return self.name
+
+    def set_name(self,name):
+        self.name = name
+
 
 class Program: 
     def __init__(self,vector_n,timescale = None,links = None):
@@ -52,6 +55,23 @@ class Program:
         else:
             string += ' , '+str(self.links)+']'
 
+        return string
+
+    def to_string(self):
+        string = "Full program\n"
+        if self.time != None:
+            string += "Time horizon : "+str(self.time.time)+"\n"
+            string += "Time step : "+str(self.time.step)+"\n"
+        string += 'All the defined nodes : \n'
+        elements = self.vector_nodes.get_elements()
+        for i in range(self.vector_nodes.get_size()):
+            string += '\tName : '+ str(elements[i].get_name())+'\n'
+            string += '\t\tParameters : '+ str(elements[i].get_parameters())+'\n'
+            string += '\t\tVariables : '+ str(elements[i].get_variables())+'\n'
+            string += '\t\tConstraints : '+ str(elements[i].get_constraints())+'\n'
+            string += '\t\tObjectives : '+ str(elements[i].get_objectives())+'\n'
+
+        string += '\nLinks predefined are : '+ str(self.links)
         return string
 
     def get_nodes(self):
@@ -127,19 +147,14 @@ class Node:
     def get_objectives(self):
         return self.objectives
 
-class Expression:
+class Expression(Symbol):
     def __init__(self,node_type,name = None,line = 0):
-        self.n_type = node_type
+        Symbol.__init__(self,name,node_type,line)
         self.children = Vector()
-        if name == None:
-            self.name = ""
-        else :
-            self.name = name
-        self.line = line
 
     def __str__(self):
-        if self.n_type != "literal":
-            string = '['+str(self.n_type)
+        if self.type != "literal":
+            string = '['+str(self.type)
             if self.name !="":
                 string += " , "+str(self.name) 
             if self.children.get_size()==0:
@@ -159,65 +174,32 @@ class Expression:
     def add_child(self,child):
         self.children.add_element(child)
 
-    def set_line(self,line):
-        self.line = line
-
-    def get_line(self):
-        return self.line
-
-    def set_name(self,name):
-        self.name = name
-
-    def get_name(self):
-        return self.name
-
-    def get_type(self):
-        return self.n_type
-
-class Variable: 
+class Variable(Symbol): 
     def __init__(self,name,v_type, unity=None,line = 0):
-        self.name = name
-        self.v_type = v_type
+        Symbol.__init__(self,name,v_type,line)
         self.unity = unity
-        self.line = line
 
     def __str__(self):
-        string = "["+str(self.name)+' , '+str(self.v_type)
+        string = "["+str(self.name)+' , '+str(self.type_id)
         if self.unity==None:
             string += ']'
         else :
             string += ' , '+ str(self.unity)+']'
         return string
 
-    def set_line(self,line):
-        self.line = line
-
-    def get_line(self):
-        return self.line
-
-    def get_type(self):
-        return self.v_type
-
     def get_unity(self):
         return self.unity
 
-    def get_name(self):
-        return self.name
-
-class Constraint: 
+class Constraint(Type): 
     def __init__(self,c_type,rhs,lhs,line=0):
-        self.c_type = c_type
+        Type.__init__(self,c_type,line)
         self.rhs = rhs
         self.lhs = lhs
-        self.line = line
 
     def __str__(self):
-        string = "["+str(self.c_type)+' , '+str(self.rhs)
+        string = "["+str(self.type_id)+' , '+str(self.rhs)
         string += " , "+str(self.lhs)+']'
         return string
-
-    def get_type(self):
-        return self.c_type
 
     def get_rhs(self):
         return self.rhs
@@ -225,20 +207,13 @@ class Constraint:
     def get_lhs(self):
         return self.lhs
 
-    def set_line(self,line):
-        self.line = line
-
-    def get_line(self):
-        return self.line
-
-
-class Parameter: 
+class Parameter(Symbol): 
     def __init__(self,name,expression,unity=None,line = 0):
-        self.name = name
+        Symbol.__init__(self,name,None,line)
+
         self.expression = expression
         self.unity = unity
         self.value = None
-        self.line = line
 
     def __str__(self):
         string = "["+str(self.name)+' , '+str(self.expression)
@@ -247,12 +222,6 @@ class Parameter:
         else :
             string += ' , '+ str(self.unity)+']'
         return string
-
-    def set_line(self,line):
-        self.line = line
-
-    def get_line(self):
-        return self.line
 
     def set_value(self,value):
         self.value = value
@@ -263,65 +232,47 @@ class Parameter:
     def get_unity(self):
         return self.unity
 
-    def get_name(self):
-        return self.name
-
     def get_value(self):
         return self.value.get_elements()
 
-class Objective:
+class Objective(Type):
     def __init__(self,o_type,expression,line = 0):
-        self.o_type = o_type
+        Type.__init__(self,o_type,line)
         self.expression = expression
-        self.line = line
 
     def __str__(self):
-        string = "["+str(self.o_type)+','+str(self.expression)+']'
+        string = "["+str(self.type)+','+str(self.expression)+']'
         return string
-
-    def set_line(self,line):
-        self.line = line
-
-    def get_line(self):
-        return self.line
 
     def get_expression(self):
         return self.expression
 
-class Identifier:
+class Identifier(Symbol):
     def __init__(self,type_id,name_id,expression=None,line=0):
-        self.type_id = type_id
-        self.name_id = name_id
+        Symbol.__init__(self,name_id,type_id,line)
         self.expression = expression
-        self.line = line
 
     def __str__(self):
-        string = str(self.name_id)
+        string = str(self.name)
         if self.expression != None:
             string+="["+str(self.expression)+']'
         return string
 
     def __copy__(self):
-        return Identifier(self.type_id,self.name_id,expression=None)
+        return Identifier(self.type,self.name,expression=None)
 
     def name_compare(self,identifier_i):
         equal = False
         if type(identifier_i)== type(self):
-            if self.name_id == identifier_i.name_id:
+            if self.name == identifier_i.name:
                 equal = True
         elif type(identifier_i)==str:
-            if self.name_id == identifier_i:
+            if self.name == identifier_i:
                 equal = True
         return equal
 
     def set_expression(self,expr):
         self.expression = expr
-
-    def get_name(self):
-        return self.name_id
-
-    def get_type(self):
-        return self.type_id
 
     def get_expression(self):
         return self.expression

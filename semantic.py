@@ -358,9 +358,9 @@ def evaluate_expression(expression,definitions):
     return value
 
 def check_in_brackets(identifier,variables,parameters):
-    id_type = identifier.type_id
+    id_type = identifier.get_type()
     if id_type == 'assign':
-        expr = identifier.expression
+        expr = identifier.get_expression()
         if expr == None:
             error_("INTERNAL ERROR : expected expression for "+str(id_type)+" check internal parser")
         check_expr_in_brackets(expr,variables,parameters)
@@ -585,7 +585,7 @@ def variable_factor_in_expression(expression,variable,constants):
     found = False
     value = 0
 
-    var_id = variable.type_id
+    var_id = variable.get_type()
 
     if e_type == 'literal':
         identifier = expression.get_name()
