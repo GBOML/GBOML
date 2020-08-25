@@ -63,6 +63,8 @@ def semantic(program):
 
         check_expressions_dependancy(elements[i],all_variables,all_parameters)
 
+        #check_definition_order(elements[i].get_constraints())
+
         check_var(elements[i].get_constraints(),all_variables,vector_parameters,all_parameters,time)
     #check_input_output(root)
 
@@ -444,7 +446,7 @@ def check_var(constraints,variables,parameters,param_name,time):
         tuple_time = ["step",step]
         parameters.add_element(tuple_time)
     else:
-        T = 0
+        T = 1
 
     string = ''
     for k in range(T):
@@ -457,23 +459,36 @@ def check_var(constraints,variables,parameters,param_name,time):
     print(string)
     for i in range(nb_cons):
         constr = cons[i]
-        print('CONSTRAINT : '+str(i))
-        for k in range(T):
-            print("t : " + str(k))
+        print('CONSTRAINT '+str(i+1) + ': '+str(constr))
+
+        if(is_time_dependant_constraint(constr)):
+            t_horizon = T
+        else:
+            t_horizon = 1
+        for k in range(t_horizon):
+            string ="t : " + str(k)+ "\n"
             current_parameter = copy.copy(parameters)
             tuple_time = ['t',k] 
             current_parameter.add_element(tuple_time)
+            
             for j in range(len(variables)):
                 var = copy.copy(variables[j])
-                string = ""
                 for l in range(T):
                     expr = Expression('literal',l)
                     var.set_expression(expr)
                     
-                    term = variable_in_constraint(constr,var,current_parameter)
+                    term,flag_out_of_bounds = variable_in_constraint(constr,var,current_parameter)
+                    
+                    if flag_out_of_bounds==True:
+                        break
                     string += str(term)+" "
+                string += '\n'
+                
+                if flag_out_of_bounds:
+                    break
+            if flag_out_of_bounds == False:
                 print(string)
-        print('const : '+str(constant_in_constraint(constr,variables,current_parameter,param_name)))        
+                print('const : '+str(constant_in_constraint(constr,variables,current_parameter,param_name)))        
 
 def constant_in_constraint(constr,variables,constants,param_name):
     rhs = constr.get_rhs()
@@ -572,18 +587,21 @@ def constant_factor_in_expression(expression,variables,constants,param_name):
 def variable_in_constraint(constr,variable,constants):
     rhs = constr.get_rhs()
     lhs = constr.get_lhs()
+    flag_out_of_bounds = False
 
-    found1,value1 = variable_factor_in_expression(rhs,variable,constants)
-    found2,value2 = variable_factor_in_expression(lhs,variable,constants)
+    found1,value1,flag_out_of_bounds1 = variable_factor_in_expression(rhs,variable,constants)
+    found2,value2,flag_out_of_bounds2 = variable_factor_in_expression(lhs,variable,constants)
     value = value1 - value2
-    return value
+    if flag_out_of_bounds1 or flag_out_of_bounds2:
+        flag_out_of_bounds = True
+    return value,flag_out_of_bounds
 
 def variable_factor_in_expression(expression,variable,constants):
-
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     found = False
     value = 0
+    flag_out_of_bounds = False
 
     var_id = variable.get_type()
 
@@ -595,6 +613,14 @@ def variable_factor_in_expression(expression,variable,constants):
                 if type_id == 'assign':
                     t_expr = identifier.get_expression()
                     t_value = evaluate_expression(t_expr,constants)
+
+                    const = constants.get_elements()
+                    for i in range(constants.get_size()):
+                        if const[constants.get_size()-i-1][0]=='T':
+                            T = const[constants.get_size()-i-1][1]
+
+                    if t_value<0 or t_value >=T:
+                        flag_out_of_bounds = True
                     value1 = evaluate_expression(variable.get_expression(),constants)
                     if value1 == t_value:
                         found = True
@@ -611,12 +637,18 @@ def variable_factor_in_expression(expression,variable,constants):
     else:
         children = expression.get_children()
         if e_type == 'u-':
-            found,value = variable_factor_in_expression(children[0],variable,constants)
+            found,value,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,constants)
+            if flag_out_of_bounds:
+                return found,value,flag_out_of_bounds
             value = - value
         else:
-            found1,value1 = variable_factor_in_expression(children[0],variable,constants)
-            found2,value2 = variable_factor_in_expression(children[1],variable,constants)
-            
+            found1,value1,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,constants)
+            if flag_out_of_bounds:
+                return found,value,flag_out_of_bounds
+            found2,value2,flag_out_of_bounds = variable_factor_in_expression(children[1],variable,constants)
+            if flag_out_of_bounds:
+                return found,value,flag_out_of_bounds
+
             if e_type == '+':
                 if found1 or found2:
                     found = True
@@ -649,7 +681,72 @@ def variable_factor_in_expression(expression,variable,constants):
                 if found1:
                     constant = evaluate_expression(children[1],constants)
                     value = value1/constant
-    return found,value
+    return found,value,flag_out_of_bounds
+
+def is_time_dependant_constraint(constraint):
+    rhs = constraint.get_rhs()
+    time_dep = is_time_dependant_expression(rhs)
+    lhs = constraint.get_lhs()
+    if time_dep == False:
+        time_dep = is_time_dependant_expression(lhs)
+    return time_dep
+
+def is_time_dependant_expression(expression):
+    e_type = expression.get_type()
+    nb_child = expression.get_nb_children()
+    children = expression.get_children()
+    found = False
+
+    if e_type == 'literal':
+        identifier = expression.get_name()
+        if type(expression.get_name())!=float and type(expression.get_name())!=int:
+            id_type = identifier.get_type()
+            if identifier.name_compare("t"):
+                if id_type != "basic":
+                    error_("Identifier t is used with [expression] at line "+identifier.get_line())
+                found = True
+            else:
+                if id_type == 'assign':
+                    found = is_time_dependant_expression(identifier.get_expression())
+    else:
+        for i in range(nb_child):
+            found1 = is_time_dependant_expression(children[i])
+            if found1:
+                found = found1
+    return found
+
+def check_definition_order(constraints,variables):
+    nb_cons = constraints.get_size()
+    cons = constraints.get_elements()
+    for i in range(nb_cons):
+        variable_list = get_variables_constraint(cons[i],variables,[])
+
+def get_variables_constraint(constraint,variables):
+    rhs = constraint.get_rhs()
+    lhs = constraint.get_lhs()
+
+    rhs_list = get_variables_expression(rhs,variables)
+    lhs_list = get_variables_expression(lhs,variables)
+
+    full_list = rhs_list + lhs_list
+
+def get_variables_expression(expression,variables):
+    e_type = expression.get_type()
+    nb_child = expression.get_nb_children()
+    variable_list = []
+
+    if e_type == "literal":
+        identifier = expression.get_name()
+        if type(identifier) != int and type(identifier) != float:
+            for i in range(len(variables)):
+                if identifier.name_compare(variables[i]):
+                    variable_list.append(identifier)
+                    break
+    else: 
+        for i in range(nb_child):
+            curr_var = get_variables_expression(children[i],variables)
+            variable_list = curr_var + variable_list  
+    return variable_list
 
 def error_(message):
     print(message)

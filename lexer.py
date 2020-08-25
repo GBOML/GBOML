@@ -6,6 +6,7 @@
 
 import ply.lex as lex
 
+
 def tokenize(data):
     """
     Tokenize input data to stdout for testing purposes.

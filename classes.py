@@ -180,7 +180,7 @@ class Variable(Symbol):
         self.unity = unity
 
     def __str__(self):
-        string = "["+str(self.name)+' , '+str(self.type_id)
+        string = "["+str(self.name)+' , '+str(self.type)
         if self.unity==None:
             string += ']'
         else :
@@ -197,7 +197,7 @@ class Constraint(Type):
         self.lhs = lhs
 
     def __str__(self):
-        string = "["+str(self.type_id)+' , '+str(self.rhs)
+        string = "["+str(self.type)+' , '+str(self.rhs)
         string += " , "+str(self.lhs)+']'
         return string
 
