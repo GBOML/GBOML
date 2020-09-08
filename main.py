@@ -15,7 +15,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--lex",help="Prints all tokens found in input file",action='store_const',const=True)
     parser.add_argument("--parse",help="Prints the AST",action='store_const',const=True)
-    parser.add_argument("--graph",help="Prints graph representation",action='store_const',const=True)
+    parser.add_argument("--matrix",help="Prints matrix representation",action='store_const',const=True)
     
     args = parser.parse_args()
 

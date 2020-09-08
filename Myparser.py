@@ -11,9 +11,9 @@ from classes import *
 precedence = (
     ('nonassoc','EQUAL','LOW','BIG','LEQ','BEQ'),
     ('left', 'PLUS', 'MINUS'),
-    ('left', 'TIMES', 'DIVIDE'),
-    ('left','POW'),
+    ('left', 'MULT', 'DIVIDE'),
     ('right', 'UMINUS'),# Unary minus operator 
+    ('left','POW'),
 )
 
 def p_start(p):
@@ -141,7 +141,7 @@ def p_parameter(p):
     else:
         p[0]=Parameter(p[1],None,line = p.lineno(1))
         p[6].add_begin(p[5])
-        p[0].set_value(p[6])
+        p[0].set_vector(p[6])
 
 def p_more_values(p):
     '''more_values : COMMA term more_values
@@ -149,7 +149,8 @@ def p_more_values(p):
     if len(p)==2:
         p[0]=Vector()
     else:
-        p[0].add_begin(p[2])
+        p[3].add_begin(p[2])
+        p[0]=p[3]
 
 def p_variables(p):
     '''variables : VAR define_variables'''
@@ -232,7 +233,7 @@ def p_id(p):
 def p_expr(p):
     '''expr : expr PLUS expr %prec PLUS
             | expr MINUS expr %prec MINUS
-            | expr TIMES expr %prec TIMES
+            | expr MULT expr %prec MULT
             | expr DIVIDE expr %prec DIVIDE
             | MINUS expr %prec UMINUS
             | expr POW expr %prec POW

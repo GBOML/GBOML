@@ -209,11 +209,14 @@ class Constraint(Type):
 
 class Parameter(Symbol): 
     def __init__(self,name,expression,unity=None,line = 0):
-        Symbol.__init__(self,name,None,line)
-
+        if expression == None:
+            type_para = "table"
+        else:
+            type_para = "expression"
+        Symbol.__init__(self,name,type_para,line)
+        self.vector = None
         self.expression = expression
         self.unity = unity
-        self.value = None
 
     def __str__(self):
         string = "["+str(self.name)+' , '+str(self.expression)
@@ -223,17 +226,17 @@ class Parameter(Symbol):
             string += ' , '+ str(self.unity)+']'
         return string
 
-    def set_value(self,value):
-        self.value = value
-
     def get_expression(self):
         return self.expression
 
     def get_unity(self):
         return self.unity
 
-    def get_value(self):
-        return self.value.get_elements()
+    def set_vector(self,v):
+        self.vector = v
+
+    def get_vector(self):
+        return self.vector.get_elements()
 
 class Objective(Type):
     def __init__(self,o_type,expression,line = 0):

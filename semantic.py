@@ -66,52 +66,17 @@ def semantic(program):
         #check_definition_order(elements[i].get_constraints())
 
         check_var(elements[i].get_constraints(),all_variables,vector_parameters,all_parameters,time)
+    vector_parameters = vector_parameters.get_elements()
+    for i in range(len(vector_parameters)):
+        print("name: "+str(vector_parameters[i][0])+" value : "+str(vector_parameters[i][1]))
+    #print(vector_parameters)
     #check_input_output(root)
 
-def check_input_output(root):
-    n = root.get_size()
-    elements = root.get_elements()
-    input_var = []
-    output_var = []
-
-    for i in range(n):
-        variables_vector = elements[i].get_variables()
-        nb_var = variables_vector.get_size()
-        variables = variables_vector.get_elements()
-
-        constraints_vector = elements[i].get_constraints()
-        nb_cons = constraints_vector.get_size()
-        constraints = constraints_vector.get_elements()
-        for j in range(nb_var):
-            v_type = variables[j].get_type()
-            name = variables[j].get_name()
-            if v_type == "input": 
-                input_var.append(name)
-            elif v_type == "output": 
-                for k in range(len(output_var)):
-                    if name == output_var[k]:
-                        error_("Two Nodes output the same variable named : "+str(name)+" rediffined at "+str(elements[i].get_line())+" node "+str(elements[i].get_name()))
-                output_var.append(name)
-
-            found = False
-            for k in range(nb_cons):
-                if name == constraints[i].get_name():
-                    found = True
-
-            if found == False:
-                if v_type == 'output':
-                    error_("Output '"+str(name)+"' does not have a formula associated however defined at line "+str(variables[j].get_line()))
-
-    for i in range(len(input_var)):
-        in_var = input_var[i]
-        found = False
-        for j in range(len(output_var)):
-            out_var = output_var[i]
-            if in_var == out_var:
-                found = True
-        if found == False: 
-            error_("Input Variable "+str(in_var)+" is not outputted from any node")
-
+def check_link(program):
+    links_vector = program.get_links()
+    link_size = links_vector.get_size()
+    links = links_vector.get_elements()
+    
 
 def check_expressions_dependancy(node,variables,parameters):
     constraints = node.get_constraints()
@@ -290,12 +255,47 @@ def parameter_evaluation(n_parameters):
     
     for i in range(n):
         e = parameters[i].get_expression()
-        name = parameters[i].get_name()
-        value = evaluate_expression(e,all_values)
-        name_value_tuple = [name,value]
+        if e != None:
+            name = parameters[i].get_name()
+            value = evaluate_expression(e,all_values)
+            name_value_tuple = [name,value]
+            all_values.add_element(name_value_tuple)
+        else:
+            all_values = evaluate_table(parameters[i],all_values)
 
-        all_values.add_element(name_value_tuple)
     return all_values
+
+def evaluate_table(parameters,definitions):
+    name = parameters.get_name()
+    values = parameters.get_vector()
+    tuple_value_name = []
+    for i in range(len(values)):
+        value_i = values[i].get_name()
+        if type(value_i) != float and type(value_i) !=int:
+            type_val = value_i.get_type()
+            defined = definitions.get_elements()
+            length_def = definitions.get_size()
+            found = False
+            for j in range(length_def):
+                if type_val == "basic":
+                    if value_i.get_name() == defined[j][0]:
+                        value_i = defined[j][1]
+                        found = True
+                        break
+                elif type_val == "assign":
+                    if value_i.name_compare(defined[j][0]) and evaluate_expression(value_i.get_expression(),definitions)==evaluate_expression(defined[j][0].get_expression(),definitions):
+                        found = True
+                        value_i = defined[j][1]
+                        break
+            if found == False:
+                error_('Undefined parameter : '+str(value_i))
+        expr = Expression('literal',i)
+        identifier = Identifier('assign',name,expression=expr)
+        tuple_value_name = [identifier,value_i]
+        definitions.add_element(tuple_value_name)
+    return definitions
+
+
 
 def evaluate_expression(expression,definitions):
     e_type = expression.get_type()
@@ -320,15 +320,14 @@ def evaluate_expression(expression,definitions):
         else:
             id_type = identifier.get_type()
 
-            if id_type != 'basic':
-                error_('Parameter shall not have this type of structure '+str(identifier))
-            identifier = identifier.get_name()
-
             n = definitions.get_size()
             found = False
             defined = definitions.get_elements()
             for i in range(n):
-                if defined[i][0]==identifier: 
+                if (identifier.name_compare(defined[i][0]) and
+                    ((id_type == "basic") or
+                    ((id_type =="assign") and 
+                    (evaluate_expression(identifier.get_expression(),definitions)==evaluate_expression(defined[i][0].get_expression(),definitions))))):
                     value = defined[i][1]
                     found = True
             if found == False:
@@ -751,3 +750,47 @@ def get_variables_expression(expression,variables):
 def error_(message):
     print(message)
     exit(-1)
+
+# def check_input_output(root):
+#     n = root.get_size()
+#     elements = root.get_elements()
+#     input_var = []
+#     output_var = []
+
+#     for i in range(n):
+#         variables_vector = elements[i].get_variables()
+#         nb_var = variables_vector.get_size()
+#         variables = variables_vector.get_elements()
+
+#         constraints_vector = elements[i].get_constraints()
+#         nb_cons = constraints_vector.get_size()
+#         constraints = constraints_vector.get_elements()
+#         for j in range(nb_var):
+#             v_type = variables[j].get_type()
+#             name = variables[j].get_name()
+#             if v_type == "input": 
+#                 input_var.append(name)
+#             elif v_type == "output": 
+#                 for k in range(len(output_var)):
+#                     if name == output_var[k]:
+#                         error_("Two Nodes output the same variable named : "+str(name)+" rediffined at "+str(elements[i].get_line())+" node "+str(elements[i].get_name()))
+#                 output_var.append(name)
+
+#             found = False
+#             for k in range(nb_cons):
+#                 if name == constraints[i].get_name():
+#                     found = True
+
+#             if found == False:
+#                 if v_type == 'output':
+#                     error_("Output '"+str(name)+"' does not have a formula associated however defined at line "+str(variables[j].get_line()))
+
+#     for i in range(len(input_var)):
+#         in_var = input_var[i]
+#         found = False
+#         for j in range(len(output_var)):
+#             out_var = output_var[i]
+#             if in_var == out_var:
+#                 found = True
+#         if found == False: 
+#             error_("Input Variable "+str(in_var)+" is not outputted from any node")

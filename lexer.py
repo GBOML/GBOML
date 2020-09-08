@@ -42,7 +42,7 @@ keywords = {
     'internal':'INTERNAL',
     'in':'IN',
     'horizon':'HORIZON',
-    'step':'STEP',
+    'step':'STEP'
 }
 
 reserved = {
@@ -50,7 +50,7 @@ reserved = {
    '#PARAMETERS':'PARAM',
    '#CONSTRAINTS':'CONS',
    '#VARIABLES':'VAR',
-   '#OBJECTIVE':'OBJ',
+   '#OBJECTIVES':'OBJ',
    '#TIMESCALE':'TIME',
    '#LINKS':'LINKS'
 }
@@ -61,16 +61,11 @@ tokens = (
 'PLUS',
 'MINUS',
 'POW',
-'TIMES',
+'MULT',
 'DIVIDE',
 'LPAR',
 'RPAR',
 'FLOAT',
-'NODE',
-'PARAM',
-'CONS',
-'VAR',
-'OBJ',
 'ID',
 'COMMA',
 'LCBRAC',
@@ -84,18 +79,8 @@ tokens = (
 'LOW',
 'BIG',
 'NAME',
-'INPUT',
-'OUTPUT',
-'INTERNAL',
-'DOT',
-'MAX',
-'MIN',
-'IN',
-'TIME',
-'HORIZON',
-'STEP',
-'LINKS'
-)
+'DOT'
+)+tuple(keywords.values())+tuple(reserved.values())
 
 # Regular expression rules for simple tokens
 t_PLUS    = r'\+'
@@ -106,7 +91,7 @@ t_RCBRAC  = r'\}'
 t_LBRAC   = r'\['
 t_RBRAC   = r'\]'
 t_POW     = r'\*\*'
-t_TIMES   = r'\*'
+t_MULT   = r'\*'
 t_DIVIDE  = r'/'
 t_LPAR    = r'\('
 t_RPAR    = r'\)'
@@ -124,7 +109,7 @@ def t_ID(t):
         t.type =  keywords.get(t.value,'ID') 
     return t
 
-def t_keyword(t):
+def t_reserved(t):
     r'[#][A-Z]+'
     if t.value in reserved:
         t.type =  reserved.get(t.value,'ID') 
@@ -159,7 +144,7 @@ def t_newline(t):
     t.lexer.lineno += len(t.value)
 
 # A string containing ignored characters (spaces and tabs)
-t_ignore  = ' \t'
+t_ignore  = ' \t\r\f'
 
 # Error handling rule
 def t_error(t):
