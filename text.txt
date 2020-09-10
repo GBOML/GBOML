@@ -1,22 +1,24 @@
 #TIMESCALE
 horizon: 3
 step: 1
-
+//BONJOUR
 #NODE ABC
 #PARAMETERS
 c = 10 +10.01
 v = (5)**c
+d = {1,2,3,c}
+d2 = {1,2,3,d[0]}
 #VARIABLES 
 internal : a
 output : b
 #CONSTRAINTS
 a[0]=1
 a[t+1] = 3*a[0]
-b[t*c+1] = 3*a
+b[t*c+1] = v*a
 b[t]-(3*b[t+1] + (-a[t]))=-2*b[t]+1 
 b-(3*b[t+1] + (-a))=-2*b+1 
 
-#OBJECTIVE
+#OBJECTIVES
 min : a
 
 #LINKS

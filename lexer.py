@@ -148,6 +148,9 @@ t_ignore  = ' \t\r\f'
 
 # Error handling rule
 def t_error(t):
+    if not p:
+        print("End of File!")
+        return
     print('Lexing error:'+str(t.lineno)+':'+str(find_column(lexer.lexdata,t))+":Illegal character '%s'" % t.value[0])
     exit(-1)
     
