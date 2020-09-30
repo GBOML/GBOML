@@ -8,6 +8,7 @@ import ply.yacc as yacc
 from lexer import tokens
 from classes import *
 
+# precendence rules from most to least priority with associativity also specified
 precedence = (
     ('nonassoc','EQUAL','LOW','BIG','LEQ','BEQ'),
     ('left', 'PLUS', 'MINUS'),
@@ -16,6 +17,7 @@ precedence = (
     ('left','POW'),
 )
 
+# Start symbol
 def p_start(p):
     '''start : time program links'''
     p[0]=Program(p[2],p[1],p[3])
@@ -52,6 +54,8 @@ def p_links(p):
     if len(p)>2:
         p[3].add_begin(p[2])
         p[0]=p[3]
+    else: 
+        p[0]=Vector()
 
 
 def p_link_def(p):
@@ -69,14 +73,14 @@ def p_link_def(p):
         p[0] = Link(rhs,p[8])
 
 def p_more_id_aux(p):
-    '''more_id_aux : COMMA NAME DOT ID
+    '''more_id_aux : COMMA NAME DOT ID more_id_aux
                    | empty'''
     if len(p)==2:
         p[0]=Vector()
     else:
         a = Attribute(p[2],p[4])
-        p[3].add_begin(a)
-        p[0]=p[3]
+        p[5].add_begin(a)
+        p[0]=p[5]
 
 def p_more_id(p):
     '''more_id : COMMA NAME more_id
@@ -122,7 +126,10 @@ def p_empty(p):
 def p_parameters(p):
     '''parameters : PARAM define_parameters
                   | empty'''
-    p[0] = p[2]
+    if len(p)==2:
+        p[0] = Vector()
+    else:
+        p[0] = p[2]
 
 def p_define_parameters(p):
     '''define_parameters : parameter define_parameters
@@ -135,13 +142,16 @@ def p_define_parameters(p):
 
 def p_parameter(p):
     '''parameter : ID unity EQUAL expr
-                 | ID unity EQUAL LCBRAC term more_values RCBRAC'''
+                 | ID unity EQUAL LCBRAC term more_values RCBRAC
+                 | ID unity EQUAL IMPORT FILENAME'''
     if len(p) == 5:
         p[0]=Parameter(p[1],p[4],p[2],line = p.lineno(1))
-    else:
+    elif len(p) == 8:
         p[0]=Parameter(p[1],None,line = p.lineno(1))
         p[6].add_begin(p[5])
         p[0].set_vector(p[6])
+    else:
+        p[0]=Parameter(p[1],p[5],line = p.lineno(1))
 
 def p_more_values(p):
     '''more_values : COMMA term more_values
@@ -176,7 +186,7 @@ def p_constraints(p):
     '''constraints : CONS define_constraints cons_aux
                    | empty'''
     if len(p)==2:
-        p[0]=None
+        p[0]=Vector()
     else:
         p[3].add_begin(p[2])
         p[0]=p[3]

@@ -7,9 +7,14 @@
 from lexer import *
 from Myparser import parse_file
 from semantic import semantic
+from matrixGeneration import matrix_generationAb,matrix_generationC
 import argparse
+import time
 
 if __name__ == '__main__':
+    start_time = time.time()
+
+
     parser = argparse.ArgumentParser(description='Compiler converting txt file to python matrix')
     parser.add_argument( "input_file", type = str)
 
@@ -22,10 +27,13 @@ if __name__ == '__main__':
     if args.input_file:
         if args.lex:
             tokenize_file(args.input_file)
+        
         result = parse_file(args.input_file)
         if args.parse:
             print(result)
-        semantic(result)
-
+        program = semantic(result)
+        matrix_generationAb(program)
+        matrix_generationC(program)
     else: 
         print('ERROR : expected input file')
+    print("--- %s seconds ---" % (time.time() - start_time))

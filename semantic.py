@@ -6,7 +6,7 @@
 
 from classes import *
 import copy
-
+import numpy as np
 
 timevar = []
 # To check
@@ -24,6 +24,7 @@ timevar = []
 #   A LHS term shall not be in the RHS
 #   OUTPUT MUST HAVE A formula                                  DONE
 #   Check that a certain variable is defined in a link
+#   if all the elements are zero in matrix constraint 
 
 def semantic(program):
     # WRAPPER that checks all the possible errors that could happen
@@ -34,7 +35,6 @@ def semantic(program):
 
     if time!=None:
         timevar = ["t","T","step"] 
-    
     
     root = program.get_nodes()
     
@@ -51,10 +51,11 @@ def semantic(program):
     for i in range(n):
         #CHECK if all parameters of a node have different names
         all_parameters = check_names(elements[i].get_parameters())
-
+        print("parameters: "+str(all_parameters))
         #CHECK if all variables of a node have different names
         all_variables = check_names(elements[i].get_variables())
-
+        print(all_variables)
+        
         #CHECK if dont share the same name
         match_names(all_parameters,all_variables)
 
@@ -62,21 +63,275 @@ def semantic(program):
         vector_parameters = parameter_evaluation(elements[i].get_parameters())
 
         check_expressions_dependancy(elements[i],all_variables,all_parameters)
-
         #check_definition_order(elements[i].get_constraints())
+        check_var(elements[i],all_variables,vector_parameters,all_parameters,time)
+        
+        convert_objectives_matrix(elements[i],all_variables,vector_parameters,time)
 
-        check_var(elements[i].get_constraints(),all_variables,vector_parameters,all_parameters,time)
     vector_parameters = vector_parameters.get_elements()
     for i in range(len(vector_parameters)):
         print("name: "+str(vector_parameters[i][0])+" value : "+str(vector_parameters[i][1]))
     #print(vector_parameters)
     #check_input_output(root)
+    all_input_output_pairs = check_link(program)
+
+    all_input_output_pairs = regroup_by_name(all_input_output_pairs)
+
+    input_output_matrix = convert_links_to_matrix(all_input_output_pairs)
+
+    print(input_output_matrix)
+
+    program.set_link_constraints(input_output_matrix)
+
+    return program
+
+def convert_links_to_matrix(input_output_pairs):
+    input_output_matrix = []
+
+    for i in range(len(input_output_pairs)):
+        print(input_output_pairs[i])
+        input_node = input_output_pairs[i][1]
+        output_node = input_output_pairs[i][3]
+        for j in range(len(input_output_pairs[i][4])):
+            vector_1, vector_2 = get_index_link(input_output_pairs[i][4][j])
+            if j==0:
+                matrixNodeIn = vector_1
+                matrixNodeOut = vector_2
+            else:
+                matrixNodeIn = np.concatenate((matrixNodeIn,vector_1),axis = 1)
+                matrixNodeOut = np.concatenate((matrixNodeOut,vector_2),axis = 1)
+        quadruple = [input_node,matrixNodeIn,output_node,matrixNodeOut]
+        input_output_matrix.append(quadruple)
+    return input_output_matrix
+
+def regroup_by_name(input_output_pairs):
+    triplet = []
+
+    for i in range(len(input_output_pairs)):
+        link = input_output_pairs[i]
+        input_attr = link[0]
+        output_attr = link[1]
+
+        name_input = link[0].node
+        node_input = link[0].get_node_object()
+        name_output = link[1].node
+        node_output = link[1].get_node_object()
+
+        found = False
+
+        for j in range(len(triplet)):
+            if triplet[j][0] == name_input and triplet[j][2]==name_output:
+                triplet[j][4].append(link)
+                found = True
+                break
+
+        if not found : 
+            triplet.append([name_input,node_input,name_output,node_output,[link]])
+
+    #print(triplet)
+    return triplet
 
 def check_link(program):
     links_vector = program.get_links()
     link_size = links_vector.get_size()
     links = links_vector.get_elements()
+
+    nodes_vector = program.get_nodes()
+    node_size = nodes_vector.get_size()
+    nodes = nodes_vector.get_elements()
+
+    input_output_pairs = []
+
+    for i in range(link_size):
+        link_i = links[i]
+        lhs = link_i.attribute
+        lhs_name = lhs.node
+        lhs_attribute = lhs.attribute
+
+        found = False
+        position = 0
+
+        for j in range(node_size):
+            node_j = nodes[j]
+            node_j_name = node_j.get_name()
+            if lhs_name == node_j_name:
+                found = True
+                lhs.set_node_object(node_j)
+                position = j
+                break
+
+        if found == False: 
+            error_("No Node is named : "+str(lhs_name)+ " in the link")
+
+        rhs_vector = link_i.vector
+        rhs_size = rhs_vector.get_size()
+        rhs = rhs_vector.get_elements()
+
+        if lhs_attribute != None :
+            if find_variable_and_type(nodes[j],lhs_attribute,internal_v = False,input_v=False)==False:
+                error_("The left hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or input")
+
+            for k in range(rhs_size):
+                rhs_k = rhs[k]
+                rhs_name = rhs_k.node
+                rhs_attribute = rhs_k.attribute
+
+                if rhs_name == lhs_name:
+                    error_("Using a link inside the same node is not allowed")
+                found = False
+                position = 0
+
+                for j in range(node_size):
+                    node_j = nodes[j]
+                    node_j_name = node_j.get_name()
+                    if rhs_name == node_j_name:
+                        found = True
+                        rhs_k.set_node_object(node_j)
+                        position = j
+                        break
+
+                if found == False: 
+                    error_("No Node is named : "+str(rhs_name)+ " in the link "+ str(link_i))
+
+                if find_variable_and_type(nodes[position],rhs_attribute,internal_v = False,output_v=False)==False:
+                    error_("The right hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or output")
+                
+                already_defined = False
+
+                for j in range(len(input_output_pairs)):
+                    if rhs_k.compare(input_output_pairs[j][0]):
+                        if (not lhs.compare(input_output_pairs[j][1])):
+                            error_("An input is assigned twice: first with value "+str(input_output_pairs[j][1])+ " then with value "+str(lhs))
+                        else:
+                            already_defined = True
+
+                pair_input_output = [rhs_k,lhs]
+
+                if not already_defined:
+                    nodes[position].add_link(pair_input_output)
+                    input_output_pairs.append(pair_input_output)
+
+        else:
+            variables_vector = nodes[position].get_variables()
+            variable_size = variables_vector.get_size()
+            variables = variables_vector.get_elements()
+            found = False
+            name = ""
+
+            for j in range(variable_size):
+                type_var = variables[j].get_type()
+                if type_var == "output":
+                    if found == False:
+                        found = True 
+                        identifier = variables[j].get_identifier()
+                        name = identifier.get_name()
+                    else : 
+                        error_("Can not use linking with only node names if the left-hand side contains more than one outputted variable")
+            if found == False:
+                error_("The left-hand side node in linking must have an output variable")
+
+            lhs.attribute = name
+
+            for k in range(rhs_size):
+                rhs_k = rhs[k]
+                rhs_name = rhs_k.node
+                
+                if rhs_name == lhs_name:
+                    error_("Using a link inside the same node is not allowed")
+                found = False
+                position = 0
+                for j in range(node_size):
+                    node_j = nodes[j]
+                    node_j_name = node_j.get_name()
+                    if rhs_name == node_j_name:
+                        found = True
+                        rhs_k.set_node_object(node_j)
+                        position = j
+                        break
+
+                if found == False: 
+                    error_("No Node is named : "+str(rhs_name)+ " in the link")
+
+                variables_vector = nodes[position].get_variables()
+                variable_size = variables_vector.get_size()
+                variables = variables_vector.get_elements()
+                found = False
+                name = ""
+                for j in range(variable_size):
+                    type_var = variables[j].get_type()
+                    if type_var == "input":
+                        if found == False:
+                            found = True 
+                            identifier = variables[j].get_identifier()
+                            name = identifier.get_name()
+                        else : 
+                            error_("Can not use linking with only node names if the right-hand side node contains more than one input variable")
+                if found == False:
+                    error_("The left-hand side node in linking must have an output variable")
+
+                rhs_k.attribute = name
+                already_defined = False
+
+                for j in range(len(input_output_pairs)):
+                    if rhs_k.compare(input_output_pairs[j][0]):
+                        if (not lhs.compare(input_output_pairs[j][1])):
+                            error_("An input is assigned twice: first with value "+str(input_output_pairs[j][1])+ " then with value "+str(lhs))
+                        else:
+                            already_defined = True
+
+                pair_input_output = [rhs_k,lhs]
+                if not already_defined:
+                    nodes[position].add_link(pair_input_output)
+                    input_output_pairs.append(pair_input_output)
     
+    return input_output_pairs
+
+def get_index_link(link):
+    input_attr = link[0]
+    output_attr = link[1]
+
+    node_input = input_attr.get_node_object()
+    node_output = output_attr.get_node_object()
+
+    variables_input = node_input.get_variable_matrix()
+    variables_output = node_output.get_variable_matrix()
+
+    n,m = np.shape(variables_input)
+    input_vector = np.zeros((m, 1))
+
+    for i in range(m):
+        if variables_input[0][i].name_compare(input_attr.attribute):
+            input_vector[i]=1
+
+    o,p = np.shape(variables_output)
+    output_vector = np.zeros((p, 1))
+    for j in range(p):
+        if variables_output[0][j].name_compare(output_attr.attribute):
+            output_vector[j] =1 
+
+    return input_vector,output_vector
+
+
+
+def find_variable_and_type(node,attribute_name,output_v = True,internal_v = True, input_v=True):
+    variables_vector = node.get_variables()
+    variable_size = variables_vector.get_size()
+    variables = variables_vector.get_elements()
+    found = False
+
+    for i in range(variable_size):
+        variable_i = variables[i]
+        var_name = variable_i.get_name()
+        var_type = variable_i.get_type()
+        if var_name.name_compare(attribute_name):
+        
+            if ((var_type == "output" and output_v == True) or
+                (var_type == "input" and input_v ==True) or
+                (var_type == "internal" and internal_v ==True)):
+                found =  True
+    return found
+
+
 
 def check_expressions_dependancy(node,variables,parameters):
     constraints = node.get_constraints()
@@ -228,10 +483,10 @@ def match_names(list1,list2):
         name1 = list1[i]
         for j in range(len(list2)):
             name2 = list2[j]
-            if name1 == name2:
+            if name2.name_compare(name1):
                 error_("A variable and a parameter share the same name '"+str(name1)+"'")
 
-def check_names(root):
+def check_names(root,add_type = False):
     n = root.get_size()
     elements = root.get_elements()
     all_names = []
@@ -245,7 +500,10 @@ def check_names(root):
         for k in range(len(timevar)):
             if name == timevar[k]:
                 error_('Name "'+str(name)+'" is reserved for timescale, used at line '+str(elements[i].get_line()))
-        all_names.append(name)
+        if add_type == True:
+            all_names.append(name,elements[i].get_type())
+        else:
+            all_names.append(name)
     return all_names
 
 def parameter_evaluation(n_parameters):
@@ -298,6 +556,7 @@ def evaluate_table(parameters,definitions):
 
 
 def evaluate_expression(expression,definitions):
+
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
 
@@ -432,7 +691,8 @@ def check_expr_in_brackets(expression,variables,parameters):
     return is_time_var
 
 
-def check_var(constraints,variables,parameters,param_name,time):
+def check_var(node,variables,parameters,param_name,time):
+    constraints = node.get_constraints()
     cons = constraints.get_elements()
     nb_cons = constraints.get_size()
 
@@ -447,47 +707,55 @@ def check_var(constraints,variables,parameters,param_name,time):
     else:
         T = 1
 
-    string = ''
+    all_variables = []
     for k in range(T):
+        variables_for_time = []
         for i in range(len(variables)):
             var = copy.copy(variables[i])
             expr = Expression('literal',k)
             var.set_expression(expr)
-            string += str(var) +' '
-        string+= "\n"
-    print(string)
+
+            variables_for_time.append(var)
+        all_variables.append(variables_for_time)
+
+    X = np.array(all_variables)
+    node.set_variable_matrix(X)
+
+    n,m = np.shape(X)
+
     for i in range(nb_cons):
         constr = cons[i]
-        print('CONSTRAINT '+str(i+1) + ': '+str(constr))
+        #print('CONSTRAINT '+str(i+1) + ': '+str(constr))
 
-        if(is_time_dependant_constraint(constr)):
+        if(is_time_dependant_constraint(constr,variables)):
             t_horizon = T
         else:
             t_horizon = 1
+
+        print("time : "+str(is_time_dependant_constraint(constr,variables)))
+
         for k in range(t_horizon):
-            string ="t : " + str(k)+ "\n"
+            matrix = []            
             current_parameter = copy.copy(parameters)
             tuple_time = ['t',k] 
             current_parameter.add_element(tuple_time)
-            
-            for j in range(len(variables)):
-                var = copy.copy(variables[j])
-                for l in range(T):
-                    expr = Expression('literal',l)
-                    var.set_expression(expr)
-                    
-                    term,flag_out_of_bounds = variable_in_constraint(constr,var,current_parameter)
-                    
-                    if flag_out_of_bounds==True:
+            for j in range(n):
+                line = []
+                for l in range(m):
+                    term,flag_out_of_bounds = variable_in_constraint(constr,X[j][l],current_parameter)
+                    if flag_out_of_bounds:
                         break
-                    string += str(term)+" "
-                string += '\n'
-                
+                    line.append(term)
                 if flag_out_of_bounds:
                     break
+                matrix.append(line)
             if flag_out_of_bounds == False:
-                print(string)
-                print('const : '+str(constant_in_constraint(constr,variables,current_parameter,param_name)))        
+                c_matrix = np.array(matrix)
+                constant = constant_in_constraint(constr,variables,current_parameter,param_name)
+                sign = constr.get_sign()
+                node.add_constraints_matrix([c_matrix,constant,sign])
+                #print('const : '+str([c_matrix,constant,sign]))  
+     
 
 def constant_in_constraint(constr,variables,constants,param_name):
     rhs = constr.get_rhs()
@@ -582,6 +850,48 @@ def constant_factor_in_expression(expression,variables,constants,param_name):
                 value = value1**value2
     return value
 
+def convert_objectives_matrix(node,variables,parameters,time):
+    matrixVar = node.get_variable_matrix()
+    n,m = np.shape(matrixVar)
+
+    objectives_vector = node.get_objectives()
+    objectives = objectives_vector.get_elements()
+    obj_size = objectives_vector.get_size()
+
+    T = time.time
+
+    for j in range(obj_size):
+        obj = objectives[j]
+        obj_type = obj.get_type()
+        expr = obj.get_expression()
+
+        if(is_time_dependant_expression(expr,variables)):
+            t_horizon = T
+        else:
+            t_horizon = 1
+
+        matrix = [] 
+        for k in range(t_horizon):
+            matrix = []            
+            current_parameter = copy.copy(parameters)
+            tuple_time = ['t',k] 
+            current_parameter.add_element(tuple_time)
+            for j in range(n):
+                line = []
+                for l in range(m):
+                    found,term,flag_out_of_bounds = variable_factor_in_expression(expr,matrixVar[j][l],current_parameter)
+                    if flag_out_of_bounds:
+                        break
+                    line.append(term)
+                if flag_out_of_bounds:
+                    break
+                matrix.append(line)
+            if flag_out_of_bounds == False:
+                matrix_np = np.transpose(np.array(matrix))
+                node.add_objective_matrix([matrix_np,obj_type])
+
+    print(node.get_objective_list())
+
 
 def variable_in_constraint(constr,variable,constants):
     rhs = constr.get_rhs()
@@ -657,6 +967,7 @@ def variable_factor_in_expression(expression,variable,constants):
                         value = value1
                     else:
                         value = value2
+                
             elif e_type == '-':
                 if found1 or found2:
                     found = True
@@ -680,17 +991,19 @@ def variable_factor_in_expression(expression,variable,constants):
                 if found1:
                     constant = evaluate_expression(children[1],constants)
                     value = value1/constant
+                    found = True
+                    
     return found,value,flag_out_of_bounds
 
-def is_time_dependant_constraint(constraint):
+def is_time_dependant_constraint(constraint,variables):
     rhs = constraint.get_rhs()
-    time_dep = is_time_dependant_expression(rhs)
+    time_dep = is_time_dependant_expression(rhs,variables)
     lhs = constraint.get_lhs()
     if time_dep == False:
-        time_dep = is_time_dependant_expression(lhs)
+        time_dep = is_time_dependant_expression(lhs,variables)
     return time_dep
 
-def is_time_dependant_expression(expression):
+def is_time_dependant_expression(expression,variables):
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     children = expression.get_children()
@@ -706,12 +1019,17 @@ def is_time_dependant_expression(expression):
                 found = True
             else:
                 if id_type == 'assign':
-                    found = is_time_dependant_expression(identifier.get_expression())
+                    found = is_time_dependant_expression(identifier.get_expression(),variables)
+                else:
+                    for variable in variables:
+                        if variable.name_compare(expression.get_name()):
+                            found = True
     else:
         for i in range(nb_child):
-            found1 = is_time_dependant_expression(children[i])
+            found1 = is_time_dependant_expression(children[i],variables)
             if found1:
                 found = found1
+
     return found
 
 def check_definition_order(constraints,variables):

@@ -1,0 +1,19 @@
+#TIMESCALE
+horizon: 3
+step: 1
+
+#NODE H
+#PARAMETERS
+un = 1
+deux = 2
+trois = 3
+quatre_cinq = {4,5}
+#VARIABLES 
+internal : bardhyl
+output : miftari
+#CONSTRAINTS
+bardhyl[0]=deux
+miftari=158/quatre_cinq[1]
+#OBJECTIVES
+max : bardhyl
+min : miftari+bardhyl/15

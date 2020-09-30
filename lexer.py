@@ -9,7 +9,8 @@ import ply.lex as lex
 
 def tokenize(data):
     """
-    Tokenize input data to stdout for testing purposes.
+    tokenize : Input a string
+               Prints the tokens in the string
     """
     global lexer 
     lexer.input(data)
@@ -23,14 +24,18 @@ def tokenize(data):
 
 def tokenize_file(filepath):
     """
-    Tokenize input file to stdout for testing purposes.
-    :param fspec: Input file to parse.
+    tokenize_file : Input a file
+                    Prints the tokens in the file
     """
     with open(filepath, "r") as content:
         data = content.read()
     return tokenize(data)
 
 def find_column(input,token):
+    """
+    find_column : input a string and a token
+                  find the token column in the string
+    """
     line_start = input.rfind('\n', 0, token.lexpos) + 1
     return (token.lexpos - line_start) + 1
 
@@ -42,7 +47,8 @@ keywords = {
     'internal':'INTERNAL',
     'in':'IN',
     'horizon':'HORIZON',
-    'step':'STEP'
+    'step':'STEP',
+    'import':'IMPORT'
 }
 
 reserved = {
@@ -79,7 +85,8 @@ tokens = (
 'LOW',
 'BIG',
 'NAME',
-'DOT'
+'DOT',
+'FILENAME'
 )+tuple(keywords.values())+tuple(reserved.values())
 
 # Regular expression rules for simple tokens
@@ -102,6 +109,11 @@ t_COLON   = r'\:'
 t_LOW     = r'\<'
 t_BIG     = r'\>'
 t_DOT     = r'\.'
+
+def t_FILENAME(t):
+    r'["][a-zA-Z_0-9.]+["]'
+    t.value = t.value.replace("\"","")
+    return t
 
 def t_ID(t):
     r'[a-z][a-zA-Z_0-9]*'
@@ -126,8 +138,6 @@ def t_COMMENT(t):
      pass
      # No return value. Token discarded
 
-# A regular expression rule with some action code
-
 def t_FLOAT(t):
     r'[0-9]+[\.][0-9]*'
     t.value = float(t.value)    
@@ -138,7 +148,7 @@ def t_INT(t):
     t.value = int(t.value)
     return t
 
-# Define a rule so we can track line numbers
+# track line number
 def t_newline(t):
     r'\n+'
     t.lexer.lineno += len(t.value)
@@ -148,9 +158,6 @@ t_ignore  = ' \t\r\f'
 
 # Error handling rule
 def t_error(t):
-    if not p:
-        print("End of File!")
-        return
     print('Lexing error:'+str(t.lineno)+':'+str(find_column(lexer.lexdata,t))+":Illegal character '%s'" % t.value[0])
     exit(-1)
     
