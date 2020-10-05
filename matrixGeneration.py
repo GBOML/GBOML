@@ -55,6 +55,7 @@ def matrix_generationC(root):
 	print("values "+str(values))
 
 	print(coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables)))
+	return coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
 
 def matrix_generationAb(root):
 	node_vector = root.get_nodes()
@@ -156,7 +157,33 @@ def matrix_generationAb(root):
 			all_values.append(values)
 			all_columns.append(column)
 			all_rows.append(row)
-			list_of_b.append(b)
+			for l in range(T):
+				list_of_b.append(0)
+
+		for i in range(len(nonzero_columnIn)):
+			k = nonzero_rowIn[i]
+			j = nonzero_rowOut[i]
+
+			indexIn = matrixVarIn[0][k].get_index()
+			indexOut = matrixVarOut[0][j].get_index()
+			
+			columnIn = np.arange(indexIn,indexIn+T)
+			columnOut = np.arange(indexOut,indexOut+T)
+
+			column = np.ravel(np.column_stack((columnIn,columnOut)))
+			row = np.repeat(np.arange(nb_constraints,nb_constraints+T),2)
+
+			nb_constraints = nb_constraints+T
+
+			values = np.empty((2*T,),int)
+			values[::2] = -1
+			values[1::2] = 1
+
+			all_values.append(values)
+			all_columns.append(column)
+			all_rows.append(row)
+			for l in range(T):
+				list_of_b.append(0)
 
 	root.nb_variables = index_start
 
@@ -173,7 +200,7 @@ def matrix_generationAb(root):
 	print(b_values)
 
 	print(coo_matrix((values, (rows, columns)),shape=(nb_constraints, index_start)))
-	return 0
+	return coo_matrix((values, (rows, columns)),shape=(nb_constraints, index_start)),b_values
 
 def set_index(variable_matrix,start):
 	n,m = np.shape(variable_matrix)

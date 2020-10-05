@@ -86,29 +86,31 @@ tokens = (
 'BIG',
 'NAME',
 'DOT',
-'FILENAME'
+'FILENAME',
+'SEMICOLON'
 )+tuple(keywords.values())+tuple(reserved.values())
 
 # Regular expression rules for simple tokens
-t_PLUS    = r'\+'
-t_MINUS   = r'-'
-t_COMMA   = r'\,'
-t_LCBRAC  = r'\{'
-t_RCBRAC  = r'\}'
-t_LBRAC   = r'\['
-t_RBRAC   = r'\]'
-t_POW     = r'\*\*'
-t_MULT   = r'\*'
-t_DIVIDE  = r'/'
-t_LPAR    = r'\('
-t_RPAR    = r'\)'
-t_EQUAL   = r'\='
-t_LEQ     = r'\<\='
-t_BEQ     = r'\>\='
-t_COLON   = r'\:'
-t_LOW     = r'\<'
-t_BIG     = r'\>'
-t_DOT     = r'\.'
+t_PLUS      = r'\+'
+t_MINUS     = r'-'
+t_COMMA     = r'\,'
+t_LCBRAC    = r'\{'
+t_RCBRAC    = r'\}'
+t_LBRAC     = r'\['
+t_RBRAC     = r'\]'
+t_POW       = r'\*\*'
+t_MULT      = r'\*'
+t_DIVIDE    = r'/'
+t_LPAR      = r'\('
+t_RPAR      = r'\)'
+t_EQUAL     = r'\='
+t_LEQ       = r'\<\='
+t_BEQ       = r'\>\='
+t_COLON     = r'\:'
+t_SEMICOLON = r'\;'
+t_LOW       = r'\<'
+t_BIG       = r'\>'
+t_DOT       = r'\.'
 
 def t_FILENAME(t):
     r'["][a-zA-Z_0-9.]+["]'

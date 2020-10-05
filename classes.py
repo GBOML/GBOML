@@ -5,7 +5,11 @@
 # ------------
 
 from utils import Vector
+import os
 
+def error_(string):
+    print(string)
+    exit(-1)
 
 class Type:
     def __init__(self,type_id,line):
@@ -44,6 +48,8 @@ class Program:
         self.vector_nodes = vector_n
         self.time = timescale
         self.links = links
+        self.link_constraints = []
+        self.nb_variables = 0
 
     def __str__(self):
         string = "["+str(self.vector_nodes)
@@ -89,6 +95,12 @@ class Program:
     def set_vector(self,vector_n):
         self.vector_nodes = vector_n
 
+    def set_link_constraints(self,c):
+        self.link_constraints = c
+
+    def get_link_constraints(self):
+        return self.link_constraints
+
 class Time:
     def __init__(self,time,step):
         self.time = time
@@ -105,6 +117,10 @@ class Node:
         self.parameters = Vector()
         self.objectives = Vector()
         self.line = line
+        self.links = []
+        self.v_matrix = None
+        self.c_triplet_list = []
+        self.objective_list = []
 
     def __str__(self):
         string = '['+str(self.name)+' , '
@@ -119,6 +135,12 @@ class Node:
 
     def get_line(self):
         return self.line
+
+    def add_link(self,link):
+        self.links.append(link)
+
+    def get_links(self):
+        return self.links
 
     def set_constraints(self,cons):
         self.constraints = cons
@@ -146,6 +168,24 @@ class Node:
 
     def get_objectives(self):
         return self.objectives
+
+    def set_variable_matrix(self,X):
+        self.v_matrix = X
+
+    def get_variable_matrix(self):
+        return self.v_matrix
+
+    def add_constraints_matrix(self,c_matrix):
+        self.c_triplet_list.append(c_matrix)
+
+    def get_constraints_matrix(self):
+        return self.c_triplet_list
+
+    def add_objective_matrix(self,o):
+        self.objective_list.append(o)
+
+    def get_objective_list(self):
+        return self.objective_list
 
 class Expression(Symbol):
     def __init__(self,node_type,name = None,line = 0):
@@ -187,6 +227,9 @@ class Variable(Symbol):
             string += ' , '+ str(self.unity)+']'
         return string
 
+    def get_identifier(self):
+        return self.get_name()
+
     def get_unity(self):
         return self.unity
 
@@ -201,6 +244,9 @@ class Constraint(Type):
         string += " , "+str(self.lhs)+']'
         return string
 
+    def get_sign(self):
+        return self.get_type()
+
     def get_rhs(self):
         return self.rhs
 
@@ -209,12 +255,18 @@ class Constraint(Type):
 
 class Parameter(Symbol): 
     def __init__(self,name,expression,unity=None,line = 0):
+        self.vector = None
         if expression == None:
             type_para = "table"
+        elif type(expression) == str:
+            type_para = "table"
+            self.get_values_from_file(expression)
+            print(self.vector)
+            expression = None
         else:
             type_para = "expression"
+
         Symbol.__init__(self,name,type_para,line)
-        self.vector = None
         self.expression = expression
         self.unity = unity
 
@@ -225,6 +277,27 @@ class Parameter(Symbol):
         else :
             string += ' , '+ str(self.unity)+']'
         return string
+
+    def get_values_from_file(self,expression):
+        self.vector = Vector()
+        if type(expression)==str:
+            print(os.path.isfile('./'+expression))
+            f = open(expression, "r")
+            for line in f: 
+                line = line.replace("\n","")
+                line = line.replace(";","")
+                line = line.split(" ")
+                print(line)
+                for nb in line:
+                    print(nb)
+                    if nb == "":
+                        continue
+                    try:
+                        number = float(nb)
+                    except:
+                        error_("file "+expression+" contains values that are not numbers "+nb)
+                    expr = Expression('literal',number)
+                    self.vector.add_element(expr)
 
     def get_expression(self):
         return self.expression
@@ -254,6 +327,7 @@ class Identifier(Symbol):
     def __init__(self,type_id,name_id,expression=None,line=0):
         Symbol.__init__(self,name_id,type_id,line)
         self.expression = expression
+        self.index = 0
 
     def __str__(self):
         string = str(self.name)
@@ -280,16 +354,40 @@ class Identifier(Symbol):
     def get_expression(self):
         return self.expression
 
+    def set_index(self,value):
+        self.index = value
+        
+    def get_index(self):
+        return self.index 
+
 class Attribute:
     def __init__(self,name_node,name_attribute=None):
         self.node = name_node
         self.attribute = name_attribute
+        self.node_object = None
 
     def __str__(self):
-        string = str(self.node)
+        string = ""
+        if self.node_object != None:
+            string += '['
+        string += str(self.node)
         if self.attribute!=None:
             string+='.'+str(self.attribute)
+        if self.node_object != None:
+            string+= ','+str(self.node_object.name)+']'
         return string
+
+    def compare(self,attr):
+        if self.node == attr.node and self.attribute == attr.attribute:
+            return True
+        return False
+
+    def set_node_object(self,n_object):
+        self.node_object = n_object
+
+    def get_node_object(self):
+        return self.node_object
+
 
 class Link: 
     def __init__(self,attribute,vector):

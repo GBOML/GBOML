@@ -10,6 +10,8 @@ from semantic import semantic
 from matrixGeneration import matrix_generationAb,matrix_generationC
 import argparse
 import time
+from scipy.optimize import linprog
+
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -32,8 +34,16 @@ if __name__ == '__main__':
         if args.parse:
             print(result)
         program = semantic(result)
-        matrix_generationAb(program)
-        matrix_generationC(program)
+        A,b = matrix_generationAb(program)
+        C = matrix_generationC(program)
+        C_sum = C.toarray().sum(axis=0)
+        print("C = "+str(C_sum))
+        print("b = "+str(b))
+        print("A = "+ str(A.toarray()))
+        x0_bounds = (None, None)
+        res = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = (None, None),options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
+        print(res)
+        print(C.toarray().sum(axis=0))
     else: 
         print('ERROR : expected input file')
     print("--- %s seconds ---" % (time.time() - start_time))

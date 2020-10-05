@@ -183,12 +183,21 @@ def p_var_aux(p):
         p[0]=p[1]
 
 def p_constraints(p):
-    '''constraints : CONS define_constraints cons_aux
+    '''constraints : CONS constraints_aux
                    | empty'''
     if len(p)==2:
         p[0]=Vector()
     else:
-        p[3].add_begin(p[2])
+        p[0]=p[2]
+
+def p_constraints_aux(p):
+    '''constraints_aux : define_constraints SEMICOLON constraints_aux
+                       | define_constraints'''
+    if len(p)==2:
+        p[0]=Vector()
+        p[0].add_element(p[1])
+    else:
+        p[3].add_begin(p[1])
         p[0]=p[3]
 
 def p_define_constraints(p):
@@ -198,15 +207,6 @@ def p_define_constraints(p):
                           | expr LOW expr
                           | expr BIG expr'''
     p[0] = Constraint(p[2],p[1],p[3],line = p.lexer.lineno)
-
-def p_cons_aux(p):
-    '''cons_aux : define_constraints cons_aux
-                | empty'''
-    if p[1]==None:
-        p[0]=Vector()
-    else:
-        p[2].add_begin(p[1])
-        p[0]=p[2]
 
 def p_objectives(p):
     '''objectives : OBJ define_objectives
@@ -279,6 +279,7 @@ def p_unity(p):
 
 # Error rule for syntax errors
 def p_error(p):
+    print(p)
     if p!= None:
         print("Syntax error:"+str(p.lineno)+":"+str(find_column(p.lexer.lexdata,p))+": Unexpected token "+str(p.type)+" namely("+str(p.value)+")")
 
