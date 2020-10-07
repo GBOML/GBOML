@@ -6,7 +6,9 @@
 
 import ply.yacc as yacc
 from lexer import tokens
-from classes import *
+from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
+from utils import Vector
+
 
 # precendence rules from most to least priority with associativity also specified
 precedence = (

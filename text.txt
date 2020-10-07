@@ -12,15 +12,11 @@ d2 = {1,2,3,d[0]}
 internal : a
 output : b
 #CONSTRAINTS
-a[0]=1
-a[t+1] = 3*a[0]
-b[t*c+1] = v*a
-b[t]-(3*b[t+1] + (-a[t]))=-2*b[t]+1 
+a[0]=1;
+a[t+1] = 3*a[0];
+b[t*c+1] = v*a;
+b[t]-(3*b[t+1] + (-a[t]))=-2*b[t]+1 ;
 b-(3*b[t+1] + (-a))=-2*b+1 
 
 #OBJECTIVES
 min : a
-
-#LINKS
-A = B,C
-A.pay = B.day

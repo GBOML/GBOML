@@ -4,8 +4,9 @@
 # Writer : MIFTARI B
 # ------------
 
-from classes import *
+from utils import Vector
 import copy
+from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
 import numpy as np
 
 timevar = []
