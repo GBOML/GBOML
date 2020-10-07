@@ -10,7 +10,7 @@ import numpy as np
 from utils import Vector
 
 timevar = []
-# To check
+# To check 
 #   if linear                                                   DONE
 #   if defined in expression                                    DONE
 #   if output match Input                                       DONE
