@@ -11,7 +11,25 @@ from matrixGeneration import matrix_generationAb,matrix_generationC
 import argparse
 import time
 from scipy.optimize import linprog
+from julia import Main 
 
+def solver_scipy(A,b,C):
+    x0_bounds = (None, None)
+    res = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = (None, None),options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
+    print(res)
+
+def solver_julia(A,b,C):
+    b = b.reshape((-1,1))
+    C = C.reshape((-1,1))
+    print(type(b.astype(float)))
+    print(type(A.astype(float)))
+    A = A.astype(float)
+    print(type(C.astype(float)))
+    print(Main.print(type(A)))
+
+    Main.include("linear_solver.jl") # load the MyFuncs module
+    
+    print(Main.lin_solve(C.astype(float),A.astype(float),b.astype(float)))
 
 if __name__ == '__main__':
     start_time = time.time()
@@ -36,14 +54,14 @@ if __name__ == '__main__':
         program = semantic(result)
         A,b = matrix_generationAb(program)
         C = matrix_generationC(program)
+
         C_sum = C.toarray().sum(axis=0)
-        print("C = "+str(C_sum))
+
         print("b = "+str(b))
-        print("A = "+ str(A.toarray()))
-        x0_bounds = (None, None)
-        res = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = (None, None),options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
-        print(res)
-        print(C.toarray().sum(axis=0))
+        print(A.toarray().dtype)
+        
+        solver_julia(A.toarray(),b,C_sum)
+        #solver_scipy(A,b,C_sum)
     else: 
         print('ERROR : expected input file')
     print("--- %s seconds ---" % (time.time() - start_time))

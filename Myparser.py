@@ -6,13 +6,11 @@
 
 import ply.yacc as yacc
 from lexer import tokens
-from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
-from utils import Vector
-
+from classes import *
 
 # precendence rules from most to least priority with associativity also specified
 precedence = (
-    ('nonassoc','EQUAL','LOW','BIG','LEQ','BEQ'),
+    ('nonassoc','EQUAL','LEQ','BEQ'),
     ('left', 'PLUS', 'MINUS'),
     ('left', 'MULT', 'DIVIDE'),
     ('right', 'UMINUS'),# Unary minus operator 
@@ -154,6 +152,8 @@ def p_parameter(p):
         p[0].set_vector(p[6])
     else:
         p[0]=Parameter(p[1],p[5],line = p.lineno(1))
+    print("parameter : "+str(p[1])+" "+str(p.lineno(1)))
+    
 
 def p_more_values(p):
     '''more_values : COMMA term more_values
@@ -205,9 +205,7 @@ def p_constraints_aux(p):
 def p_define_constraints(p):
     '''define_constraints : expr EQUAL expr 
                           | expr LEQ expr
-                          | expr BEQ expr 
-                          | expr LOW expr
-                          | expr BIG expr'''
+                          | expr BEQ expr '''
     p[0] = Constraint(p[2],p[1],p[3],line = p.lexer.lineno)
 
 def p_objectives(p):
@@ -238,9 +236,11 @@ def p_id(p):
     '''id : ID LBRAC expr RBRAC
           | ID'''
     if len(p)==2:
-        p[0]=Identifier('basic',p[1])
+        p[0]=Identifier('basic',p[1],line = p.lineno(1))
     elif len(p)==5:
-        p[0]=Identifier('assign',p[1],expression=p[3])
+        p[0]=Identifier('assign',p[1],expression=p[3],line = p.lineno(1))
+    print(p[0])
+    print("id "+str(p.lexer.lexpos))
 
 def p_expr(p):
     '''expr : expr PLUS expr %prec PLUS
@@ -258,17 +258,23 @@ def p_expr(p):
             p[0].add_child(p[3])
         else:
             p[0]=p[2]
+
     elif len(p)==3:
         p[0]=Expression('u-')
         p[0].add_child(p[2])
+
     else:
         p[0]=p[1]
+
 
 def p_term(p):
     '''term : INT
             | FLOAT
             | id'''
     p[0]=Expression('literal',p[1],line = p.lineno(1))
+    if type(p[1])==Identifier:
+        p[0].set_line(p[1].get_line())
+        print(str(p[1])+" line "+str(p[0].get_line()))
 
 def p_unity(p):
     '''unity : IN expr

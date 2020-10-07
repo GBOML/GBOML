@@ -82,8 +82,6 @@ tokens = (
 'LEQ',
 'BEQ',
 'COLON',
-'LOW',
-'BIG',
 'NAME',
 'DOT',
 'FILENAME',
@@ -108,8 +106,6 @@ t_LEQ       = r'\<\='
 t_BEQ       = r'\>\='
 t_COLON     = r'\:'
 t_SEMICOLON = r'\;'
-t_LOW       = r'\<'
-t_BIG       = r'\>'
 t_DOT       = r'\.'
 
 def t_FILENAME(t):

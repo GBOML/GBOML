@@ -4,9 +4,8 @@
 # Writer : MIFTARI B
 # ------------
 
-from utils import Vector
+from classes import *
 import copy
-from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
 import numpy as np
 
 timevar = []
@@ -52,10 +51,10 @@ def semantic(program):
     for i in range(n):
         #CHECK if all parameters of a node have different names
         all_parameters = check_names(elements[i].get_parameters())
-        print("parameters: "+str(all_parameters))
+        #print("parameters: "+str(all_parameters))
         #CHECK if all variables of a node have different names
         all_variables = check_names(elements[i].get_variables())
-        print(all_variables)
+        #print(all_variables)
         
         #CHECK if dont share the same name
         match_names(all_parameters,all_variables)
@@ -70,8 +69,8 @@ def semantic(program):
         convert_objectives_matrix(elements[i],all_variables,vector_parameters,time)
 
     vector_parameters = vector_parameters.get_elements()
-    for i in range(len(vector_parameters)):
-        print("name: "+str(vector_parameters[i][0])+" value : "+str(vector_parameters[i][1]))
+    #for i in range(len(vector_parameters)):
+    #    print("name: "+str(vector_parameters[i][0])+" value : "+str(vector_parameters[i][1]))
     #print(vector_parameters)
     #check_input_output(root)
     all_input_output_pairs = check_link(program)
@@ -80,7 +79,7 @@ def semantic(program):
 
     input_output_matrix = convert_links_to_matrix(all_input_output_pairs)
 
-    print(input_output_matrix)
+    #print(input_output_matrix)
 
     program.set_link_constraints(input_output_matrix)
 
@@ -733,9 +732,10 @@ def check_var(node,variables,parameters,param_name,time):
         else:
             t_horizon = 1
 
-        print("time : "+str(is_time_dependant_constraint(constr,variables)))
+        #print("time : "+str(is_time_dependant_constraint(constr,variables)))
 
         for k in range(t_horizon):
+            print(k)
             matrix = []            
             current_parameter = copy.copy(parameters)
             tuple_time = ['t',k] 
@@ -752,18 +752,21 @@ def check_var(node,variables,parameters,param_name,time):
                 matrix.append(line)
             if flag_out_of_bounds == False:
                 c_matrix = np.array(matrix)
+                #print("matrix "+str(c_matrix))
                 constant = constant_in_constraint(constr,variables,current_parameter,param_name)
+                #print("constant "+str(constant))
                 sign = constr.get_sign()
                 node.add_constraints_matrix([c_matrix,constant,sign])
                 #print('const : '+str([c_matrix,constant,sign]))  
-     
-
+    
 def constant_in_constraint(constr,variables,constants,param_name):
     rhs = constr.get_rhs()
     lhs = constr.get_lhs()
-    value1 = constant_factor_in_expression(rhs,variables,constants,param_name)
-    value2 = constant_factor_in_expression(lhs,variables,constants,param_name)
 
+    value1 = constant_factor_in_expression(rhs,variables,constants,param_name)
+    
+    value2 = constant_factor_in_expression(lhs,variables,constants,param_name)
+    
     value = value2 - value1
     return value
 
@@ -772,6 +775,7 @@ def constant_factor_in_expression(expression,variables,constants,param_name):
     nb_child = expression.get_nb_children()
     children = expression.get_children()
     value = 0
+
     if variables_in_expression(expression,variables,param_name)==False:
         value = evaluate_expression(expression,constants)
     else:
@@ -784,10 +788,11 @@ def constant_factor_in_expression(expression,variables,constants,param_name):
         elif e_type == "/":
             is_var1 = variables_in_expression(children[0],variables,param_name)
             is_var2 = variables_in_expression(children[1],variables,param_name)
+
             if is_var1 == False and is_var2 == False:
                 value = evaluate_expression(children[0],constants)/evaluate_expression(children[1],constants)
             elif is_var1 == True:
-                value = constant_factor_in_expression(expression,variables,constants,param_name)/evaluate_expression(children[1],constants)
+                value = constant_factor_in_expression(children[0],variables,constants,param_name)/evaluate_expression(children[1],constants)
         elif e_type == "*":
             is_var1 = variables_in_expression(children[0],variables,param_name)
             is_var2 = variables_in_expression(children[1],variables,param_name)
@@ -891,7 +896,6 @@ def convert_objectives_matrix(node,variables,parameters,time):
                 matrix_np = np.transpose(np.array(matrix))
                 node.add_objective_matrix([matrix_np,obj_type])
 
-    print(node.get_objective_list())
 
 
 def variable_in_constraint(constr,variable,constants):

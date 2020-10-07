@@ -123,6 +123,7 @@ def matrix_generationAb(root):
 		index_start = new_index
 
 	links = root.get_link_constraints()
+	nb_link_constr = 0
 
 	for nodeIn, matrixIn,nodeOut,matrixOut in links:
 		matrixVarIn = nodeIn.get_variable_matrix()
@@ -146,44 +147,29 @@ def matrix_generationAb(root):
 			columnOut = np.arange(indexOut,indexOut+T)
 
 			column = np.ravel(np.column_stack((columnIn,columnOut)))
-			row = np.repeat(np.arange(nb_constraints,nb_constraints+T),2)
+			row = np.repeat(np.arange(nb_constraints,nb_constraints+2*T),2)
 
-			nb_constraints = nb_constraints+T
+			nb_constraints = nb_constraints+2*T
 
-			values = np.empty((2*T,),int)
-			values[::2] = 1
-			values[1::2] = -1
+			values1 = np.empty((2*T,),int)
+			values1[::2] = 1
+			values1[1::2] = -1
 
-			all_values.append(values)
-			all_columns.append(column)
-			all_rows.append(row)
-			for l in range(T):
-				list_of_b.append(0)
-
-		for i in range(len(nonzero_columnIn)):
-			k = nonzero_rowIn[i]
-			j = nonzero_rowOut[i]
-
-			indexIn = matrixVarIn[0][k].get_index()
-			indexOut = matrixVarOut[0][j].get_index()
+			values2 = -values1
+			print("Values")
 			
-			columnIn = np.arange(indexIn,indexIn+T)
-			columnOut = np.arange(indexOut,indexOut+T)
+			all_values.append(values1)
+			all_values.append(values2)
+			print(all_values)
 
-			column = np.ravel(np.column_stack((columnIn,columnOut)))
-			row = np.repeat(np.arange(nb_constraints,nb_constraints+T),2)
-
-			nb_constraints = nb_constraints+T
-
-			values = np.empty((2*T,),int)
-			values[::2] = -1
-			values[1::2] = 1
-
-			all_values.append(values)
 			all_columns.append(column)
+			all_columns.append(column)
+			print(all_columns)
+
 			all_rows.append(row)
-			for l in range(T):
-				list_of_b.append(0)
+			print(all_rows)
+			
+			nb_link_constr += 2*T
 
 	root.nb_variables = index_start
 
@@ -197,6 +183,10 @@ def matrix_generationAb(root):
 	print(values.size)
 
 	b_values = np.array(list_of_b)
+	b_links = np.zeros(nb_link_constr)
+
+	b_values = np.append(b_values,b_links)
+
 	print(b_values)
 
 	print(coo_matrix((values, (rows, columns)),shape=(nb_constraints, index_start)))
