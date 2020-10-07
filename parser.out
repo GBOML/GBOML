@@ -45,69 +45,65 @@ Rule 39    constraints_aux -> define_constraints
 Rule 40    define_constraints -> expr EQUAL expr
 Rule 41    define_constraints -> expr LEQ expr
 Rule 42    define_constraints -> expr BEQ expr
-Rule 43    define_constraints -> expr LOW expr
-Rule 44    define_constraints -> expr BIG expr
-Rule 45    objectives -> OBJ define_objectives
-Rule 46    objectives -> empty
-Rule 47    define_objectives -> MIN COLON expr obj_aux
-Rule 48    define_objectives -> MAX COLON expr obj_aux
-Rule 49    obj_aux -> define_objectives
-Rule 50    obj_aux -> empty
-Rule 51    id -> ID LBRAC expr RBRAC
-Rule 52    id -> ID
-Rule 53    expr -> expr PLUS expr
-Rule 54    expr -> expr MINUS expr
-Rule 55    expr -> expr MULT expr
-Rule 56    expr -> expr DIVIDE expr
-Rule 57    expr -> MINUS expr
-Rule 58    expr -> expr POW expr
-Rule 59    expr -> LPAR expr RPAR
-Rule 60    expr -> term
-Rule 61    term -> INT
-Rule 62    term -> FLOAT
-Rule 63    term -> id
-Rule 64    unity -> IN expr
-Rule 65    unity -> empty
+Rule 43    objectives -> OBJ define_objectives
+Rule 44    objectives -> empty
+Rule 45    define_objectives -> MIN COLON expr obj_aux
+Rule 46    define_objectives -> MAX COLON expr obj_aux
+Rule 47    obj_aux -> define_objectives
+Rule 48    obj_aux -> empty
+Rule 49    id -> ID LBRAC expr RBRAC
+Rule 50    id -> ID
+Rule 51    expr -> expr PLUS expr
+Rule 52    expr -> expr MINUS expr
+Rule 53    expr -> expr MULT expr
+Rule 54    expr -> expr DIVIDE expr
+Rule 55    expr -> MINUS expr
+Rule 56    expr -> expr POW expr
+Rule 57    expr -> LPAR expr RPAR
+Rule 58    expr -> term
+Rule 59    term -> INT
+Rule 60    term -> FLOAT
+Rule 61    term -> id
+Rule 62    unity -> IN expr
+Rule 63    unity -> empty
 
 Terminals, with rules where they appear
 
 BEQ                  : 42
-BIG                  : 44
-COLON                : 5 6 31 32 33 47 48
+COLON                : 5 6 31 32 33 45 46
 COMMA                : 11 13 28
 CONS                 : 36
-DIVIDE               : 56
+DIVIDE               : 54
 DOT                  : 10 10 11
 EQUAL                : 9 10 25 26 27 40
 FILENAME             : 27
-FLOAT                : 62
+FLOAT                : 60
 HORIZON              : 5
-ID                   : 10 10 11 25 26 27 51 52
+ID                   : 10 10 11 25 26 27 49 50
 IMPORT               : 27
-IN                   : 64
+IN                   : 62
 INPUT                : 33
-INT                  : 5 6 61
+INT                  : 5 6 59
 INTERNAL             : 31
-LBRAC                : 51
+LBRAC                : 49
 LCBRAC               : 26
 LEQ                  : 41
 LINKS                : 7
-LOW                  : 43
-LPAR                 : 59
-MAX                  : 48
-MIN                  : 47
-MINUS                : 54 57
-MULT                 : 55
+LPAR                 : 57
+MAX                  : 46
+MIN                  : 45
+MINUS                : 52 55
+MULT                 : 53
 NAME                 : 9 9 10 10 11 13 19
 NODE                 : 19
-OBJ                  : 45
+OBJ                  : 43
 OUTPUT               : 32
 PARAM                : 21
-PLUS                 : 53
-POW                  : 58
-RBRAC                : 51
+PLUS                 : 51
+POW                  : 56
+RBRAC                : 49
 RCBRAC               : 26
-RPAR                 : 59
+RPAR                 : 57
 SEMICOLON            : 38
 STEP                 : 6
 TIME                 : 2 3
@@ -119,12 +115,12 @@ Nonterminals, with rules where they appear
 constraints          : 19
 constraints_aux      : 36 38
 define_constraints   : 38 39
-define_objectives    : 45 49
+define_objectives    : 43 47
 define_parameters    : 21 23
 define_variables     : 30 34
-empty                : 4 8 12 14 16 18 22 24 29 35 37 46 50 65
-expr                 : 25 40 40 41 41 42 42 43 43 44 44 47 48 51 53 53 54 54 55 55 56 56 57 58 58 59 64
-id                   : 31 32 33 63
+empty                : 4 8 12 14 16 18 22 24 29 35 37 44 48 63
+expr                 : 25 40 40 41 41 42 42 45 46 49 51 51 52 52 53 53 54 54 55 56 56 57 62
+id                   : 31 32 33 61
 link_aux             : 7 15
 link_def             : 7 15
 links                : 1
@@ -132,14 +128,14 @@ more_id              : 9 13
 more_id_aux          : 10 11
 more_values          : 26 28
 node                 : 17
-obj_aux              : 47 48
+obj_aux              : 45 46
 objectives           : 19
 parameter            : 23
 parameters           : 19
 program              : 1 17
 start                : 0
 step_def             : 2 3
-term                 : 26 28 60
+term                 : 26 28 58
 time                 : 1
 time_def             : 2 3
 unity                : 25 26 27 31 32 33
@@ -550,8 +546,8 @@ state 39
     (25) parameter -> ID . unity EQUAL expr
     (26) parameter -> ID . unity EQUAL LCBRAC term more_values RCBRAC
     (27) parameter -> ID . unity EQUAL IMPORT FILENAME
-    (64) unity -> . IN expr
-    (65) unity -> . empty
+    (62) unity -> . IN expr
+    (63) unity -> . empty
     (20) empty -> .
 
     IN              shift and go to state 52
@@ -591,8 +587,8 @@ state 42
 state 43
 
     (19) node -> NODE NAME parameters variables constraints . objectives
-    (45) objectives -> . OBJ define_objectives
-    (46) objectives -> . empty
+    (43) objectives -> . OBJ define_objectives
+    (44) objectives -> . empty
     (20) empty -> .
 
     OBJ             shift and go to state 59
@@ -611,21 +607,19 @@ state 44
     (40) define_constraints -> . expr EQUAL expr
     (41) define_constraints -> . expr LEQ expr
     (42) define_constraints -> . expr BEQ expr
-    (43) define_constraints -> . expr LOW expr
-    (44) define_constraints -> . expr BIG expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -699,20 +693,20 @@ state 51
 
 state 52
 
-    (64) unity -> IN . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (62) unity -> IN . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -726,17 +720,17 @@ state 52
 
 state 53
 
-    (65) unity -> empty .
+    (63) unity -> empty .
 
-    EQUAL           reduce using rule 65 (unity -> empty .)
-    INTERNAL        reduce using rule 65 (unity -> empty .)
-    OUTPUT          reduce using rule 65 (unity -> empty .)
-    INPUT           reduce using rule 65 (unity -> empty .)
-    CONS            reduce using rule 65 (unity -> empty .)
-    OBJ             reduce using rule 65 (unity -> empty .)
-    NODE            reduce using rule 65 (unity -> empty .)
-    LINKS           reduce using rule 65 (unity -> empty .)
-    $end            reduce using rule 65 (unity -> empty .)
+    EQUAL           reduce using rule 63 (unity -> empty .)
+    INTERNAL        reduce using rule 63 (unity -> empty .)
+    OUTPUT          reduce using rule 63 (unity -> empty .)
+    INPUT           reduce using rule 63 (unity -> empty .)
+    CONS            reduce using rule 63 (unity -> empty .)
+    OBJ             reduce using rule 63 (unity -> empty .)
+    NODE            reduce using rule 63 (unity -> empty .)
+    LINKS           reduce using rule 63 (unity -> empty .)
+    $end            reduce using rule 63 (unity -> empty .)
 
 
 state 54
@@ -780,9 +774,9 @@ state 58
 
 state 59
 
-    (45) objectives -> OBJ . define_objectives
-    (47) define_objectives -> . MIN COLON expr obj_aux
-    (48) define_objectives -> . MAX COLON expr obj_aux
+    (43) objectives -> OBJ . define_objectives
+    (45) define_objectives -> . MIN COLON expr obj_aux
+    (46) define_objectives -> . MAX COLON expr obj_aux
 
     MIN             shift and go to state 79
     MAX             shift and go to state 80
@@ -791,11 +785,11 @@ state 59
 
 state 60
 
-    (46) objectives -> empty .
+    (44) objectives -> empty .
 
-    NODE            reduce using rule 46 (objectives -> empty .)
-    LINKS           reduce using rule 46 (objectives -> empty .)
-    $end            reduce using rule 46 (objectives -> empty .)
+    NODE            reduce using rule 44 (objectives -> empty .)
+    LINKS           reduce using rule 44 (objectives -> empty .)
+    $end            reduce using rule 44 (objectives -> empty .)
 
 
 state 61
@@ -825,42 +819,38 @@ state 63
     (40) define_constraints -> expr . EQUAL expr
     (41) define_constraints -> expr . LEQ expr
     (42) define_constraints -> expr . BEQ expr
-    (43) define_constraints -> expr . LOW expr
-    (44) define_constraints -> expr . BIG expr
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
     EQUAL           shift and go to state 82
     LEQ             shift and go to state 83
     BEQ             shift and go to state 84
-    LOW             shift and go to state 85
-    BIG             shift and go to state 86
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
 
 
 state 64
 
-    (57) expr -> MINUS . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (55) expr -> MINUS . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -868,26 +858,26 @@ state 64
     FLOAT           shift and go to state 68
     ID              shift and go to state 70
 
-    expr                           shift and go to state 92
+    expr                           shift and go to state 90
     term                           shift and go to state 66
     id                             shift and go to state 69
 
 state 65
 
-    (59) expr -> LPAR . expr RPAR
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (57) expr -> LPAR . expr RPAR
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -895,260 +885,250 @@ state 65
     FLOAT           shift and go to state 68
     ID              shift and go to state 70
 
-    expr                           shift and go to state 93
+    expr                           shift and go to state 91
     term                           shift and go to state 66
     id                             shift and go to state 69
 
 state 66
 
-    (60) expr -> term .
+    (58) expr -> term .
 
-    EQUAL           reduce using rule 60 (expr -> term .)
-    LEQ             reduce using rule 60 (expr -> term .)
-    BEQ             reduce using rule 60 (expr -> term .)
-    LOW             reduce using rule 60 (expr -> term .)
-    BIG             reduce using rule 60 (expr -> term .)
-    PLUS            reduce using rule 60 (expr -> term .)
-    MINUS           reduce using rule 60 (expr -> term .)
-    MULT            reduce using rule 60 (expr -> term .)
-    DIVIDE          reduce using rule 60 (expr -> term .)
-    POW             reduce using rule 60 (expr -> term .)
-    INTERNAL        reduce using rule 60 (expr -> term .)
-    OUTPUT          reduce using rule 60 (expr -> term .)
-    INPUT           reduce using rule 60 (expr -> term .)
-    CONS            reduce using rule 60 (expr -> term .)
-    OBJ             reduce using rule 60 (expr -> term .)
-    NODE            reduce using rule 60 (expr -> term .)
-    LINKS           reduce using rule 60 (expr -> term .)
-    $end            reduce using rule 60 (expr -> term .)
-    RPAR            reduce using rule 60 (expr -> term .)
-    ID              reduce using rule 60 (expr -> term .)
-    VAR             reduce using rule 60 (expr -> term .)
-    SEMICOLON       reduce using rule 60 (expr -> term .)
-    RBRAC           reduce using rule 60 (expr -> term .)
-    MIN             reduce using rule 60 (expr -> term .)
-    MAX             reduce using rule 60 (expr -> term .)
+    EQUAL           reduce using rule 58 (expr -> term .)
+    LEQ             reduce using rule 58 (expr -> term .)
+    BEQ             reduce using rule 58 (expr -> term .)
+    PLUS            reduce using rule 58 (expr -> term .)
+    MINUS           reduce using rule 58 (expr -> term .)
+    MULT            reduce using rule 58 (expr -> term .)
+    DIVIDE          reduce using rule 58 (expr -> term .)
+    POW             reduce using rule 58 (expr -> term .)
+    INTERNAL        reduce using rule 58 (expr -> term .)
+    OUTPUT          reduce using rule 58 (expr -> term .)
+    INPUT           reduce using rule 58 (expr -> term .)
+    CONS            reduce using rule 58 (expr -> term .)
+    OBJ             reduce using rule 58 (expr -> term .)
+    NODE            reduce using rule 58 (expr -> term .)
+    LINKS           reduce using rule 58 (expr -> term .)
+    $end            reduce using rule 58 (expr -> term .)
+    RPAR            reduce using rule 58 (expr -> term .)
+    ID              reduce using rule 58 (expr -> term .)
+    VAR             reduce using rule 58 (expr -> term .)
+    SEMICOLON       reduce using rule 58 (expr -> term .)
+    RBRAC           reduce using rule 58 (expr -> term .)
+    MIN             reduce using rule 58 (expr -> term .)
+    MAX             reduce using rule 58 (expr -> term .)
 
 
 state 67
 
-    (61) term -> INT .
+    (59) term -> INT .
 
-    EQUAL           reduce using rule 61 (term -> INT .)
-    LEQ             reduce using rule 61 (term -> INT .)
-    BEQ             reduce using rule 61 (term -> INT .)
-    LOW             reduce using rule 61 (term -> INT .)
-    BIG             reduce using rule 61 (term -> INT .)
-    PLUS            reduce using rule 61 (term -> INT .)
-    MINUS           reduce using rule 61 (term -> INT .)
-    MULT            reduce using rule 61 (term -> INT .)
-    DIVIDE          reduce using rule 61 (term -> INT .)
-    POW             reduce using rule 61 (term -> INT .)
-    INTERNAL        reduce using rule 61 (term -> INT .)
-    OUTPUT          reduce using rule 61 (term -> INT .)
-    INPUT           reduce using rule 61 (term -> INT .)
-    CONS            reduce using rule 61 (term -> INT .)
-    OBJ             reduce using rule 61 (term -> INT .)
-    NODE            reduce using rule 61 (term -> INT .)
-    LINKS           reduce using rule 61 (term -> INT .)
-    $end            reduce using rule 61 (term -> INT .)
-    RPAR            reduce using rule 61 (term -> INT .)
-    ID              reduce using rule 61 (term -> INT .)
-    VAR             reduce using rule 61 (term -> INT .)
-    SEMICOLON       reduce using rule 61 (term -> INT .)
-    RBRAC           reduce using rule 61 (term -> INT .)
-    MIN             reduce using rule 61 (term -> INT .)
-    MAX             reduce using rule 61 (term -> INT .)
-    COMMA           reduce using rule 61 (term -> INT .)
-    RCBRAC          reduce using rule 61 (term -> INT .)
+    EQUAL           reduce using rule 59 (term -> INT .)
+    LEQ             reduce using rule 59 (term -> INT .)
+    BEQ             reduce using rule 59 (term -> INT .)
+    PLUS            reduce using rule 59 (term -> INT .)
+    MINUS           reduce using rule 59 (term -> INT .)
+    MULT            reduce using rule 59 (term -> INT .)
+    DIVIDE          reduce using rule 59 (term -> INT .)
+    POW             reduce using rule 59 (term -> INT .)
+    INTERNAL        reduce using rule 59 (term -> INT .)
+    OUTPUT          reduce using rule 59 (term -> INT .)
+    INPUT           reduce using rule 59 (term -> INT .)
+    CONS            reduce using rule 59 (term -> INT .)
+    OBJ             reduce using rule 59 (term -> INT .)
+    NODE            reduce using rule 59 (term -> INT .)
+    LINKS           reduce using rule 59 (term -> INT .)
+    $end            reduce using rule 59 (term -> INT .)
+    RPAR            reduce using rule 59 (term -> INT .)
+    ID              reduce using rule 59 (term -> INT .)
+    VAR             reduce using rule 59 (term -> INT .)
+    SEMICOLON       reduce using rule 59 (term -> INT .)
+    RBRAC           reduce using rule 59 (term -> INT .)
+    MIN             reduce using rule 59 (term -> INT .)
+    MAX             reduce using rule 59 (term -> INT .)
+    COMMA           reduce using rule 59 (term -> INT .)
+    RCBRAC          reduce using rule 59 (term -> INT .)
 
 
 state 68
 
-    (62) term -> FLOAT .
+    (60) term -> FLOAT .
 
-    EQUAL           reduce using rule 62 (term -> FLOAT .)
-    LEQ             reduce using rule 62 (term -> FLOAT .)
-    BEQ             reduce using rule 62 (term -> FLOAT .)
-    LOW             reduce using rule 62 (term -> FLOAT .)
-    BIG             reduce using rule 62 (term -> FLOAT .)
-    PLUS            reduce using rule 62 (term -> FLOAT .)
-    MINUS           reduce using rule 62 (term -> FLOAT .)
-    MULT            reduce using rule 62 (term -> FLOAT .)
-    DIVIDE          reduce using rule 62 (term -> FLOAT .)
-    POW             reduce using rule 62 (term -> FLOAT .)
-    INTERNAL        reduce using rule 62 (term -> FLOAT .)
-    OUTPUT          reduce using rule 62 (term -> FLOAT .)
-    INPUT           reduce using rule 62 (term -> FLOAT .)
-    CONS            reduce using rule 62 (term -> FLOAT .)
-    OBJ             reduce using rule 62 (term -> FLOAT .)
-    NODE            reduce using rule 62 (term -> FLOAT .)
-    LINKS           reduce using rule 62 (term -> FLOAT .)
-    $end            reduce using rule 62 (term -> FLOAT .)
-    RPAR            reduce using rule 62 (term -> FLOAT .)
-    ID              reduce using rule 62 (term -> FLOAT .)
-    VAR             reduce using rule 62 (term -> FLOAT .)
-    SEMICOLON       reduce using rule 62 (term -> FLOAT .)
-    RBRAC           reduce using rule 62 (term -> FLOAT .)
-    MIN             reduce using rule 62 (term -> FLOAT .)
-    MAX             reduce using rule 62 (term -> FLOAT .)
-    COMMA           reduce using rule 62 (term -> FLOAT .)
-    RCBRAC          reduce using rule 62 (term -> FLOAT .)
+    EQUAL           reduce using rule 60 (term -> FLOAT .)
+    LEQ             reduce using rule 60 (term -> FLOAT .)
+    BEQ             reduce using rule 60 (term -> FLOAT .)
+    PLUS            reduce using rule 60 (term -> FLOAT .)
+    MINUS           reduce using rule 60 (term -> FLOAT .)
+    MULT            reduce using rule 60 (term -> FLOAT .)
+    DIVIDE          reduce using rule 60 (term -> FLOAT .)
+    POW             reduce using rule 60 (term -> FLOAT .)
+    INTERNAL        reduce using rule 60 (term -> FLOAT .)
+    OUTPUT          reduce using rule 60 (term -> FLOAT .)
+    INPUT           reduce using rule 60 (term -> FLOAT .)
+    CONS            reduce using rule 60 (term -> FLOAT .)
+    OBJ             reduce using rule 60 (term -> FLOAT .)
+    NODE            reduce using rule 60 (term -> FLOAT .)
+    LINKS           reduce using rule 60 (term -> FLOAT .)
+    $end            reduce using rule 60 (term -> FLOAT .)
+    RPAR            reduce using rule 60 (term -> FLOAT .)
+    ID              reduce using rule 60 (term -> FLOAT .)
+    VAR             reduce using rule 60 (term -> FLOAT .)
+    SEMICOLON       reduce using rule 60 (term -> FLOAT .)
+    RBRAC           reduce using rule 60 (term -> FLOAT .)
+    MIN             reduce using rule 60 (term -> FLOAT .)
+    MAX             reduce using rule 60 (term -> FLOAT .)
+    COMMA           reduce using rule 60 (term -> FLOAT .)
+    RCBRAC          reduce using rule 60 (term -> FLOAT .)
 
 
 state 69
 
-    (63) term -> id .
+    (61) term -> id .
 
-    EQUAL           reduce using rule 63 (term -> id .)
-    LEQ             reduce using rule 63 (term -> id .)
-    BEQ             reduce using rule 63 (term -> id .)
-    LOW             reduce using rule 63 (term -> id .)
-    BIG             reduce using rule 63 (term -> id .)
-    PLUS            reduce using rule 63 (term -> id .)
-    MINUS           reduce using rule 63 (term -> id .)
-    MULT            reduce using rule 63 (term -> id .)
-    DIVIDE          reduce using rule 63 (term -> id .)
-    POW             reduce using rule 63 (term -> id .)
-    INTERNAL        reduce using rule 63 (term -> id .)
-    OUTPUT          reduce using rule 63 (term -> id .)
-    INPUT           reduce using rule 63 (term -> id .)
-    CONS            reduce using rule 63 (term -> id .)
-    OBJ             reduce using rule 63 (term -> id .)
-    NODE            reduce using rule 63 (term -> id .)
-    LINKS           reduce using rule 63 (term -> id .)
-    $end            reduce using rule 63 (term -> id .)
-    RPAR            reduce using rule 63 (term -> id .)
-    ID              reduce using rule 63 (term -> id .)
-    VAR             reduce using rule 63 (term -> id .)
-    SEMICOLON       reduce using rule 63 (term -> id .)
-    RBRAC           reduce using rule 63 (term -> id .)
-    MIN             reduce using rule 63 (term -> id .)
-    MAX             reduce using rule 63 (term -> id .)
-    COMMA           reduce using rule 63 (term -> id .)
-    RCBRAC          reduce using rule 63 (term -> id .)
+    EQUAL           reduce using rule 61 (term -> id .)
+    LEQ             reduce using rule 61 (term -> id .)
+    BEQ             reduce using rule 61 (term -> id .)
+    PLUS            reduce using rule 61 (term -> id .)
+    MINUS           reduce using rule 61 (term -> id .)
+    MULT            reduce using rule 61 (term -> id .)
+    DIVIDE          reduce using rule 61 (term -> id .)
+    POW             reduce using rule 61 (term -> id .)
+    INTERNAL        reduce using rule 61 (term -> id .)
+    OUTPUT          reduce using rule 61 (term -> id .)
+    INPUT           reduce using rule 61 (term -> id .)
+    CONS            reduce using rule 61 (term -> id .)
+    OBJ             reduce using rule 61 (term -> id .)
+    NODE            reduce using rule 61 (term -> id .)
+    LINKS           reduce using rule 61 (term -> id .)
+    $end            reduce using rule 61 (term -> id .)
+    RPAR            reduce using rule 61 (term -> id .)
+    ID              reduce using rule 61 (term -> id .)
+    VAR             reduce using rule 61 (term -> id .)
+    SEMICOLON       reduce using rule 61 (term -> id .)
+    RBRAC           reduce using rule 61 (term -> id .)
+    MIN             reduce using rule 61 (term -> id .)
+    MAX             reduce using rule 61 (term -> id .)
+    COMMA           reduce using rule 61 (term -> id .)
+    RCBRAC          reduce using rule 61 (term -> id .)
 
 
 state 70
 
-    (51) id -> ID . LBRAC expr RBRAC
-    (52) id -> ID .
+    (49) id -> ID . LBRAC expr RBRAC
+    (50) id -> ID .
 
-    LBRAC           shift and go to state 94
-    EQUAL           reduce using rule 52 (id -> ID .)
-    LEQ             reduce using rule 52 (id -> ID .)
-    BEQ             reduce using rule 52 (id -> ID .)
-    LOW             reduce using rule 52 (id -> ID .)
-    BIG             reduce using rule 52 (id -> ID .)
-    PLUS            reduce using rule 52 (id -> ID .)
-    MINUS           reduce using rule 52 (id -> ID .)
-    MULT            reduce using rule 52 (id -> ID .)
-    DIVIDE          reduce using rule 52 (id -> ID .)
-    POW             reduce using rule 52 (id -> ID .)
-    INTERNAL        reduce using rule 52 (id -> ID .)
-    OUTPUT          reduce using rule 52 (id -> ID .)
-    INPUT           reduce using rule 52 (id -> ID .)
-    CONS            reduce using rule 52 (id -> ID .)
-    OBJ             reduce using rule 52 (id -> ID .)
-    NODE            reduce using rule 52 (id -> ID .)
-    LINKS           reduce using rule 52 (id -> ID .)
-    $end            reduce using rule 52 (id -> ID .)
-    RPAR            reduce using rule 52 (id -> ID .)
-    ID              reduce using rule 52 (id -> ID .)
-    VAR             reduce using rule 52 (id -> ID .)
-    SEMICOLON       reduce using rule 52 (id -> ID .)
-    RBRAC           reduce using rule 52 (id -> ID .)
-    MIN             reduce using rule 52 (id -> ID .)
-    MAX             reduce using rule 52 (id -> ID .)
-    IN              reduce using rule 52 (id -> ID .)
-    COMMA           reduce using rule 52 (id -> ID .)
-    RCBRAC          reduce using rule 52 (id -> ID .)
+    LBRAC           shift and go to state 92
+    EQUAL           reduce using rule 50 (id -> ID .)
+    LEQ             reduce using rule 50 (id -> ID .)
+    BEQ             reduce using rule 50 (id -> ID .)
+    PLUS            reduce using rule 50 (id -> ID .)
+    MINUS           reduce using rule 50 (id -> ID .)
+    MULT            reduce using rule 50 (id -> ID .)
+    DIVIDE          reduce using rule 50 (id -> ID .)
+    POW             reduce using rule 50 (id -> ID .)
+    INTERNAL        reduce using rule 50 (id -> ID .)
+    OUTPUT          reduce using rule 50 (id -> ID .)
+    INPUT           reduce using rule 50 (id -> ID .)
+    CONS            reduce using rule 50 (id -> ID .)
+    OBJ             reduce using rule 50 (id -> ID .)
+    NODE            reduce using rule 50 (id -> ID .)
+    LINKS           reduce using rule 50 (id -> ID .)
+    $end            reduce using rule 50 (id -> ID .)
+    RPAR            reduce using rule 50 (id -> ID .)
+    ID              reduce using rule 50 (id -> ID .)
+    VAR             reduce using rule 50 (id -> ID .)
+    SEMICOLON       reduce using rule 50 (id -> ID .)
+    RBRAC           reduce using rule 50 (id -> ID .)
+    MIN             reduce using rule 50 (id -> ID .)
+    MAX             reduce using rule 50 (id -> ID .)
+    IN              reduce using rule 50 (id -> ID .)
+    COMMA           reduce using rule 50 (id -> ID .)
+    RCBRAC          reduce using rule 50 (id -> ID .)
 
 
 state 71
 
     (31) define_variables -> INTERNAL COLON . id unity var_aux
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     ID              shift and go to state 70
 
-    id                             shift and go to state 95
+    id                             shift and go to state 93
 
 state 72
 
     (32) define_variables -> OUTPUT COLON . id unity var_aux
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     ID              shift and go to state 70
 
-    id                             shift and go to state 96
+    id                             shift and go to state 94
 
 state 73
 
     (33) define_variables -> INPUT COLON . id unity var_aux
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     ID              shift and go to state 70
 
-    id                             shift and go to state 97
+    id                             shift and go to state 95
 
 state 74
 
     (25) parameter -> ID unity EQUAL . expr
     (26) parameter -> ID unity EQUAL . LCBRAC term more_values RCBRAC
     (27) parameter -> ID unity EQUAL . IMPORT FILENAME
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
-    LCBRAC          shift and go to state 99
-    IMPORT          shift and go to state 100
+    LCBRAC          shift and go to state 97
+    IMPORT          shift and go to state 98
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
     INT             shift and go to state 67
     FLOAT           shift and go to state 68
     ID              shift and go to state 70
 
-    expr                           shift and go to state 98
+    expr                           shift and go to state 96
     term                           shift and go to state 66
     id                             shift and go to state 69
 
 state 75
 
-    (64) unity -> IN expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (62) unity -> IN expr .
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
-    EQUAL           reduce using rule 64 (unity -> IN expr .)
-    INTERNAL        reduce using rule 64 (unity -> IN expr .)
-    OUTPUT          reduce using rule 64 (unity -> IN expr .)
-    INPUT           reduce using rule 64 (unity -> IN expr .)
-    CONS            reduce using rule 64 (unity -> IN expr .)
-    OBJ             reduce using rule 64 (unity -> IN expr .)
-    NODE            reduce using rule 64 (unity -> IN expr .)
-    LINKS           reduce using rule 64 (unity -> IN expr .)
-    $end            reduce using rule 64 (unity -> IN expr .)
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    EQUAL           reduce using rule 62 (unity -> IN expr .)
+    INTERNAL        reduce using rule 62 (unity -> IN expr .)
+    OUTPUT          reduce using rule 62 (unity -> IN expr .)
+    INPUT           reduce using rule 62 (unity -> IN expr .)
+    CONS            reduce using rule 62 (unity -> IN expr .)
+    OBJ             reduce using rule 62 (unity -> IN expr .)
+    NODE            reduce using rule 62 (unity -> IN expr .)
+    LINKS           reduce using rule 62 (unity -> IN expr .)
+    $end            reduce using rule 62 (unity -> IN expr .)
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
 
 
 state 76
@@ -1162,37 +1142,37 @@ state 76
     NAME            reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    more_id                        shift and go to state 101
+    more_id                        shift and go to state 99
     empty                          shift and go to state 56
 
 state 77
 
     (10) link_def -> NAME DOT ID EQUAL NAME . DOT ID more_id_aux
 
-    DOT             shift and go to state 102
+    DOT             shift and go to state 100
 
 
 state 78
 
-    (45) objectives -> OBJ define_objectives .
+    (43) objectives -> OBJ define_objectives .
 
-    NODE            reduce using rule 45 (objectives -> OBJ define_objectives .)
-    LINKS           reduce using rule 45 (objectives -> OBJ define_objectives .)
-    $end            reduce using rule 45 (objectives -> OBJ define_objectives .)
+    NODE            reduce using rule 43 (objectives -> OBJ define_objectives .)
+    LINKS           reduce using rule 43 (objectives -> OBJ define_objectives .)
+    $end            reduce using rule 43 (objectives -> OBJ define_objectives .)
 
 
 state 79
 
-    (47) define_objectives -> MIN . COLON expr obj_aux
+    (45) define_objectives -> MIN . COLON expr obj_aux
 
-    COLON           shift and go to state 103
+    COLON           shift and go to state 101
 
 
 state 80
 
-    (48) define_objectives -> MAX . COLON expr obj_aux
+    (46) define_objectives -> MAX . COLON expr obj_aux
 
-    COLON           shift and go to state 104
+    COLON           shift and go to state 102
 
 
 state 81
@@ -1203,21 +1183,19 @@ state 81
     (40) define_constraints -> . expr EQUAL expr
     (41) define_constraints -> . expr LEQ expr
     (42) define_constraints -> . expr BEQ expr
-    (43) define_constraints -> . expr LOW expr
-    (44) define_constraints -> . expr BIG expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -1226,7 +1204,7 @@ state 81
     ID              shift and go to state 70
 
     define_constraints             shift and go to state 62
-    constraints_aux                shift and go to state 105
+    constraints_aux                shift and go to state 103
     expr                           shift and go to state 63
     term                           shift and go to state 66
     id                             shift and go to state 69
@@ -1234,19 +1212,73 @@ state 81
 state 82
 
     (40) define_constraints -> expr EQUAL . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
+
+    MINUS           shift and go to state 64
+    LPAR            shift and go to state 65
+    INT             shift and go to state 67
+    FLOAT           shift and go to state 68
+    ID              shift and go to state 70
+
+    expr                           shift and go to state 104
+    term                           shift and go to state 66
+    id                             shift and go to state 69
+
+state 83
+
+    (41) define_constraints -> expr LEQ . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
+
+    MINUS           shift and go to state 64
+    LPAR            shift and go to state 65
+    INT             shift and go to state 67
+    FLOAT           shift and go to state 68
+    ID              shift and go to state 70
+
+    expr                           shift and go to state 105
+    term                           shift and go to state 66
+    id                             shift and go to state 69
+
+state 84
+
+    (42) define_constraints -> expr BEQ . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -1258,22 +1290,22 @@ state 82
     term                           shift and go to state 66
     id                             shift and go to state 69
 
-state 83
+state 85
 
-    (41) define_constraints -> expr LEQ . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (51) expr -> expr PLUS . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -1285,22 +1317,22 @@ state 83
     term                           shift and go to state 66
     id                             shift and go to state 69
 
-state 84
+state 86
 
-    (42) define_constraints -> expr BEQ . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (52) expr -> expr MINUS . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -1312,22 +1344,22 @@ state 84
     term                           shift and go to state 66
     id                             shift and go to state 69
 
-state 85
+state 87
 
-    (43) define_constraints -> expr LOW . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (53) expr -> expr MULT . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -1339,22 +1371,22 @@ state 85
     term                           shift and go to state 66
     id                             shift and go to state 69
 
-state 86
+state 88
 
-    (44) define_constraints -> expr BIG . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (54) expr -> expr DIVIDE . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -1366,22 +1398,22 @@ state 86
     term                           shift and go to state 66
     id                             shift and go to state 69
 
-state 87
+state 89
 
-    (53) expr -> expr PLUS . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (56) expr -> expr POW . expr
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -1393,49 +1425,79 @@ state 87
     term                           shift and go to state 66
     id                             shift and go to state 69
 
-state 88
+state 90
 
-    (54) expr -> expr MINUS . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (55) expr -> MINUS expr .
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
-    MINUS           shift and go to state 64
-    LPAR            shift and go to state 65
-    INT             shift and go to state 67
-    FLOAT           shift and go to state 68
-    ID              shift and go to state 70
+    EQUAL           reduce using rule 55 (expr -> MINUS expr .)
+    LEQ             reduce using rule 55 (expr -> MINUS expr .)
+    BEQ             reduce using rule 55 (expr -> MINUS expr .)
+    PLUS            reduce using rule 55 (expr -> MINUS expr .)
+    MINUS           reduce using rule 55 (expr -> MINUS expr .)
+    MULT            reduce using rule 55 (expr -> MINUS expr .)
+    DIVIDE          reduce using rule 55 (expr -> MINUS expr .)
+    INTERNAL        reduce using rule 55 (expr -> MINUS expr .)
+    OUTPUT          reduce using rule 55 (expr -> MINUS expr .)
+    INPUT           reduce using rule 55 (expr -> MINUS expr .)
+    CONS            reduce using rule 55 (expr -> MINUS expr .)
+    OBJ             reduce using rule 55 (expr -> MINUS expr .)
+    NODE            reduce using rule 55 (expr -> MINUS expr .)
+    LINKS           reduce using rule 55 (expr -> MINUS expr .)
+    $end            reduce using rule 55 (expr -> MINUS expr .)
+    RPAR            reduce using rule 55 (expr -> MINUS expr .)
+    ID              reduce using rule 55 (expr -> MINUS expr .)
+    VAR             reduce using rule 55 (expr -> MINUS expr .)
+    SEMICOLON       reduce using rule 55 (expr -> MINUS expr .)
+    RBRAC           reduce using rule 55 (expr -> MINUS expr .)
+    MIN             reduce using rule 55 (expr -> MINUS expr .)
+    MAX             reduce using rule 55 (expr -> MINUS expr .)
+    POW             shift and go to state 89
 
-    expr                           shift and go to state 112
-    term                           shift and go to state 66
-    id                             shift and go to state 69
+  ! POW             [ reduce using rule 55 (expr -> MINUS expr .) ]
+  ! PLUS            [ shift and go to state 85 ]
+  ! MINUS           [ shift and go to state 86 ]
+  ! MULT            [ shift and go to state 87 ]
+  ! DIVIDE          [ shift and go to state 88 ]
 
-state 89
 
-    (55) expr -> expr MULT . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+state 91
+
+    (57) expr -> LPAR expr . RPAR
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
+
+    RPAR            shift and go to state 112
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
+
+
+state 92
+
+    (49) id -> ID LBRAC . expr RBRAC
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     MINUS           shift and go to state 64
     LPAR            shift and go to state 65
@@ -1447,151 +1509,11 @@ state 89
     term                           shift and go to state 66
     id                             shift and go to state 69
 
-state 90
-
-    (56) expr -> expr DIVIDE . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
-
-    MINUS           shift and go to state 64
-    LPAR            shift and go to state 65
-    INT             shift and go to state 67
-    FLOAT           shift and go to state 68
-    ID              shift and go to state 70
-
-    expr                           shift and go to state 114
-    term                           shift and go to state 66
-    id                             shift and go to state 69
-
-state 91
-
-    (58) expr -> expr POW . expr
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
-
-    MINUS           shift and go to state 64
-    LPAR            shift and go to state 65
-    INT             shift and go to state 67
-    FLOAT           shift and go to state 68
-    ID              shift and go to state 70
-
-    expr                           shift and go to state 115
-    term                           shift and go to state 66
-    id                             shift and go to state 69
-
-state 92
-
-    (57) expr -> MINUS expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
-
-    EQUAL           reduce using rule 57 (expr -> MINUS expr .)
-    LEQ             reduce using rule 57 (expr -> MINUS expr .)
-    BEQ             reduce using rule 57 (expr -> MINUS expr .)
-    LOW             reduce using rule 57 (expr -> MINUS expr .)
-    BIG             reduce using rule 57 (expr -> MINUS expr .)
-    PLUS            reduce using rule 57 (expr -> MINUS expr .)
-    MINUS           reduce using rule 57 (expr -> MINUS expr .)
-    MULT            reduce using rule 57 (expr -> MINUS expr .)
-    DIVIDE          reduce using rule 57 (expr -> MINUS expr .)
-    INTERNAL        reduce using rule 57 (expr -> MINUS expr .)
-    OUTPUT          reduce using rule 57 (expr -> MINUS expr .)
-    INPUT           reduce using rule 57 (expr -> MINUS expr .)
-    CONS            reduce using rule 57 (expr -> MINUS expr .)
-    OBJ             reduce using rule 57 (expr -> MINUS expr .)
-    NODE            reduce using rule 57 (expr -> MINUS expr .)
-    LINKS           reduce using rule 57 (expr -> MINUS expr .)
-    $end            reduce using rule 57 (expr -> MINUS expr .)
-    RPAR            reduce using rule 57 (expr -> MINUS expr .)
-    ID              reduce using rule 57 (expr -> MINUS expr .)
-    VAR             reduce using rule 57 (expr -> MINUS expr .)
-    SEMICOLON       reduce using rule 57 (expr -> MINUS expr .)
-    RBRAC           reduce using rule 57 (expr -> MINUS expr .)
-    MIN             reduce using rule 57 (expr -> MINUS expr .)
-    MAX             reduce using rule 57 (expr -> MINUS expr .)
-    POW             shift and go to state 91
-
-  ! POW             [ reduce using rule 57 (expr -> MINUS expr .) ]
-  ! PLUS            [ shift and go to state 87 ]
-  ! MINUS           [ shift and go to state 88 ]
-  ! MULT            [ shift and go to state 89 ]
-  ! DIVIDE          [ shift and go to state 90 ]
-
-
 state 93
 
-    (59) expr -> LPAR expr . RPAR
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
-
-    RPAR            shift and go to state 116
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
-
-
-state 94
-
-    (51) id -> ID LBRAC . expr RBRAC
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
-
-    MINUS           shift and go to state 64
-    LPAR            shift and go to state 65
-    INT             shift and go to state 67
-    FLOAT           shift and go to state 68
-    ID              shift and go to state 70
-
-    expr                           shift and go to state 117
-    term                           shift and go to state 66
-    id                             shift and go to state 69
-
-state 95
-
     (31) define_variables -> INTERNAL COLON id . unity var_aux
-    (64) unity -> . IN expr
-    (65) unity -> . empty
+    (62) unity -> . IN expr
+    (63) unity -> . empty
     (20) empty -> .
 
     IN              shift and go to state 52
@@ -1604,91 +1526,91 @@ state 95
     LINKS           reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    unity                          shift and go to state 118
+    unity                          shift and go to state 114
+    empty                          shift and go to state 53
+
+state 94
+
+    (32) define_variables -> OUTPUT COLON id . unity var_aux
+    (62) unity -> . IN expr
+    (63) unity -> . empty
+    (20) empty -> .
+
+    IN              shift and go to state 52
+    INTERNAL        reduce using rule 20 (empty -> .)
+    OUTPUT          reduce using rule 20 (empty -> .)
+    INPUT           reduce using rule 20 (empty -> .)
+    CONS            reduce using rule 20 (empty -> .)
+    OBJ             reduce using rule 20 (empty -> .)
+    NODE            reduce using rule 20 (empty -> .)
+    LINKS           reduce using rule 20 (empty -> .)
+    $end            reduce using rule 20 (empty -> .)
+
+    unity                          shift and go to state 115
+    empty                          shift and go to state 53
+
+state 95
+
+    (33) define_variables -> INPUT COLON id . unity var_aux
+    (62) unity -> . IN expr
+    (63) unity -> . empty
+    (20) empty -> .
+
+    IN              shift and go to state 52
+    INTERNAL        reduce using rule 20 (empty -> .)
+    OUTPUT          reduce using rule 20 (empty -> .)
+    INPUT           reduce using rule 20 (empty -> .)
+    CONS            reduce using rule 20 (empty -> .)
+    OBJ             reduce using rule 20 (empty -> .)
+    NODE            reduce using rule 20 (empty -> .)
+    LINKS           reduce using rule 20 (empty -> .)
+    $end            reduce using rule 20 (empty -> .)
+
+    unity                          shift and go to state 116
     empty                          shift and go to state 53
 
 state 96
 
-    (32) define_variables -> OUTPUT COLON id . unity var_aux
-    (64) unity -> . IN expr
-    (65) unity -> . empty
-    (20) empty -> .
-
-    IN              shift and go to state 52
-    INTERNAL        reduce using rule 20 (empty -> .)
-    OUTPUT          reduce using rule 20 (empty -> .)
-    INPUT           reduce using rule 20 (empty -> .)
-    CONS            reduce using rule 20 (empty -> .)
-    OBJ             reduce using rule 20 (empty -> .)
-    NODE            reduce using rule 20 (empty -> .)
-    LINKS           reduce using rule 20 (empty -> .)
-    $end            reduce using rule 20 (empty -> .)
-
-    unity                          shift and go to state 119
-    empty                          shift and go to state 53
-
-state 97
-
-    (33) define_variables -> INPUT COLON id . unity var_aux
-    (64) unity -> . IN expr
-    (65) unity -> . empty
-    (20) empty -> .
-
-    IN              shift and go to state 52
-    INTERNAL        reduce using rule 20 (empty -> .)
-    OUTPUT          reduce using rule 20 (empty -> .)
-    INPUT           reduce using rule 20 (empty -> .)
-    CONS            reduce using rule 20 (empty -> .)
-    OBJ             reduce using rule 20 (empty -> .)
-    NODE            reduce using rule 20 (empty -> .)
-    LINKS           reduce using rule 20 (empty -> .)
-    $end            reduce using rule 20 (empty -> .)
-
-    unity                          shift and go to state 120
-    empty                          shift and go to state 53
-
-state 98
-
     (25) parameter -> ID unity EQUAL expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
     ID              reduce using rule 25 (parameter -> ID unity EQUAL expr .)
     VAR             reduce using rule 25 (parameter -> ID unity EQUAL expr .)
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
 
 
-state 99
+state 97
 
     (26) parameter -> ID unity EQUAL LCBRAC . term more_values RCBRAC
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     INT             shift and go to state 67
     FLOAT           shift and go to state 68
     ID              shift and go to state 70
 
-    term                           shift and go to state 121
+    term                           shift and go to state 117
     id                             shift and go to state 69
 
-state 100
+state 98
 
     (27) parameter -> ID unity EQUAL IMPORT . FILENAME
 
-    FILENAME        shift and go to state 122
+    FILENAME        shift and go to state 118
 
 
-state 101
+state 99
 
     (13) more_id -> COMMA NAME more_id .
 
@@ -1696,68 +1618,68 @@ state 101
     $end            reduce using rule 13 (more_id -> COMMA NAME more_id .)
 
 
-state 102
+state 100
 
     (10) link_def -> NAME DOT ID EQUAL NAME DOT . ID more_id_aux
 
-    ID              shift and go to state 123
+    ID              shift and go to state 119
 
+
+state 101
+
+    (45) define_objectives -> MIN COLON . expr obj_aux
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
+
+    MINUS           shift and go to state 64
+    LPAR            shift and go to state 65
+    INT             shift and go to state 67
+    FLOAT           shift and go to state 68
+    ID              shift and go to state 70
+
+    expr                           shift and go to state 120
+    term                           shift and go to state 66
+    id                             shift and go to state 69
+
+state 102
+
+    (46) define_objectives -> MAX COLON . expr obj_aux
+    (51) expr -> . expr PLUS expr
+    (52) expr -> . expr MINUS expr
+    (53) expr -> . expr MULT expr
+    (54) expr -> . expr DIVIDE expr
+    (55) expr -> . MINUS expr
+    (56) expr -> . expr POW expr
+    (57) expr -> . LPAR expr RPAR
+    (58) expr -> . term
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
+
+    MINUS           shift and go to state 64
+    LPAR            shift and go to state 65
+    INT             shift and go to state 67
+    FLOAT           shift and go to state 68
+    ID              shift and go to state 70
+
+    expr                           shift and go to state 121
+    term                           shift and go to state 66
+    id                             shift and go to state 69
 
 state 103
-
-    (47) define_objectives -> MIN COLON . expr obj_aux
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
-
-    MINUS           shift and go to state 64
-    LPAR            shift and go to state 65
-    INT             shift and go to state 67
-    FLOAT           shift and go to state 68
-    ID              shift and go to state 70
-
-    expr                           shift and go to state 124
-    term                           shift and go to state 66
-    id                             shift and go to state 69
-
-state 104
-
-    (48) define_objectives -> MAX COLON . expr obj_aux
-    (53) expr -> . expr PLUS expr
-    (54) expr -> . expr MINUS expr
-    (55) expr -> . expr MULT expr
-    (56) expr -> . expr DIVIDE expr
-    (57) expr -> . MINUS expr
-    (58) expr -> . expr POW expr
-    (59) expr -> . LPAR expr RPAR
-    (60) expr -> . term
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
-
-    MINUS           shift and go to state 64
-    LPAR            shift and go to state 65
-    INT             shift and go to state 67
-    FLOAT           shift and go to state 68
-    ID              shift and go to state 70
-
-    expr                           shift and go to state 125
-    term                           shift and go to state 66
-    id                             shift and go to state 69
-
-state 105
 
     (38) constraints_aux -> define_constraints SEMICOLON constraints_aux .
 
@@ -1767,370 +1689,316 @@ state 105
     $end            reduce using rule 38 (constraints_aux -> define_constraints SEMICOLON constraints_aux .)
 
 
-state 106
+state 104
 
     (40) define_constraints -> expr EQUAL expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
     SEMICOLON       reduce using rule 40 (define_constraints -> expr EQUAL expr .)
     OBJ             reduce using rule 40 (define_constraints -> expr EQUAL expr .)
     NODE            reduce using rule 40 (define_constraints -> expr EQUAL expr .)
     LINKS           reduce using rule 40 (define_constraints -> expr EQUAL expr .)
     $end            reduce using rule 40 (define_constraints -> expr EQUAL expr .)
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
 
 
-state 107
+state 105
 
     (41) define_constraints -> expr LEQ expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
     SEMICOLON       reduce using rule 41 (define_constraints -> expr LEQ expr .)
     OBJ             reduce using rule 41 (define_constraints -> expr LEQ expr .)
     NODE            reduce using rule 41 (define_constraints -> expr LEQ expr .)
     LINKS           reduce using rule 41 (define_constraints -> expr LEQ expr .)
     $end            reduce using rule 41 (define_constraints -> expr LEQ expr .)
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
 
 
-state 108
+state 106
 
     (42) define_constraints -> expr BEQ expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
     SEMICOLON       reduce using rule 42 (define_constraints -> expr BEQ expr .)
     OBJ             reduce using rule 42 (define_constraints -> expr BEQ expr .)
     NODE            reduce using rule 42 (define_constraints -> expr BEQ expr .)
     LINKS           reduce using rule 42 (define_constraints -> expr BEQ expr .)
     $end            reduce using rule 42 (define_constraints -> expr BEQ expr .)
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
+
+
+state 107
+
+    (51) expr -> expr PLUS expr .
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
+
+    EQUAL           reduce using rule 51 (expr -> expr PLUS expr .)
+    LEQ             reduce using rule 51 (expr -> expr PLUS expr .)
+    BEQ             reduce using rule 51 (expr -> expr PLUS expr .)
+    PLUS            reduce using rule 51 (expr -> expr PLUS expr .)
+    MINUS           reduce using rule 51 (expr -> expr PLUS expr .)
+    INTERNAL        reduce using rule 51 (expr -> expr PLUS expr .)
+    OUTPUT          reduce using rule 51 (expr -> expr PLUS expr .)
+    INPUT           reduce using rule 51 (expr -> expr PLUS expr .)
+    CONS            reduce using rule 51 (expr -> expr PLUS expr .)
+    OBJ             reduce using rule 51 (expr -> expr PLUS expr .)
+    NODE            reduce using rule 51 (expr -> expr PLUS expr .)
+    LINKS           reduce using rule 51 (expr -> expr PLUS expr .)
+    $end            reduce using rule 51 (expr -> expr PLUS expr .)
+    RPAR            reduce using rule 51 (expr -> expr PLUS expr .)
+    ID              reduce using rule 51 (expr -> expr PLUS expr .)
+    VAR             reduce using rule 51 (expr -> expr PLUS expr .)
+    SEMICOLON       reduce using rule 51 (expr -> expr PLUS expr .)
+    RBRAC           reduce using rule 51 (expr -> expr PLUS expr .)
+    MIN             reduce using rule 51 (expr -> expr PLUS expr .)
+    MAX             reduce using rule 51 (expr -> expr PLUS expr .)
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
+
+  ! MULT            [ reduce using rule 51 (expr -> expr PLUS expr .) ]
+  ! DIVIDE          [ reduce using rule 51 (expr -> expr PLUS expr .) ]
+  ! POW             [ reduce using rule 51 (expr -> expr PLUS expr .) ]
+  ! PLUS            [ shift and go to state 85 ]
+  ! MINUS           [ shift and go to state 86 ]
+
+
+state 108
+
+    (52) expr -> expr MINUS expr .
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
+
+    EQUAL           reduce using rule 52 (expr -> expr MINUS expr .)
+    LEQ             reduce using rule 52 (expr -> expr MINUS expr .)
+    BEQ             reduce using rule 52 (expr -> expr MINUS expr .)
+    PLUS            reduce using rule 52 (expr -> expr MINUS expr .)
+    MINUS           reduce using rule 52 (expr -> expr MINUS expr .)
+    INTERNAL        reduce using rule 52 (expr -> expr MINUS expr .)
+    OUTPUT          reduce using rule 52 (expr -> expr MINUS expr .)
+    INPUT           reduce using rule 52 (expr -> expr MINUS expr .)
+    CONS            reduce using rule 52 (expr -> expr MINUS expr .)
+    OBJ             reduce using rule 52 (expr -> expr MINUS expr .)
+    NODE            reduce using rule 52 (expr -> expr MINUS expr .)
+    LINKS           reduce using rule 52 (expr -> expr MINUS expr .)
+    $end            reduce using rule 52 (expr -> expr MINUS expr .)
+    RPAR            reduce using rule 52 (expr -> expr MINUS expr .)
+    ID              reduce using rule 52 (expr -> expr MINUS expr .)
+    VAR             reduce using rule 52 (expr -> expr MINUS expr .)
+    SEMICOLON       reduce using rule 52 (expr -> expr MINUS expr .)
+    RBRAC           reduce using rule 52 (expr -> expr MINUS expr .)
+    MIN             reduce using rule 52 (expr -> expr MINUS expr .)
+    MAX             reduce using rule 52 (expr -> expr MINUS expr .)
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
+
+  ! MULT            [ reduce using rule 52 (expr -> expr MINUS expr .) ]
+  ! DIVIDE          [ reduce using rule 52 (expr -> expr MINUS expr .) ]
+  ! POW             [ reduce using rule 52 (expr -> expr MINUS expr .) ]
+  ! PLUS            [ shift and go to state 85 ]
+  ! MINUS           [ shift and go to state 86 ]
 
 
 state 109
 
-    (43) define_constraints -> expr LOW expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (53) expr -> expr MULT expr .
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
-    SEMICOLON       reduce using rule 43 (define_constraints -> expr LOW expr .)
-    OBJ             reduce using rule 43 (define_constraints -> expr LOW expr .)
-    NODE            reduce using rule 43 (define_constraints -> expr LOW expr .)
-    LINKS           reduce using rule 43 (define_constraints -> expr LOW expr .)
-    $end            reduce using rule 43 (define_constraints -> expr LOW expr .)
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    EQUAL           reduce using rule 53 (expr -> expr MULT expr .)
+    LEQ             reduce using rule 53 (expr -> expr MULT expr .)
+    BEQ             reduce using rule 53 (expr -> expr MULT expr .)
+    PLUS            reduce using rule 53 (expr -> expr MULT expr .)
+    MINUS           reduce using rule 53 (expr -> expr MULT expr .)
+    MULT            reduce using rule 53 (expr -> expr MULT expr .)
+    DIVIDE          reduce using rule 53 (expr -> expr MULT expr .)
+    INTERNAL        reduce using rule 53 (expr -> expr MULT expr .)
+    OUTPUT          reduce using rule 53 (expr -> expr MULT expr .)
+    INPUT           reduce using rule 53 (expr -> expr MULT expr .)
+    CONS            reduce using rule 53 (expr -> expr MULT expr .)
+    OBJ             reduce using rule 53 (expr -> expr MULT expr .)
+    NODE            reduce using rule 53 (expr -> expr MULT expr .)
+    LINKS           reduce using rule 53 (expr -> expr MULT expr .)
+    $end            reduce using rule 53 (expr -> expr MULT expr .)
+    RPAR            reduce using rule 53 (expr -> expr MULT expr .)
+    ID              reduce using rule 53 (expr -> expr MULT expr .)
+    VAR             reduce using rule 53 (expr -> expr MULT expr .)
+    SEMICOLON       reduce using rule 53 (expr -> expr MULT expr .)
+    RBRAC           reduce using rule 53 (expr -> expr MULT expr .)
+    MIN             reduce using rule 53 (expr -> expr MULT expr .)
+    MAX             reduce using rule 53 (expr -> expr MULT expr .)
+    POW             shift and go to state 89
+
+  ! POW             [ reduce using rule 53 (expr -> expr MULT expr .) ]
+  ! PLUS            [ shift and go to state 85 ]
+  ! MINUS           [ shift and go to state 86 ]
+  ! MULT            [ shift and go to state 87 ]
+  ! DIVIDE          [ shift and go to state 88 ]
 
 
 state 110
 
-    (44) define_constraints -> expr BIG expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (54) expr -> expr DIVIDE expr .
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
-    SEMICOLON       reduce using rule 44 (define_constraints -> expr BIG expr .)
-    OBJ             reduce using rule 44 (define_constraints -> expr BIG expr .)
-    NODE            reduce using rule 44 (define_constraints -> expr BIG expr .)
-    LINKS           reduce using rule 44 (define_constraints -> expr BIG expr .)
-    $end            reduce using rule 44 (define_constraints -> expr BIG expr .)
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    EQUAL           reduce using rule 54 (expr -> expr DIVIDE expr .)
+    LEQ             reduce using rule 54 (expr -> expr DIVIDE expr .)
+    BEQ             reduce using rule 54 (expr -> expr DIVIDE expr .)
+    PLUS            reduce using rule 54 (expr -> expr DIVIDE expr .)
+    MINUS           reduce using rule 54 (expr -> expr DIVIDE expr .)
+    MULT            reduce using rule 54 (expr -> expr DIVIDE expr .)
+    DIVIDE          reduce using rule 54 (expr -> expr DIVIDE expr .)
+    INTERNAL        reduce using rule 54 (expr -> expr DIVIDE expr .)
+    OUTPUT          reduce using rule 54 (expr -> expr DIVIDE expr .)
+    INPUT           reduce using rule 54 (expr -> expr DIVIDE expr .)
+    CONS            reduce using rule 54 (expr -> expr DIVIDE expr .)
+    OBJ             reduce using rule 54 (expr -> expr DIVIDE expr .)
+    NODE            reduce using rule 54 (expr -> expr DIVIDE expr .)
+    LINKS           reduce using rule 54 (expr -> expr DIVIDE expr .)
+    $end            reduce using rule 54 (expr -> expr DIVIDE expr .)
+    RPAR            reduce using rule 54 (expr -> expr DIVIDE expr .)
+    ID              reduce using rule 54 (expr -> expr DIVIDE expr .)
+    VAR             reduce using rule 54 (expr -> expr DIVIDE expr .)
+    SEMICOLON       reduce using rule 54 (expr -> expr DIVIDE expr .)
+    RBRAC           reduce using rule 54 (expr -> expr DIVIDE expr .)
+    MIN             reduce using rule 54 (expr -> expr DIVIDE expr .)
+    MAX             reduce using rule 54 (expr -> expr DIVIDE expr .)
+    POW             shift and go to state 89
+
+  ! POW             [ reduce using rule 54 (expr -> expr DIVIDE expr .) ]
+  ! PLUS            [ shift and go to state 85 ]
+  ! MINUS           [ shift and go to state 86 ]
+  ! MULT            [ shift and go to state 87 ]
+  ! DIVIDE          [ shift and go to state 88 ]
 
 
 state 111
 
-    (53) expr -> expr PLUS expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (56) expr -> expr POW expr .
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
-    EQUAL           reduce using rule 53 (expr -> expr PLUS expr .)
-    LEQ             reduce using rule 53 (expr -> expr PLUS expr .)
-    BEQ             reduce using rule 53 (expr -> expr PLUS expr .)
-    LOW             reduce using rule 53 (expr -> expr PLUS expr .)
-    BIG             reduce using rule 53 (expr -> expr PLUS expr .)
-    PLUS            reduce using rule 53 (expr -> expr PLUS expr .)
-    MINUS           reduce using rule 53 (expr -> expr PLUS expr .)
-    INTERNAL        reduce using rule 53 (expr -> expr PLUS expr .)
-    OUTPUT          reduce using rule 53 (expr -> expr PLUS expr .)
-    INPUT           reduce using rule 53 (expr -> expr PLUS expr .)
-    CONS            reduce using rule 53 (expr -> expr PLUS expr .)
-    OBJ             reduce using rule 53 (expr -> expr PLUS expr .)
-    NODE            reduce using rule 53 (expr -> expr PLUS expr .)
-    LINKS           reduce using rule 53 (expr -> expr PLUS expr .)
-    $end            reduce using rule 53 (expr -> expr PLUS expr .)
-    RPAR            reduce using rule 53 (expr -> expr PLUS expr .)
-    ID              reduce using rule 53 (expr -> expr PLUS expr .)
-    VAR             reduce using rule 53 (expr -> expr PLUS expr .)
-    SEMICOLON       reduce using rule 53 (expr -> expr PLUS expr .)
-    RBRAC           reduce using rule 53 (expr -> expr PLUS expr .)
-    MIN             reduce using rule 53 (expr -> expr PLUS expr .)
-    MAX             reduce using rule 53 (expr -> expr PLUS expr .)
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    EQUAL           reduce using rule 56 (expr -> expr POW expr .)
+    LEQ             reduce using rule 56 (expr -> expr POW expr .)
+    BEQ             reduce using rule 56 (expr -> expr POW expr .)
+    PLUS            reduce using rule 56 (expr -> expr POW expr .)
+    MINUS           reduce using rule 56 (expr -> expr POW expr .)
+    MULT            reduce using rule 56 (expr -> expr POW expr .)
+    DIVIDE          reduce using rule 56 (expr -> expr POW expr .)
+    POW             reduce using rule 56 (expr -> expr POW expr .)
+    INTERNAL        reduce using rule 56 (expr -> expr POW expr .)
+    OUTPUT          reduce using rule 56 (expr -> expr POW expr .)
+    INPUT           reduce using rule 56 (expr -> expr POW expr .)
+    CONS            reduce using rule 56 (expr -> expr POW expr .)
+    OBJ             reduce using rule 56 (expr -> expr POW expr .)
+    NODE            reduce using rule 56 (expr -> expr POW expr .)
+    LINKS           reduce using rule 56 (expr -> expr POW expr .)
+    $end            reduce using rule 56 (expr -> expr POW expr .)
+    RPAR            reduce using rule 56 (expr -> expr POW expr .)
+    ID              reduce using rule 56 (expr -> expr POW expr .)
+    VAR             reduce using rule 56 (expr -> expr POW expr .)
+    SEMICOLON       reduce using rule 56 (expr -> expr POW expr .)
+    RBRAC           reduce using rule 56 (expr -> expr POW expr .)
+    MIN             reduce using rule 56 (expr -> expr POW expr .)
+    MAX             reduce using rule 56 (expr -> expr POW expr .)
 
-  ! MULT            [ reduce using rule 53 (expr -> expr PLUS expr .) ]
-  ! DIVIDE          [ reduce using rule 53 (expr -> expr PLUS expr .) ]
-  ! POW             [ reduce using rule 53 (expr -> expr PLUS expr .) ]
-  ! PLUS            [ shift and go to state 87 ]
-  ! MINUS           [ shift and go to state 88 ]
+  ! PLUS            [ shift and go to state 85 ]
+  ! MINUS           [ shift and go to state 86 ]
+  ! MULT            [ shift and go to state 87 ]
+  ! DIVIDE          [ shift and go to state 88 ]
+  ! POW             [ shift and go to state 89 ]
 
 
 state 112
 
-    (54) expr -> expr MINUS expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (57) expr -> LPAR expr RPAR .
 
-    EQUAL           reduce using rule 54 (expr -> expr MINUS expr .)
-    LEQ             reduce using rule 54 (expr -> expr MINUS expr .)
-    BEQ             reduce using rule 54 (expr -> expr MINUS expr .)
-    LOW             reduce using rule 54 (expr -> expr MINUS expr .)
-    BIG             reduce using rule 54 (expr -> expr MINUS expr .)
-    PLUS            reduce using rule 54 (expr -> expr MINUS expr .)
-    MINUS           reduce using rule 54 (expr -> expr MINUS expr .)
-    INTERNAL        reduce using rule 54 (expr -> expr MINUS expr .)
-    OUTPUT          reduce using rule 54 (expr -> expr MINUS expr .)
-    INPUT           reduce using rule 54 (expr -> expr MINUS expr .)
-    CONS            reduce using rule 54 (expr -> expr MINUS expr .)
-    OBJ             reduce using rule 54 (expr -> expr MINUS expr .)
-    NODE            reduce using rule 54 (expr -> expr MINUS expr .)
-    LINKS           reduce using rule 54 (expr -> expr MINUS expr .)
-    $end            reduce using rule 54 (expr -> expr MINUS expr .)
-    RPAR            reduce using rule 54 (expr -> expr MINUS expr .)
-    ID              reduce using rule 54 (expr -> expr MINUS expr .)
-    VAR             reduce using rule 54 (expr -> expr MINUS expr .)
-    SEMICOLON       reduce using rule 54 (expr -> expr MINUS expr .)
-    RBRAC           reduce using rule 54 (expr -> expr MINUS expr .)
-    MIN             reduce using rule 54 (expr -> expr MINUS expr .)
-    MAX             reduce using rule 54 (expr -> expr MINUS expr .)
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
-
-  ! MULT            [ reduce using rule 54 (expr -> expr MINUS expr .) ]
-  ! DIVIDE          [ reduce using rule 54 (expr -> expr MINUS expr .) ]
-  ! POW             [ reduce using rule 54 (expr -> expr MINUS expr .) ]
-  ! PLUS            [ shift and go to state 87 ]
-  ! MINUS           [ shift and go to state 88 ]
+    EQUAL           reduce using rule 57 (expr -> LPAR expr RPAR .)
+    LEQ             reduce using rule 57 (expr -> LPAR expr RPAR .)
+    BEQ             reduce using rule 57 (expr -> LPAR expr RPAR .)
+    PLUS            reduce using rule 57 (expr -> LPAR expr RPAR .)
+    MINUS           reduce using rule 57 (expr -> LPAR expr RPAR .)
+    MULT            reduce using rule 57 (expr -> LPAR expr RPAR .)
+    DIVIDE          reduce using rule 57 (expr -> LPAR expr RPAR .)
+    POW             reduce using rule 57 (expr -> LPAR expr RPAR .)
+    INTERNAL        reduce using rule 57 (expr -> LPAR expr RPAR .)
+    OUTPUT          reduce using rule 57 (expr -> LPAR expr RPAR .)
+    INPUT           reduce using rule 57 (expr -> LPAR expr RPAR .)
+    CONS            reduce using rule 57 (expr -> LPAR expr RPAR .)
+    OBJ             reduce using rule 57 (expr -> LPAR expr RPAR .)
+    NODE            reduce using rule 57 (expr -> LPAR expr RPAR .)
+    LINKS           reduce using rule 57 (expr -> LPAR expr RPAR .)
+    $end            reduce using rule 57 (expr -> LPAR expr RPAR .)
+    RPAR            reduce using rule 57 (expr -> LPAR expr RPAR .)
+    ID              reduce using rule 57 (expr -> LPAR expr RPAR .)
+    VAR             reduce using rule 57 (expr -> LPAR expr RPAR .)
+    SEMICOLON       reduce using rule 57 (expr -> LPAR expr RPAR .)
+    RBRAC           reduce using rule 57 (expr -> LPAR expr RPAR .)
+    MIN             reduce using rule 57 (expr -> LPAR expr RPAR .)
+    MAX             reduce using rule 57 (expr -> LPAR expr RPAR .)
 
 
 state 113
 
-    (55) expr -> expr MULT expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
+    (49) id -> ID LBRAC expr . RBRAC
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
 
-    EQUAL           reduce using rule 55 (expr -> expr MULT expr .)
-    LEQ             reduce using rule 55 (expr -> expr MULT expr .)
-    BEQ             reduce using rule 55 (expr -> expr MULT expr .)
-    LOW             reduce using rule 55 (expr -> expr MULT expr .)
-    BIG             reduce using rule 55 (expr -> expr MULT expr .)
-    PLUS            reduce using rule 55 (expr -> expr MULT expr .)
-    MINUS           reduce using rule 55 (expr -> expr MULT expr .)
-    MULT            reduce using rule 55 (expr -> expr MULT expr .)
-    DIVIDE          reduce using rule 55 (expr -> expr MULT expr .)
-    INTERNAL        reduce using rule 55 (expr -> expr MULT expr .)
-    OUTPUT          reduce using rule 55 (expr -> expr MULT expr .)
-    INPUT           reduce using rule 55 (expr -> expr MULT expr .)
-    CONS            reduce using rule 55 (expr -> expr MULT expr .)
-    OBJ             reduce using rule 55 (expr -> expr MULT expr .)
-    NODE            reduce using rule 55 (expr -> expr MULT expr .)
-    LINKS           reduce using rule 55 (expr -> expr MULT expr .)
-    $end            reduce using rule 55 (expr -> expr MULT expr .)
-    RPAR            reduce using rule 55 (expr -> expr MULT expr .)
-    ID              reduce using rule 55 (expr -> expr MULT expr .)
-    VAR             reduce using rule 55 (expr -> expr MULT expr .)
-    SEMICOLON       reduce using rule 55 (expr -> expr MULT expr .)
-    RBRAC           reduce using rule 55 (expr -> expr MULT expr .)
-    MIN             reduce using rule 55 (expr -> expr MULT expr .)
-    MAX             reduce using rule 55 (expr -> expr MULT expr .)
-    POW             shift and go to state 91
-
-  ! POW             [ reduce using rule 55 (expr -> expr MULT expr .) ]
-  ! PLUS            [ shift and go to state 87 ]
-  ! MINUS           [ shift and go to state 88 ]
-  ! MULT            [ shift and go to state 89 ]
-  ! DIVIDE          [ shift and go to state 90 ]
+    RBRAC           shift and go to state 122
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
 
 
 state 114
-
-    (56) expr -> expr DIVIDE expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
-
-    EQUAL           reduce using rule 56 (expr -> expr DIVIDE expr .)
-    LEQ             reduce using rule 56 (expr -> expr DIVIDE expr .)
-    BEQ             reduce using rule 56 (expr -> expr DIVIDE expr .)
-    LOW             reduce using rule 56 (expr -> expr DIVIDE expr .)
-    BIG             reduce using rule 56 (expr -> expr DIVIDE expr .)
-    PLUS            reduce using rule 56 (expr -> expr DIVIDE expr .)
-    MINUS           reduce using rule 56 (expr -> expr DIVIDE expr .)
-    MULT            reduce using rule 56 (expr -> expr DIVIDE expr .)
-    DIVIDE          reduce using rule 56 (expr -> expr DIVIDE expr .)
-    INTERNAL        reduce using rule 56 (expr -> expr DIVIDE expr .)
-    OUTPUT          reduce using rule 56 (expr -> expr DIVIDE expr .)
-    INPUT           reduce using rule 56 (expr -> expr DIVIDE expr .)
-    CONS            reduce using rule 56 (expr -> expr DIVIDE expr .)
-    OBJ             reduce using rule 56 (expr -> expr DIVIDE expr .)
-    NODE            reduce using rule 56 (expr -> expr DIVIDE expr .)
-    LINKS           reduce using rule 56 (expr -> expr DIVIDE expr .)
-    $end            reduce using rule 56 (expr -> expr DIVIDE expr .)
-    RPAR            reduce using rule 56 (expr -> expr DIVIDE expr .)
-    ID              reduce using rule 56 (expr -> expr DIVIDE expr .)
-    VAR             reduce using rule 56 (expr -> expr DIVIDE expr .)
-    SEMICOLON       reduce using rule 56 (expr -> expr DIVIDE expr .)
-    RBRAC           reduce using rule 56 (expr -> expr DIVIDE expr .)
-    MIN             reduce using rule 56 (expr -> expr DIVIDE expr .)
-    MAX             reduce using rule 56 (expr -> expr DIVIDE expr .)
-    POW             shift and go to state 91
-
-  ! POW             [ reduce using rule 56 (expr -> expr DIVIDE expr .) ]
-  ! PLUS            [ shift and go to state 87 ]
-  ! MINUS           [ shift and go to state 88 ]
-  ! MULT            [ shift and go to state 89 ]
-  ! DIVIDE          [ shift and go to state 90 ]
-
-
-state 115
-
-    (58) expr -> expr POW expr .
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
-
-    EQUAL           reduce using rule 58 (expr -> expr POW expr .)
-    LEQ             reduce using rule 58 (expr -> expr POW expr .)
-    BEQ             reduce using rule 58 (expr -> expr POW expr .)
-    LOW             reduce using rule 58 (expr -> expr POW expr .)
-    BIG             reduce using rule 58 (expr -> expr POW expr .)
-    PLUS            reduce using rule 58 (expr -> expr POW expr .)
-    MINUS           reduce using rule 58 (expr -> expr POW expr .)
-    MULT            reduce using rule 58 (expr -> expr POW expr .)
-    DIVIDE          reduce using rule 58 (expr -> expr POW expr .)
-    POW             reduce using rule 58 (expr -> expr POW expr .)
-    INTERNAL        reduce using rule 58 (expr -> expr POW expr .)
-    OUTPUT          reduce using rule 58 (expr -> expr POW expr .)
-    INPUT           reduce using rule 58 (expr -> expr POW expr .)
-    CONS            reduce using rule 58 (expr -> expr POW expr .)
-    OBJ             reduce using rule 58 (expr -> expr POW expr .)
-    NODE            reduce using rule 58 (expr -> expr POW expr .)
-    LINKS           reduce using rule 58 (expr -> expr POW expr .)
-    $end            reduce using rule 58 (expr -> expr POW expr .)
-    RPAR            reduce using rule 58 (expr -> expr POW expr .)
-    ID              reduce using rule 58 (expr -> expr POW expr .)
-    VAR             reduce using rule 58 (expr -> expr POW expr .)
-    SEMICOLON       reduce using rule 58 (expr -> expr POW expr .)
-    RBRAC           reduce using rule 58 (expr -> expr POW expr .)
-    MIN             reduce using rule 58 (expr -> expr POW expr .)
-    MAX             reduce using rule 58 (expr -> expr POW expr .)
-
-  ! PLUS            [ shift and go to state 87 ]
-  ! MINUS           [ shift and go to state 88 ]
-  ! MULT            [ shift and go to state 89 ]
-  ! DIVIDE          [ shift and go to state 90 ]
-  ! POW             [ shift and go to state 91 ]
-
-
-state 116
-
-    (59) expr -> LPAR expr RPAR .
-
-    EQUAL           reduce using rule 59 (expr -> LPAR expr RPAR .)
-    LEQ             reduce using rule 59 (expr -> LPAR expr RPAR .)
-    BEQ             reduce using rule 59 (expr -> LPAR expr RPAR .)
-    LOW             reduce using rule 59 (expr -> LPAR expr RPAR .)
-    BIG             reduce using rule 59 (expr -> LPAR expr RPAR .)
-    PLUS            reduce using rule 59 (expr -> LPAR expr RPAR .)
-    MINUS           reduce using rule 59 (expr -> LPAR expr RPAR .)
-    MULT            reduce using rule 59 (expr -> LPAR expr RPAR .)
-    DIVIDE          reduce using rule 59 (expr -> LPAR expr RPAR .)
-    POW             reduce using rule 59 (expr -> LPAR expr RPAR .)
-    INTERNAL        reduce using rule 59 (expr -> LPAR expr RPAR .)
-    OUTPUT          reduce using rule 59 (expr -> LPAR expr RPAR .)
-    INPUT           reduce using rule 59 (expr -> LPAR expr RPAR .)
-    CONS            reduce using rule 59 (expr -> LPAR expr RPAR .)
-    OBJ             reduce using rule 59 (expr -> LPAR expr RPAR .)
-    NODE            reduce using rule 59 (expr -> LPAR expr RPAR .)
-    LINKS           reduce using rule 59 (expr -> LPAR expr RPAR .)
-    $end            reduce using rule 59 (expr -> LPAR expr RPAR .)
-    RPAR            reduce using rule 59 (expr -> LPAR expr RPAR .)
-    ID              reduce using rule 59 (expr -> LPAR expr RPAR .)
-    VAR             reduce using rule 59 (expr -> LPAR expr RPAR .)
-    SEMICOLON       reduce using rule 59 (expr -> LPAR expr RPAR .)
-    RBRAC           reduce using rule 59 (expr -> LPAR expr RPAR .)
-    MIN             reduce using rule 59 (expr -> LPAR expr RPAR .)
-    MAX             reduce using rule 59 (expr -> LPAR expr RPAR .)
-
-
-state 117
-
-    (51) id -> ID LBRAC expr . RBRAC
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
-
-    RBRAC           shift and go to state 126
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
-
-
-state 118
 
     (31) define_variables -> INTERNAL COLON id unity . var_aux
     (34) var_aux -> . define_variables
@@ -2149,11 +2017,11 @@ state 118
     LINKS           reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    var_aux                        shift and go to state 127
-    define_variables               shift and go to state 128
-    empty                          shift and go to state 129
+    var_aux                        shift and go to state 123
+    define_variables               shift and go to state 124
+    empty                          shift and go to state 125
 
-state 119
+state 115
 
     (32) define_variables -> OUTPUT COLON id unity . var_aux
     (34) var_aux -> . define_variables
@@ -2172,11 +2040,11 @@ state 119
     LINKS           reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    var_aux                        shift and go to state 130
-    define_variables               shift and go to state 128
-    empty                          shift and go to state 129
+    var_aux                        shift and go to state 126
+    define_variables               shift and go to state 124
+    empty                          shift and go to state 125
 
-state 120
+state 116
 
     (33) define_variables -> INPUT COLON id unity . var_aux
     (34) var_aux -> . define_variables
@@ -2195,24 +2063,24 @@ state 120
     LINKS           reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    var_aux                        shift and go to state 131
-    define_variables               shift and go to state 128
-    empty                          shift and go to state 129
+    var_aux                        shift and go to state 127
+    define_variables               shift and go to state 124
+    empty                          shift and go to state 125
 
-state 121
+state 117
 
     (26) parameter -> ID unity EQUAL LCBRAC term . more_values RCBRAC
     (28) more_values -> . COMMA term more_values
     (29) more_values -> . empty
     (20) empty -> .
 
-    COMMA           shift and go to state 133
+    COMMA           shift and go to state 129
     RCBRAC          reduce using rule 20 (empty -> .)
 
-    more_values                    shift and go to state 132
-    empty                          shift and go to state 134
+    more_values                    shift and go to state 128
+    empty                          shift and go to state 130
 
-state 122
+state 118
 
     (27) parameter -> ID unity EQUAL IMPORT FILENAME .
 
@@ -2220,113 +2088,111 @@ state 122
     VAR             reduce using rule 27 (parameter -> ID unity EQUAL IMPORT FILENAME .)
 
 
-state 123
+state 119
 
     (10) link_def -> NAME DOT ID EQUAL NAME DOT ID . more_id_aux
     (11) more_id_aux -> . COMMA NAME DOT ID more_id_aux
     (12) more_id_aux -> . empty
     (20) empty -> .
 
-    COMMA           shift and go to state 136
+    COMMA           shift and go to state 132
     NAME            reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    more_id_aux                    shift and go to state 135
-    empty                          shift and go to state 137
+    more_id_aux                    shift and go to state 131
+    empty                          shift and go to state 133
 
-state 124
+state 120
 
-    (47) define_objectives -> MIN COLON expr . obj_aux
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
-    (49) obj_aux -> . define_objectives
-    (50) obj_aux -> . empty
-    (47) define_objectives -> . MIN COLON expr obj_aux
-    (48) define_objectives -> . MAX COLON expr obj_aux
+    (45) define_objectives -> MIN COLON expr . obj_aux
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
+    (47) obj_aux -> . define_objectives
+    (48) obj_aux -> . empty
+    (45) define_objectives -> . MIN COLON expr obj_aux
+    (46) define_objectives -> . MAX COLON expr obj_aux
     (20) empty -> .
 
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
     MIN             shift and go to state 79
     MAX             shift and go to state 80
     NODE            reduce using rule 20 (empty -> .)
     LINKS           reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    obj_aux                        shift and go to state 138
-    define_objectives              shift and go to state 139
-    empty                          shift and go to state 140
+    obj_aux                        shift and go to state 134
+    define_objectives              shift and go to state 135
+    empty                          shift and go to state 136
 
-state 125
+state 121
 
-    (48) define_objectives -> MAX COLON expr . obj_aux
-    (53) expr -> expr . PLUS expr
-    (54) expr -> expr . MINUS expr
-    (55) expr -> expr . MULT expr
-    (56) expr -> expr . DIVIDE expr
-    (58) expr -> expr . POW expr
-    (49) obj_aux -> . define_objectives
-    (50) obj_aux -> . empty
-    (47) define_objectives -> . MIN COLON expr obj_aux
-    (48) define_objectives -> . MAX COLON expr obj_aux
+    (46) define_objectives -> MAX COLON expr . obj_aux
+    (51) expr -> expr . PLUS expr
+    (52) expr -> expr . MINUS expr
+    (53) expr -> expr . MULT expr
+    (54) expr -> expr . DIVIDE expr
+    (56) expr -> expr . POW expr
+    (47) obj_aux -> . define_objectives
+    (48) obj_aux -> . empty
+    (45) define_objectives -> . MIN COLON expr obj_aux
+    (46) define_objectives -> . MAX COLON expr obj_aux
     (20) empty -> .
 
-    PLUS            shift and go to state 87
-    MINUS           shift and go to state 88
-    MULT            shift and go to state 89
-    DIVIDE          shift and go to state 90
-    POW             shift and go to state 91
+    PLUS            shift and go to state 85
+    MINUS           shift and go to state 86
+    MULT            shift and go to state 87
+    DIVIDE          shift and go to state 88
+    POW             shift and go to state 89
     MIN             shift and go to state 79
     MAX             shift and go to state 80
     NODE            reduce using rule 20 (empty -> .)
     LINKS           reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    obj_aux                        shift and go to state 141
-    define_objectives              shift and go to state 139
-    empty                          shift and go to state 140
+    obj_aux                        shift and go to state 137
+    define_objectives              shift and go to state 135
+    empty                          shift and go to state 136
 
-state 126
+state 122
 
-    (51) id -> ID LBRAC expr RBRAC .
+    (49) id -> ID LBRAC expr RBRAC .
 
-    EQUAL           reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    LEQ             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    BEQ             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    LOW             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    BIG             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    PLUS            reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    MINUS           reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    MULT            reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    DIVIDE          reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    POW             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    INTERNAL        reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    OUTPUT          reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    INPUT           reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    CONS            reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    OBJ             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    NODE            reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    LINKS           reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    $end            reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    RPAR            reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    ID              reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    VAR             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    SEMICOLON       reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    RBRAC           reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    MIN             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    MAX             reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    IN              reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    COMMA           reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
-    RCBRAC          reduce using rule 51 (id -> ID LBRAC expr RBRAC .)
+    EQUAL           reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    LEQ             reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    BEQ             reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    PLUS            reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    MINUS           reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    MULT            reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    DIVIDE          reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    POW             reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    INTERNAL        reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    OUTPUT          reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    INPUT           reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    CONS            reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    OBJ             reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    NODE            reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    LINKS           reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    $end            reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    RPAR            reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    ID              reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    VAR             reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    SEMICOLON       reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    RBRAC           reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    MIN             reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    MAX             reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    IN              reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    COMMA           reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
+    RCBRAC          reduce using rule 49 (id -> ID LBRAC expr RBRAC .)
 
 
-state 127
+state 123
 
     (31) define_variables -> INTERNAL COLON id unity var_aux .
 
@@ -2337,7 +2203,7 @@ state 127
     $end            reduce using rule 31 (define_variables -> INTERNAL COLON id unity var_aux .)
 
 
-state 128
+state 124
 
     (34) var_aux -> define_variables .
 
@@ -2348,7 +2214,7 @@ state 128
     $end            reduce using rule 34 (var_aux -> define_variables .)
 
 
-state 129
+state 125
 
     (35) var_aux -> empty .
 
@@ -2359,7 +2225,7 @@ state 129
     $end            reduce using rule 35 (var_aux -> empty .)
 
 
-state 130
+state 126
 
     (32) define_variables -> OUTPUT COLON id unity var_aux .
 
@@ -2370,7 +2236,7 @@ state 130
     $end            reduce using rule 32 (define_variables -> OUTPUT COLON id unity var_aux .)
 
 
-state 131
+state 127
 
     (33) define_variables -> INPUT COLON id unity var_aux .
 
@@ -2381,37 +2247,37 @@ state 131
     $end            reduce using rule 33 (define_variables -> INPUT COLON id unity var_aux .)
 
 
-state 132
+state 128
 
     (26) parameter -> ID unity EQUAL LCBRAC term more_values . RCBRAC
 
-    RCBRAC          shift and go to state 142
+    RCBRAC          shift and go to state 138
 
 
-state 133
+state 129
 
     (28) more_values -> COMMA . term more_values
-    (61) term -> . INT
-    (62) term -> . FLOAT
-    (63) term -> . id
-    (51) id -> . ID LBRAC expr RBRAC
-    (52) id -> . ID
+    (59) term -> . INT
+    (60) term -> . FLOAT
+    (61) term -> . id
+    (49) id -> . ID LBRAC expr RBRAC
+    (50) id -> . ID
 
     INT             shift and go to state 67
     FLOAT           shift and go to state 68
     ID              shift and go to state 70
 
-    term                           shift and go to state 143
+    term                           shift and go to state 139
     id                             shift and go to state 69
 
-state 134
+state 130
 
     (29) more_values -> empty .
 
     RCBRAC          reduce using rule 29 (more_values -> empty .)
 
 
-state 135
+state 131
 
     (10) link_def -> NAME DOT ID EQUAL NAME DOT ID more_id_aux .
 
@@ -2419,14 +2285,14 @@ state 135
     $end            reduce using rule 10 (link_def -> NAME DOT ID EQUAL NAME DOT ID more_id_aux .)
 
 
-state 136
+state 132
 
     (11) more_id_aux -> COMMA . NAME DOT ID more_id_aux
 
-    NAME            shift and go to state 144
+    NAME            shift and go to state 140
 
 
-state 137
+state 133
 
     (12) more_id_aux -> empty .
 
@@ -2434,43 +2300,43 @@ state 137
     $end            reduce using rule 12 (more_id_aux -> empty .)
 
 
+state 134
+
+    (45) define_objectives -> MIN COLON expr obj_aux .
+
+    NODE            reduce using rule 45 (define_objectives -> MIN COLON expr obj_aux .)
+    LINKS           reduce using rule 45 (define_objectives -> MIN COLON expr obj_aux .)
+    $end            reduce using rule 45 (define_objectives -> MIN COLON expr obj_aux .)
+
+
+state 135
+
+    (47) obj_aux -> define_objectives .
+
+    NODE            reduce using rule 47 (obj_aux -> define_objectives .)
+    LINKS           reduce using rule 47 (obj_aux -> define_objectives .)
+    $end            reduce using rule 47 (obj_aux -> define_objectives .)
+
+
+state 136
+
+    (48) obj_aux -> empty .
+
+    NODE            reduce using rule 48 (obj_aux -> empty .)
+    LINKS           reduce using rule 48 (obj_aux -> empty .)
+    $end            reduce using rule 48 (obj_aux -> empty .)
+
+
+state 137
+
+    (46) define_objectives -> MAX COLON expr obj_aux .
+
+    NODE            reduce using rule 46 (define_objectives -> MAX COLON expr obj_aux .)
+    LINKS           reduce using rule 46 (define_objectives -> MAX COLON expr obj_aux .)
+    $end            reduce using rule 46 (define_objectives -> MAX COLON expr obj_aux .)
+
+
 state 138
-
-    (47) define_objectives -> MIN COLON expr obj_aux .
-
-    NODE            reduce using rule 47 (define_objectives -> MIN COLON expr obj_aux .)
-    LINKS           reduce using rule 47 (define_objectives -> MIN COLON expr obj_aux .)
-    $end            reduce using rule 47 (define_objectives -> MIN COLON expr obj_aux .)
-
-
-state 139
-
-    (49) obj_aux -> define_objectives .
-
-    NODE            reduce using rule 49 (obj_aux -> define_objectives .)
-    LINKS           reduce using rule 49 (obj_aux -> define_objectives .)
-    $end            reduce using rule 49 (obj_aux -> define_objectives .)
-
-
-state 140
-
-    (50) obj_aux -> empty .
-
-    NODE            reduce using rule 50 (obj_aux -> empty .)
-    LINKS           reduce using rule 50 (obj_aux -> empty .)
-    $end            reduce using rule 50 (obj_aux -> empty .)
-
-
-state 141
-
-    (48) define_objectives -> MAX COLON expr obj_aux .
-
-    NODE            reduce using rule 48 (define_objectives -> MAX COLON expr obj_aux .)
-    LINKS           reduce using rule 48 (define_objectives -> MAX COLON expr obj_aux .)
-    $end            reduce using rule 48 (define_objectives -> MAX COLON expr obj_aux .)
-
-
-state 142
 
     (26) parameter -> ID unity EQUAL LCBRAC term more_values RCBRAC .
 
@@ -2478,55 +2344,55 @@ state 142
     VAR             reduce using rule 26 (parameter -> ID unity EQUAL LCBRAC term more_values RCBRAC .)
 
 
-state 143
+state 139
 
     (28) more_values -> COMMA term . more_values
     (28) more_values -> . COMMA term more_values
     (29) more_values -> . empty
     (20) empty -> .
 
-    COMMA           shift and go to state 133
+    COMMA           shift and go to state 129
     RCBRAC          reduce using rule 20 (empty -> .)
 
-    more_values                    shift and go to state 145
-    empty                          shift and go to state 134
+    more_values                    shift and go to state 141
+    empty                          shift and go to state 130
 
-state 144
+state 140
 
     (11) more_id_aux -> COMMA NAME . DOT ID more_id_aux
 
-    DOT             shift and go to state 146
+    DOT             shift and go to state 142
 
 
-state 145
+state 141
 
     (28) more_values -> COMMA term more_values .
 
     RCBRAC          reduce using rule 28 (more_values -> COMMA term more_values .)
 
 
-state 146
+state 142
 
     (11) more_id_aux -> COMMA NAME DOT . ID more_id_aux
 
-    ID              shift and go to state 147
+    ID              shift and go to state 143
 
 
-state 147
+state 143
 
     (11) more_id_aux -> COMMA NAME DOT ID . more_id_aux
     (11) more_id_aux -> . COMMA NAME DOT ID more_id_aux
     (12) more_id_aux -> . empty
     (20) empty -> .
 
-    COMMA           shift and go to state 136
+    COMMA           shift and go to state 132
     NAME            reduce using rule 20 (empty -> .)
     $end            reduce using rule 20 (empty -> .)
 
-    more_id_aux                    shift and go to state 148
-    empty                          shift and go to state 137
+    more_id_aux                    shift and go to state 144
+    empty                          shift and go to state 133
 
-state 148
+state 144
 
     (11) more_id_aux -> COMMA NAME DOT ID more_id_aux .
 

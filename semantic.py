@@ -4,9 +4,10 @@
 # Writer : MIFTARI B
 # ------------
 
-from classes import *
+from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
 import copy
 import numpy as np
+from utils import Vector
 
 timevar = []
 # To check
