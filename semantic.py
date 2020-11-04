@@ -8,6 +8,8 @@ from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,O
 import copy
 import numpy as np
 from utils import Vector
+import time as t
+
 
 timevar = []
 # To check 
@@ -51,6 +53,7 @@ def semantic(program):
     #Inside each node 
     for i in range(n):
         #CHECK if all parameters of a node have different names
+        
         all_parameters = check_names(elements[i].get_parameters())
         #print("parameters: "+str(all_parameters))
         #CHECK if all variables of a node have different names
@@ -66,7 +69,7 @@ def semantic(program):
         check_expressions_dependancy(elements[i],all_variables,all_parameters)
         #check_definition_order(elements[i].get_constraints())
         check_var(elements[i],all_variables,vector_parameters,all_parameters,time)
-        
+
         convert_objectives_matrix(elements[i],all_variables,vector_parameters,time)
 
     vector_parameters = vector_parameters.get_elements()
@@ -86,11 +89,12 @@ def semantic(program):
 
     return program
 
+
 def convert_links_to_matrix(input_output_pairs):
     input_output_matrix = []
 
     for i in range(len(input_output_pairs)):
-        print(input_output_pairs[i])
+        
         input_node = input_output_pairs[i][1]
         output_node = input_output_pairs[i][3]
         for j in range(len(input_output_pairs[i][4])):
@@ -113,10 +117,10 @@ def regroup_by_name(input_output_pairs):
         input_attr = link[0]
         output_attr = link[1]
 
-        name_input = link[0].node
-        node_input = link[0].get_node_object()
-        name_output = link[1].node
-        node_output = link[1].get_node_object()
+        name_input = input_attr.node
+        node_input = input_attr.get_node_object()
+        name_output = output_attr.node
+        node_output = output_attr.get_node_object()
 
         found = False
 
@@ -304,7 +308,7 @@ def get_index_link(link):
         if variables_input[0][i].name_compare(input_attr.attribute):
             input_vector[i]=1
 
-    o,p = np.shape(variables_output)
+    _,p = np.shape(variables_output)
     output_vector = np.zeros((p, 1))
     for j in range(p):
         if variables_output[0][j].name_compare(output_attr.attribute):
@@ -342,7 +346,7 @@ def check_expressions_dependancy(node,variables,parameters):
     for i in range(nb_cons):
         rhs = cons[i].get_rhs()
         lhs = cons[i].get_lhs()
-        found = False
+
         var_in_right = variables_in_expression(rhs,variables,parameters)
         var_in_left = variables_in_expression(lhs,variables,parameters)
 
@@ -456,6 +460,10 @@ def check_linear(expression,variables,parameters):
                 string = "Operation '"+str(e_type)+"' between one expression containing variables leading to a non linearity at line "+str(children[0].get_line())+"\n"
                 string +="Namely Expression 1 : " + str(children[0])+ " and Expression 2 : "+str(children[1])
                 error_(string)
+
+        elif e_type == "mod":
+            string = "Non linearity, modulo operator is not allowed on variables at line "+str(children[0].get_line())+"\n"
+            error_(string)
 
         else:
             error_("INTERNAL ERROR : unknown type '"+str(e_type)+"' check internal parser")
@@ -613,6 +621,8 @@ def evaluate_expression(expression,definitions):
             value = term1-term2
         elif e_type == '**':
             value = term1**term2
+        elif e_type == "mod":
+            value = term1%term2
         else:
             error_("INTERNAL ERROR : unexpected e_type "+str(e_type)+" check internal parser")
 
@@ -686,17 +696,18 @@ def check_expr_in_brackets(expression,variables,parameters):
         elif e_type == '**':
             if is_time_var2 or is_time_var1:
                 error_("Non linearity in assignement")
+        elif e_type == "mod":
+            if is_time_var2 or is_time_var1:
+                is_time_var = True
         else:
             error_("INTERNAL ERROR : unexpected e_type "+str(e_type)+" check internal parser")
 
     return is_time_var
 
-
 def check_var(node,variables,parameters,param_name,time):
     constraints = node.get_constraints()
     cons = constraints.get_elements()
     nb_cons = constraints.get_size()
-
     if time!=None:
         T = time.time
         step = time.step 
@@ -722,10 +733,30 @@ def check_var(node,variables,parameters,param_name,time):
     X = np.array(all_variables)
     node.set_variable_matrix(X)
 
-    n,m = np.shape(X)
-
+    n,_ = np.shape(X)
+    start_time = t.time()
+    flag_t_factor = True
     for i in range(nb_cons):
         constr = cons[i]
+        constr_leafs = constr.get_leafs()
+
+        variables_used = []
+
+        for leaf in constr_leafs:
+            identifier = leaf.get_name()
+            if type(identifier)!=int and type(identifier)!=float:
+                i = 0
+                if identifier.name_compare("t"):
+                    flag_t_factor = True
+
+                for variable in variables: 
+                    if identifier.name_compare(variable):
+                        variables_used.append([i,identifier])
+                        break
+                    i +=1
+    
+        nb_variables = len(variables_used)
+        
         #print('CONSTRAINT '+str(i+1) + ': '+str(constr))
 
         if(is_time_dependant_constraint(constr,variables)):
@@ -735,30 +766,64 @@ def check_var(node,variables,parameters,param_name,time):
 
         #print("time : "+str(is_time_dependant_constraint(constr,variables)))
 
+        values_computed = False
         for k in range(t_horizon):
-            print(k)
-            matrix = []            
-            current_parameter = copy.copy(parameters)
+            
             tuple_time = ['t',k] 
-            current_parameter.add_element(tuple_time)
-            for j in range(n):
-                line = []
-                for l in range(m):
-                    term,flag_out_of_bounds = variable_in_constraint(constr,X[j][l],current_parameter)
-                    if flag_out_of_bounds:
+            parameters.add_element(tuple_time)
+
+            if flag_t_factor == True or values_computed == False:
+                new_values = np.zeros(nb_variables)
+            else:
+                new_values = old_values
+            
+            rows = np.zeros(nb_variables)
+            columns = np.zeros(nb_variables)
+            
+            l = 0
+            for n,identifier in variables_used:
+                
+                id_type = identifier.get_type()
+                
+                if id_type == "basic":
+                    j = k
+                else : 
+                    j = evaluate_expression(identifier.get_expression(),parameters)
+                    if j >= T:
+                        flag_out_of_bounds = True
                         break
-                    line.append(term)
+                if flag_t_factor == True or values_computed == False:
+                    term,flag_out_of_bounds = variable_in_constraint(constr,X[j][n],parameters)
+                    new_values[l]=term
+                else:
+                    new_values = old_values
+
+                rows[l]=n
+                columns[l]=j
+            
                 if flag_out_of_bounds:
                     break
-                matrix.append(line)
-            if flag_out_of_bounds == False:
-                c_matrix = np.array(matrix)
-                #print("matrix "+str(c_matrix))
-                constant = constant_in_constraint(constr,variables,current_parameter,param_name)
+                l+=1
+            
+            if flag_out_of_bounds==False: 
+                if flag_t_factor == True or values_computed == False:
+                    constant = constant_in_constraint(constr,variables,parameters,param_name)
+                values_computed = True
+                
                 #print("constant "+str(constant))
                 sign = constr.get_sign()
-                node.add_constraints_matrix([c_matrix,constant,sign])
-                #print('const : '+str([c_matrix,constant,sign]))  
+                matrix = [new_values,rows,columns]
+                #print(node.get_name())
+                #print(matrix)
+                node.add_constraints_matrix([matrix,constant,sign])
+            
+            old_values = new_values
+            
+            parameters.delete_last()
+    #print(matrix)
+    print("Check_var --- %s seconds ---" % (t.time() - start_time))
+
+
     
 def constant_in_constraint(constr,variables,constants,param_name):
     rhs = constr.get_rhs()
@@ -859,44 +924,78 @@ def constant_factor_in_expression(expression,variables,constants,param_name):
 
 def convert_objectives_matrix(node,variables,parameters,time):
     matrixVar = node.get_variable_matrix()
-    n,m = np.shape(matrixVar)
+    n,_ = np.shape(matrixVar)
 
     objectives_vector = node.get_objectives()
     objectives = objectives_vector.get_elements()
     obj_size = objectives_vector.get_size()
 
-    T = time.time
+    if time!=None:
+        T = time.time        
+    else:
+        T = 1
 
-    for j in range(obj_size):
-        obj = objectives[j]
+    for i in range(obj_size):
+        obj = objectives[i]
         obj_type = obj.get_type()
         expr = obj.get_expression()
+
+        expr_leafs = expr.get_leafs()
+
+        variables_used = []
+
+        for leaf in expr_leafs:
+            identifier = leaf.get_name()
+            if type(identifier)!=int and type(identifier)!=float:
+                i = 0
+                for variable in variables: 
+                    if identifier.name_compare(variable):
+                        variables_used.append([i,identifier])
+                        break
+                    i +=1
+    
+        nb_variables = len(variables_used)
 
         if(is_time_dependant_expression(expr,variables)):
             t_horizon = T
         else:
             t_horizon = 1
 
-        matrix = [] 
         for k in range(t_horizon):
-            matrix = []            
-            current_parameter = copy.copy(parameters)
+        
             tuple_time = ['t',k] 
-            current_parameter.add_element(tuple_time)
-            for j in range(n):
-                line = []
-                for l in range(m):
-                    found,term,flag_out_of_bounds = variable_factor_in_expression(expr,matrixVar[j][l],current_parameter)
-                    if flag_out_of_bounds:
+            parameters.add_element(tuple_time)
+
+            values = np.zeros(nb_variables)
+            rows = np.zeros(nb_variables)
+            columns = np.zeros(nb_variables)
+
+            l = 0
+            for n,identifier in variables_used:
+                id_type = identifier.get_type()
+
+                if id_type == "basic":
+                    j = k
+                else : 
+                    j = evaluate_expression(identifier.get_expression(),parameters)
+                    if j >= T:
+                        flag_out_of_bounds = True
                         break
-                    line.append(term)
+                _,term,flag_out_of_bounds = variable_factor_in_expression(expr,matrixVar[j][n],parameters)
+
+                values[l] = term
+                rows[l] = n
+                columns[l] = j
+
                 if flag_out_of_bounds:
                     break
-                matrix.append(line)
+                l += 1
+            
             if flag_out_of_bounds == False:
-                matrix_np = np.transpose(np.array(matrix))
-                node.add_objective_matrix([matrix_np,obj_type])
+                matrix = [values,rows,columns]
+                node.add_objective_matrix([matrix,obj_type])
 
+            parameters.delete_last()
 
 
 def variable_in_constraint(constr,variable,constants):
@@ -904,8 +1003,8 @@ def variable_in_constraint(constr,variable,constants):
     lhs = constr.get_lhs()
     flag_out_of_bounds = False
 
-    found1,value1,flag_out_of_bounds1 = variable_factor_in_expression(rhs,variable,constants)
-    found2,value2,flag_out_of_bounds2 = variable_factor_in_expression(lhs,variable,constants)
+    _,value1,flag_out_of_bounds1 = variable_factor_in_expression(rhs,variable,constants)
+    _,value2,flag_out_of_bounds2 = variable_factor_in_expression(lhs,variable,constants)
     value = value1 - value2
     if flag_out_of_bounds1 or flag_out_of_bounds2:
         flag_out_of_bounds = True
@@ -1038,11 +1137,11 @@ def is_time_dependant_expression(expression,variables):
 
     return found
 
-def check_definition_order(constraints,variables):
-    nb_cons = constraints.get_size()
-    cons = constraints.get_elements()
-    for i in range(nb_cons):
-        variable_list = get_variables_constraint(cons[i],variables,[])
+#def check_definition_order(constraints,variables):
+#    nb_cons = constraints.get_size()
+#    cons = constraints.get_elements()
+#    for i in range(nb_cons):
+#        variable_list = get_variables_constraint(cons[i],variables,[])
 
 def get_variables_constraint(constraint,variables):
     rhs = constraint.get_rhs()
@@ -1056,6 +1155,7 @@ def get_variables_constraint(constraint,variables):
 def get_variables_expression(expression,variables):
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
+    children = expression.get_children()
     variable_list = []
 
     if e_type == "literal":

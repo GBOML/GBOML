@@ -53,6 +53,7 @@ keywords = {
     'horizon': 'HORIZON',
     'step': 'STEP',
     'import': 'IMPORT',
+    'mod':"MOD",
     }
 
 reserved = {

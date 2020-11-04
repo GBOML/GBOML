@@ -5,7 +5,6 @@ from scipy.sparse import coo_matrix
 def matrix_generationC(root):
 	node_vector = root.get_nodes()
 	nodes = node_vector.get_elements()
-	node_size = node_vector.get_size()
 
 	nb_objectives = 0
 	all_rows = []
@@ -14,56 +13,49 @@ def matrix_generationC(root):
 
 	nb_variables = root.nb_variables
 
-	index_start = 0
 	time_root = root.get_time()
-	T = time_root.time
+	if time_root != None:
+		T = time_root.time
+	else: 
+		T = 1
 
 	for node in nodes:
 		objectives = node.get_objective_list()
 		var_matrix = node.get_variable_matrix()
 		index_start = var_matrix[0][0].get_index()
-		for obj_matrix,obj_type in objectives:
-			flat_matrix = obj_matrix.flatten()
 
-			nonzero_index = np.nonzero(flat_matrix)
-			nonzero_matrix = flat_matrix[nonzero_index]
+		for [values,rows,columns],obj_type in objectives:
+			columns+=T*rows+index_start
 			
-			size_flat = flat_matrix.size
-			size_nonzero = nonzero_matrix.size
-
-			row = np.zeros(size_nonzero)
+			nb_values = len(values)
+			row = np.zeros(nb_values)
 			row.fill(nb_objectives)
 
-			column_interval = np.arange(index_start,index_start+size_flat)
-			column = column_interval[nonzero_index]
-
 			if obj_type == "max":
-				nonzero_matrix = - nonzero_matrix
+				values = - values
 
-			all_values.append(nonzero_matrix)
-			all_columns.append(column)
+			all_values.append(values)
+			all_columns.append(columns)
 			all_rows.append(row)
 			nb_objectives = nb_objectives+1
 
 	rows = np.concatenate(all_rows)
-	print("row "+str(rows))
 
 	columns = np.concatenate(all_columns)
-	print("columns "+str(columns))
 
 	values = np.concatenate(all_values)
-	print("values "+str(values))
 
-	print(coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables)))
 	return coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
 
 def matrix_generationAb(root):
 	node_vector = root.get_nodes()
 	nodes = node_vector.get_elements()
-	node_size = node_vector.get_size()
 
 	time_root = root.get_time()
-	T = time_root.time
+	if time_root != None:
+		T = time_root.time
+	else: 
+		T = 1
 
 	nb_constraints = 0
 	index_start = 0
@@ -73,49 +65,38 @@ def matrix_generationAb(root):
 	all_rows = []
 	all_values = []
 	all_columns = []
-
-	nb_objectives = []
+	tuples_names = []
 
 	for node in nodes:
-		new_index = set_index(node.get_variable_matrix(),index_start)
-		objectives = node.get_objective_list()
+		new_index,t_name = set_index(node.get_variable_matrix(),index_start)
+		tuples_names.append([node.get_name(),t_name])
 		constraints = node.get_constraints_matrix()
-		print("constraints : "+str(constraints))
 
-		for c_matrix,b,sign in constraints:
-			print("c_matrix: "+str(c_matrix))
-			flat_matrix = c_matrix.flatten('F')
-			nonzero_index = np.nonzero(flat_matrix)
-			nonzero_matrix = flat_matrix[nonzero_index]
-
-			size_flat = flat_matrix.size
-			size_nonzero = nonzero_matrix.size
-			print(flat_matrix)
+		for [values,rows,columns],b,sign in constraints:
+			columns+=T*rows+index_start
 			
-			row = np.zeros(size_nonzero)
+			nb_values = len(values)
+			row = np.zeros(nb_values)
 			row.fill(nb_constraints)
-
-			column_interval = np.arange(index_start,index_start+size_flat)
-			column = column_interval[nonzero_index]
 
 			if sign =="=":
 				#Do c<=b and -c<=-b
-				all_values.append(nonzero_matrix)
-				all_columns.append(column)
+				all_values.append(values)
+				all_columns.append(columns)
 				all_rows.append(row)
 				list_of_b.append(b)
 				sign = ">="
 				nb_constraints = nb_constraints+1
-				row = np.zeros(size_nonzero)
+				row = np.zeros(nb_values)
 				row.fill(nb_constraints)
 
 			if sign == ">=":
 				#Do -c<=-b
-				nonzero_matrix = -nonzero_matrix
+				values = -values
 				b = -b
 
-			all_values.append(nonzero_matrix)
-			all_columns.append(column)
+			all_values.append(values)
+			all_columns.append(columns)
 			all_rows.append(row)
 			list_of_b.append(b)
 			nb_constraints = nb_constraints+1
@@ -131,7 +112,6 @@ def matrix_generationAb(root):
 
 		nonzero_rowIn,nonzero_columnIn = np.nonzero(matrixIn)
 		nonzero_rowOut,nonzero_columnOut = np.nonzero(matrixOut)
-		print("nonzero_lin "+str(nonzero_rowIn)+" nonzero_column "+str(nonzero_columnIn))
 
 		if len(nonzero_columnIn) != len(nonzero_columnOut):
 			error_("Internal error : Non matching column size for matrices")
@@ -156,48 +136,42 @@ def matrix_generationAb(root):
 			values1[1::2] = -1
 
 			values2 = -values1
-			print("Values")
 			
 			all_values.append(values1)
 			all_values.append(values2)
-			print(all_values)
 
 			all_columns.append(column)
 			all_columns.append(column)
-			print(all_columns)
 
 			all_rows.append(row)
-			print(all_rows)
 			
 			nb_link_constr += 2*T
 
 	root.nb_variables = index_start
 
 	rows = np.concatenate(all_rows)
-	print(rows.size)
 
 	columns = np.concatenate(all_columns)
-	print(columns.size)
 
 	values = np.concatenate(all_values)
-	print(values.size)
 
 	b_values = np.array(list_of_b)
 	b_links = np.zeros(nb_link_constr)
 
 	b_values = np.append(b_values,b_links)
 
-	print(b_values)
-
-	print(coo_matrix((values, (rows, columns)),shape=(nb_constraints, index_start)))
-	return coo_matrix((values, (rows, columns)),shape=(nb_constraints, index_start)),b_values
+	return coo_matrix((values, (rows, columns)),shape=(nb_constraints, index_start)),b_values,tuples_names
 
 def set_index(variable_matrix,start):
 	n,m = np.shape(variable_matrix)
+	tuple_name = []
 	for j in range(m):
 		variable_matrix[0][j].set_index(start)
+		name = variable_matrix[0][j].get_name()
+		tuple_name.append([start,name])
 		start = start+n
-	return start
+		
+	return start,tuple_name
 
 def error_(string):
 	print(string)

@@ -19,3 +19,6 @@ class Constraint(Type):
 
     def get_lhs(self):
         return self.lhs
+    
+    def get_leafs(self):
+        return self.rhs.get_leafs()+self.lhs.get_leafs()

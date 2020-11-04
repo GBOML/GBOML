@@ -26,7 +26,7 @@ def p_start(p):
     '''start : time program links'''
 
     p[0] = Program(p[2], p[1], p[3])
-    exit()
+
 
 
 def p_time(p):
@@ -183,7 +183,6 @@ def p_parameter(p):
         p[0].set_vector(p[6])
     else:
         p[0] = Parameter(p[1], p[5], line=p.lineno(1))
-    print('parameter : ' + str(p[1]) + ' ' + str(p.lineno(1)))
 
 
 def p_more_values(p):
@@ -235,9 +234,10 @@ def p_constraints(p):
 
 def p_constraints_aux(p):
     '''constraints_aux : define_constraints SEMICOLON constraints_aux
+                       | define_constraints SEMICOLON
                        | define_constraints'''
 
-    if len(p) == 2:
+    if len(p) == 2 or len(p)==3:
         p[0] = Vector()
         p[0].add_element(p[1])
     else:
@@ -291,7 +291,6 @@ def p_id(p):
     elif len(p) == 5:
         p[0] = Identifier('assign', p[1], expression=p[3],
                           line=p.lineno(1))
-    print(p[0].get_line())
 
 
 def p_expr(p):
@@ -302,6 +301,7 @@ def p_expr(p):
             | MINUS expr %prec UMINUS
             | expr POW expr %prec POW
             | LPAR expr RPAR
+            | MOD LPAR expr COMMA expr RPAR
             | term'''
 
     if len(p) == 4:
@@ -315,6 +315,11 @@ def p_expr(p):
 
         p[0] = Expression('u-')
         p[0].add_child(p[2])
+    elif len(p)==7:
+        
+        p[0]=Expression(p[1])
+        p[0].add_child(p[3])
+        p[0].add_child(p[5])
     else:
 
         p[0] = p[1]
@@ -328,7 +333,6 @@ def p_term(p):
     p[0] = Expression('literal', p[1], line=p.lineno(1))
     if type(p[1]) == Identifier:
         p[0].set_line(p[1].get_line())
-        print(str(p[1]) + ' line ' + str(p[0].get_line()))
 
 
 def p_unity(p):

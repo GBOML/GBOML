@@ -8,6 +8,7 @@ class Vector:
     def __init__(self):
         self.elements = []
         self.n = 0
+        self.deleted = []
 
     def __str__(self):
         string = '['
@@ -35,3 +36,8 @@ class Vector:
 
     def get_size(self):
         return self.n
+
+    def delete_last(self):
+        element = self.elements.pop()
+        self.n = self.n-1
+        self.deleted.append(element)
