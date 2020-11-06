@@ -1,3 +1,4 @@
+from utils import Vector
 from .parent import Symbol
 import os
 
