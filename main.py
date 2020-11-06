@@ -46,10 +46,10 @@ def plot_results(x,T,name_tuples):
         for node_name,index_variables in name_tuples:
             for index, variable in index_variables:
                 if index==i:
-                    if  variable in ["ppv","pc","pbt"]:
-                        legend.append(str(variable))
-                        found = True
-                        print(str(variable)+" "+str(x[i]))
+                    #if  variable in ["ppv","pc","pbt"]:
+                    legend.append(str(variable))
+                    found = True
+                    #print(str(variable)+" "+str(x[i]))
         if found :
             plt.plot(x[i:(i+T)])
     plt.legend(legend)
