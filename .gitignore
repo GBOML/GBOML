@@ -12,3 +12,6 @@ parsetab.py
 parser.out
 
 *.pyc
+
+.venv/
+

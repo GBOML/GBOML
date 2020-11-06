@@ -1,3 +1,4 @@
+from utils import Vector
 from .parent import Symbol
 from .expression import Expression
 from utils import error_,Vector
