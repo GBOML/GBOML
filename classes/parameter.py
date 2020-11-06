@@ -1,4 +1,6 @@
 from .parent import Symbol
+from .expression import Expression
+from utils import error_,Vector
 import os
 
 class Parameter(Symbol): 

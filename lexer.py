@@ -117,7 +117,7 @@ t_DOT = r'\.'
 
 
 def t_FILENAME(t):
-    r'''["][a-zA-Z_0-9.]+["]'''
+    r'''["][a-zA-Z_0-9./]+["]'''
 
     t.value = t.value.replace('"', '')
     return t

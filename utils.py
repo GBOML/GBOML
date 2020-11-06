@@ -41,3 +41,7 @@ class Vector:
         element = self.elements.pop()
         self.n = self.n-1
         self.deleted.append(element)
+
+def error_(message):
+    print(message)
+    exit(-1)
