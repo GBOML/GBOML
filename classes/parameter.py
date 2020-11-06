@@ -31,7 +31,8 @@ class Parameter(Symbol):
     def get_values_from_file(self,expression):
         self.vector = Vector()
         if type(expression)==str:
-            print(os.path.isfile('./'+expression))
+            if(os.path.isfile('./'+expression))==False:
+                error_("No such file as "+str(expression))
             f = open(expression, "r")
             for line in f: 
                 line = line.replace("\n","")
