@@ -587,17 +587,26 @@ def evaluate_expression(expression,definitions):
             value = identifier
         else:
             id_type = identifier.get_type()
-
+            
             n = definitions.get_size()
             found = False
             defined = definitions.get_elements()
+            
             for i in range(n):
-                if (identifier.name_compare(defined[i][0]) and
-                    ((id_type == "basic") or
-                    ((id_type =="assign") and 
-                    (evaluate_expression(identifier.get_expression(),definitions)==evaluate_expression(defined[i][0].get_expression(),definitions))))):
-                    value = defined[i][1]
-                    found = True
+                if identifier.name_compare(defined[i][0]):
+                    if id_type == "basic" and type(defined[i][0])!=str and defined[i][0].get_type()=="assign":
+
+                        time_evaluation = evaluate_expression(defined[i][0].get_expression(),definitions)
+                        for element,value_element in defined:
+                            if element == "t" and value_element ==time_evaluation:
+                                found = True
+                                value = defined[i][1]
+                    elif id_type == "basic":
+                        value = defined[i][1]
+                        found = True
+                    elif (id_type =="assign")and (evaluate_expression(identifier.get_expression(),definitions)==evaluate_expression(defined[i][0].get_expression(),definitions)):
+                        value = defined[i][1]
+                        found = True
             if found == False:
                 
                 for i in range(len(timevar)):
