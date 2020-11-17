@@ -30,7 +30,6 @@ def solver_julia_2(A,b,C):
     #constraint_matrix[:,0] = A.row
     #constraint_matrix[:,1] = A.col
     #constraint_matrix[:,2] = A.data
-    print(constraint_matrix)
 
     b = b.reshape((-1,1))
     C = C.reshape((-1,1))
@@ -141,8 +140,8 @@ if __name__ == '__main__':
 
         C = matrix_generationC(program)
 
-        C_sum = C.toarray().sum(axis=0)
-       
+        C_sum = C.sum(axis=0)
+
         #np.set_printoptions(threshold=sys.maxsize)
 
         if args.gurobi:
