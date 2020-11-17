@@ -4,7 +4,7 @@
 # Writer : MIFTARI B
 # ------------
 
-from lexer import *
+from lexer import tokenize_file
 from Myparser import parse_file
 from semantic import semantic
 from matrixGeneration import matrix_generationAb,matrix_generationC
@@ -22,6 +22,30 @@ def solver_scipy(A,b,C):
     x0_bounds = (None, None)
     solution = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
     return solution.x,solution.success
+
+def solver_julia_2(A,b,C):
+    #number_elements = len(A.row)
+    #print(number_elements)
+    constraint_matrix = np.array([A.row+1,A.col+1,A.data])
+    #constraint_matrix[:,0] = A.row
+    #constraint_matrix[:,1] = A.col
+    #constraint_matrix[:,2] = A.data
+    print(constraint_matrix)
+
+    b = b.reshape((-1,1))
+    C = C.reshape((-1,1))
+    A = A.astype(float)
+    flag_solved = False
+
+    Main.include("linear_solver2.jl") # load the MyFuncs module
+    #try : 
+    x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
+    flag_solved = True
+    #except(RuntimeError): 
+    #    flag_solved = False
+    return x,flag_solved
+
+    #print(constraint_matrix)
 
 def solver_julia(A,b,C):
     b = b.reshape((-1,1))
@@ -43,12 +67,12 @@ def plot_results(x,T,name_tuples):
 
     for i in range(0,len(x),T):
         found = False
-        for node_name,index_variables in name_tuples:
+        for _,index_variables in name_tuples:
             for index, variable in index_variables:
                 if index==i:
-                    #if  variable in ["ppv","pc","pbt"]:
-                    legend.append(str(variable))
-                    found = True
+                    if  variable in ["ppv","pc","pbt"]:
+                        legend.append(str(variable))
+                        found = True
                     #print(str(variable)+" "+str(x[i]))
         if found :
             plt.plot(x[i:(i+T)])
@@ -103,25 +127,29 @@ if __name__ == '__main__':
         
         result = parse_file(args.input_file)
         if args.parse:
-            print(result)
+            print(result.to_string())
         start_time = time.time()
 
         program = semantic(result)
         print("Semantic --- %s seconds ---" % (time.time() - start_time))
-        T = program.get_time().time
+        T = program.get_time().get_value()
 
         A,b,name_tuples = matrix_generationAb(program)
+        
+        #solver_julia_2(A,b,1)
+        #exit()
+
         C = matrix_generationC(program)
 
         C_sum = C.toarray().sum(axis=0)
-        print(A.toarray())
-        print(b)
-        print("c_sum : ")
+       
         #np.set_printoptions(threshold=sys.maxsize)
 
-        print(C_sum)
         if args.gurobi:
-            x,flag_solved = solver_julia(A.toarray(),b,C_sum)
+            #x,flag_solved = solver_julia(A.toarray(),b,C_sum)
+            #print(A.toarray())
+            x,flag_solved = solver_julia_2(A,b,C_sum)
+
         elif args.linprog:
             x,flag_solved = solver_scipy(A,b,C_sum)
 

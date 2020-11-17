@@ -48,22 +48,23 @@ function lin_solve_sparse(  cost_vector::Array{Float64, 2},
    # create the constraints
    begin_pt = 1
    end_pt = 1
-   while begin_pt <= size(constraint_matrix)[1]
+
+   while begin_pt <= size(constraint_matrix)[2]
        # find the part of the array relative to one line in the matrix A
        end_pt = begin_pt
-       line_id = convert(Int64, constraint_matrix[begin_pt, 1])
-
+       line_id = convert(Int64, constraint_matrix[1,begin_pt])
        # find the last element relative to line 'line_id'
-       while end_pt <= size(constraint_matrix)[1] && constraint_matrix[end_pt, 1] == line_id
+       while end_pt <= size(constraint_matrix)[2] && constraint_matrix[1, end_pt] == line_id
            end_pt += 1
        end
 
-       # create the constraint
-       var_indices = convert(Array{Int64}, constraint_matrix[begin_pt:end_pt, 2])
-       var_coef = constraint_matrix[begin_pt:end_pt, 3]
-       @constraint(model, sum(var_coef .* x[var_indices, 1]) <= const_vector[line_id, 1])
+       end_pt -=1
 
-       begin_pt = end_pt + 1
+       # create the constraint
+       var_indices = convert(Array{Int64}, constraint_matrix[2,begin_pt:end_pt])
+       var_coef = constraint_matrix[3,begin_pt:end_pt]
+       @constraint(model, sum(var_coef .* x[var_indices, 1]) <= const_vector[line_id, 1])
+       begin_pt = end_pt+1
    end
 
    # create the objective
@@ -77,10 +78,10 @@ function lin_solve_sparse(  cost_vector::Array{Float64, 2},
 end
 
 
-constraint_matrix = [[1, 0, -1, 0] [0, 1, 0, -1.0]]
-const_vector = hcat([1, 1, 0, 0.0])
-cost_vector = hcat([1, 1.0])
-lin_solve(cost_vector, constraint_matrix, const_vector)
+#constraint_matrix = [[1, 0, -1, 0] [0, 1, 0, -1.0]]
+#const_vector = hcat([1, 1, 0, 0.0])
+#cost_vector = hcat([1, 1.0])
+#lin_solve(cost_vector, constraint_matrix, const_vector)
 
-constraint_matrix_sparse = [[1, 2, 3, 4] [1, 2, 1, 2] [1, 1, -1, -1.0]]
-lin_solve_sparse(cost_vector, constraint_matrix_sparse, const_vector)
+#constraint_matrix_sparse = [[1, 2, 3, 4] [1, 2, 1, 2] [1, 1, -1, -1.0]]
+#lin_solve_sparse(cost_vector, constraint_matrix_sparse, const_vector)
