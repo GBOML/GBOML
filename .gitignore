@@ -15,3 +15,7 @@ parser.out
 
 .venv/
 
+
+junk.py
+
+speedtest.py
