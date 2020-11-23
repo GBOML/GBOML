@@ -4,14 +4,13 @@
 # Writer : MIFTARI B
 # ------------
 
-from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
+from classes import Time, Expression,Variable,Parameter,Link,\
+    Attribute,Program,Objective,Node,Identifier,Constraint
 import copy
 import numpy as np
-from utils import Vector
+from utils import Vector,error_,list_to_string
 import time as t
 
-
-timevar = []
 # To check 
 #   if linear                                                   DONE
 #   if defined in expression                                    DONE
@@ -19,7 +18,6 @@ timevar = []
 #   if valuable                                                 DONE
 #   if at least one objective exists                            DONE
 #   if constraints and objective are not meant for parameters   DONE
-#   if unity right
 #   if output don't have same name as another output            DONE
 #   if input - output - internal not defined twice              DONE
 #   if rediffined 
@@ -31,59 +29,56 @@ timevar = []
 
 def semantic(program):
     # WRAPPER that checks all the possible errors that could happen
-    global timevar
 
-    #retrieve timevariables if defined
+    #retrieve time horizon
     time = program.get_time()
+    time.check()
+    time_value = time.get_value()
 
-    if time!=None:
-        timevar = ["t","T","step"] 
-    
     root = program.get_nodes()
     
     #CHECK If all nodes have different names
     check_names(root)
 
     #CHECK If an objective function is defined
-    find_objective(root)
-
-    n = root.get_size()
-    elements = root.get_elements()
+    program.check_objective_existance()
 
     #Inside each node 
-    for i in range(n):
+    for node in root:
+        parameter_dictionary = {}
+        parameter_dictionary["T"]=[time_value]
         #CHECK if all parameters of a node have different names
         
-        all_parameters = check_names(elements[i].get_parameters())
-        #print("parameters: "+str(all_parameters))
+        all_parameters = check_names(node.get_parameters())
         #CHECK if all variables of a node have different names
-        all_variables = check_names(elements[i].get_variables())
-        #print(all_variables)
-        
+        all_variables = check_names(node.get_variables())
+
         #CHECK if dont share the same name
         match_names(all_parameters,all_variables)
 
         #TRY to evaluate the parameters
-        vector_parameters = parameter_evaluation(elements[i].get_parameters())
+        parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
 
-        check_expressions_dependancy(elements[i],all_variables,all_parameters)
+        check_expressions_dependancy(node,all_variables,all_parameters)
         #check_definition_order(elements[i].get_constraints())
-        check_var(elements[i],all_variables,vector_parameters,all_parameters,time)
+        check_var(node,all_variables,parameter_dictionary,all_parameters)
 
-        convert_objectives_matrix(elements[i],all_variables,vector_parameters,time)
+        convert_objectives_matrix(node,all_variables,parameter_dictionary)
 
-    vector_parameters = vector_parameters.get_elements()
+    #vector_parameters = vector_parameters
     #for i in range(len(vector_parameters)):
     #    print("name: "+str(vector_parameters[i][0])+" value : "+str(vector_parameters[i][1]))
     #print(vector_parameters)
     #check_input_output(root)
+
+    if program.get_number_constraints()==0:
+        error_("ERROR: no valid constraint was defined making the problem unsolvable")
+
     all_input_output_pairs = check_link(program)
 
     all_input_output_pairs = regroup_by_name(all_input_output_pairs)
 
     input_output_matrix = convert_links_to_matrix(all_input_output_pairs)
-
-    #print(input_output_matrix)
 
     program.set_link_constraints(input_output_matrix)
 
@@ -137,14 +132,11 @@ def regroup_by_name(input_output_pairs):
     return triplet
 
 def check_link(program):
-    links_vector = program.get_links()
-    link_size = links_vector.get_size()
-    links = links_vector.get_elements()
+    links = program.get_links()
+    link_size = len(links)
 
-    nodes_vector = program.get_nodes()
-    node_size = nodes_vector.get_size()
-    nodes = nodes_vector.get_elements()
-
+    nodes = program.get_nodes()
+    node_size = len(nodes)
     input_output_pairs = []
 
     for i in range(link_size):
@@ -168,9 +160,8 @@ def check_link(program):
         if found == False: 
             error_("No Node is named : "+str(lhs_name)+ " in the link")
 
-        rhs_vector = link_i.vector
-        rhs_size = rhs_vector.get_size()
-        rhs = rhs_vector.get_elements()
+        rhs = link_i.vector
+        rhs_size = len(rhs)
 
         if lhs_attribute != None :
             if find_variable_and_type(nodes[j],lhs_attribute,internal_v = False,input_v=False)==False:
@@ -217,9 +208,8 @@ def check_link(program):
                     input_output_pairs.append(pair_input_output)
 
         else:
-            variables_vector = nodes[position].get_variables()
-            variable_size = variables_vector.get_size()
-            variables = variables_vector.get_elements()
+            variables= nodes[position].get_variables()
+            variable_size = len(variables)
             found = False
             name = ""
 
@@ -257,9 +247,8 @@ def check_link(program):
                 if found == False: 
                     error_("No Node is named : "+str(rhs_name)+ " in the link")
 
-                variables_vector = nodes[position].get_variables()
-                variable_size = variables_vector.get_size()
-                variables = variables_vector.get_elements()
+                variables = nodes[position].get_variables()
+                variable_size = len(variables)
                 found = False
                 name = ""
                 for j in range(variable_size):
@@ -301,7 +290,7 @@ def get_index_link(link):
     variables_input = node_input.get_variable_matrix()
     variables_output = node_output.get_variable_matrix()
 
-    n,m = np.shape(variables_input)
+    _,m = np.shape(variables_input)
     input_vector = np.zeros((m, 1))
 
     for i in range(m):
@@ -319,9 +308,8 @@ def get_index_link(link):
 
 
 def find_variable_and_type(node,attribute_name,output_v = True,internal_v = True, input_v=True):
-    variables_vector = node.get_variables()
-    variable_size = variables_vector.get_size()
-    variables = variables_vector.get_elements()
+    variables= node.get_variables()
+    variable_size = len(variables)
     found = False
 
     for i in range(variable_size):
@@ -340,73 +328,67 @@ def find_variable_and_type(node,attribute_name,output_v = True,internal_v = True
 
 def check_expressions_dependancy(node,variables,parameters):
     constraints = node.get_constraints()
-    nb_cons = constraints.get_size()
-    cons = constraints.get_elements()
-
-    for i in range(nb_cons):
-        rhs = cons[i].get_rhs()
-        lhs = cons[i].get_lhs()
+    
+    for cons in constraints:
+        rhs = cons.get_rhs()
+        lhs = cons.get_lhs()
 
         var_in_right = variables_in_expression(rhs,variables,parameters)
         var_in_left = variables_in_expression(lhs,variables,parameters)
 
         if var_in_right == False and var_in_left == False:
-            error_('No variable in constraint at line '+str(cons[i].get_line()))
+            error_('No variable in constraint at line '+str(cons.get_line()))
 
         check_linear(rhs,variables,parameters)
         check_linear(lhs,variables,parameters)
         
     objectives = node.get_objectives()
-    nb_obj = objectives.get_size()
-    obj = objectives.get_elements()
 
-    for i in range(nb_obj):
-        expr = obj[i].get_expression()
+    for obj in objectives:
+        expr = obj.get_expression()
         contains_var = variables_in_expression(expr,variables,parameters)
         if contains_var == False:
             error_('Objective only depends on constants not on variable at line '+str(expr.get_line()))
         check_linear(expr,variables,parameters)
     
 
-def variables_in_expression(expression,variables,parameters):
-    e_type = expression.get_type()
-    nb_child = expression.get_nb_children()
-    children = expression.get_children()
+def variables_in_expression(expression,variables,parameters,check_in = True):
+    leafs = expression.get_leafs()
     is_variable = False
 
-    if e_type == 'literal':
-        identifier = expression.get_name()
+    for expr_id in leafs:
+        
+        identifier = expr_id.get_name()
 
         if type(identifier)!=int and type(identifier)!=float:
-            for i in range(len(variables)):
-                if identifier.name_compare(variables[i]):
+            for var in variables:
+                if identifier.name_compare(var):
                     is_variable = True
                     break
 
             if is_variable == False:
                 defined = False
-                for i in range(len(parameters)):
-                    if identifier.name_compare(parameters[i]):
+                for param in parameters:
+                    if identifier.name_compare(param):
                         defined = True
                         break
 
-                for i in range(len(timevar)):
-                    if identifier.name_compare(timevar[i]):
+                special_names=["T","t"]
+                for name in special_names:
+                    if identifier.name_compare(name):
                         defined = True
+                        id_type = identifier.get_type()
+                        if id_type == "assign":
+                            error_("Error: can not assign time variables : "+str(expression.get_name())+\
+                                " at line "+str(expression.get_line()))
                         break
-
 
                 if defined == False:
                     error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
 
-            check_in_brackets(identifier,variables,parameters)
-    else:
-        value = False
-        for i in range(nb_child):
-            value = variables_in_expression(children[i],variables,parameters)
-            if value == True: 
-                is_variable = value
-            
+            if check_in == True:
+                check_in_brackets(identifier,variables,parameters)
+
     return is_variable
 
 def check_linear(expression,variables,parameters):
@@ -441,7 +423,7 @@ def check_linear(expression,variables,parameters):
                     error_("Non linearity in expression : "+str(children[1])+" only linear problems are accepted at line "+str(children[0].get_line()))
 
         elif e_type == "*" or e_type == "/":
-            if term2 == True & term1 == True:
+            if term2 == True and term1 == True:
                 string = "Operation '"+str(e_type)+"' between two expressions containing variables leading to a non linearity at line "+str(children[0].get_line())+"\n"
                 string +="Namely Expression 1 : " + str(children[0])+ " and Expression 2 : "+str(children[1])
                 error_(string)
@@ -472,170 +454,80 @@ def check_linear(expression,variables,parameters):
     return True
 
 
-def find_objective(root):
-    n = root.get_size()
-    elements = root.get_elements()
-    found = False
-    for i in range(n):
-        objectives = elements[i].get_objectives()
-        nb_objectives = objectives.get_size()
-        if nb_objectives != 0:
-            found = True
-            break
-
-    if found == False:
-        error_("No objective function was defined")
-
-
 def match_names(list1,list2):
-    for i in range(len(list1)):
-        name1 = list1[i]
-        for j in range(len(list2)):
-            name2 = list2[j]
+    for name1 in list1:
+        for name2 in list2:
             if name2.name_compare(name1):
                 error_("A variable and a parameter share the same name '"+str(name1)+"'")
 
-def check_names(root,add_type = False):
-    n = root.get_size()
-    elements = root.get_elements()
+def check_names(elements,add_type = False):
+    
     all_names = []
-    for i in range(n):
-        name = elements[i].get_name()
+    n = len(elements)
+    i = 0
+
+    for e in elements:
+        name = e.get_name()
+
+        if name == "T" or name == "t":
+            error_('ERROR: Name "'+str(name)+'" is reserved for time, used at line '+str(elements[i].get_line()))
 
         for k in range(i+1,n):
             if name == elements[k].get_name():
-                error_('Redefinition error: "'+str(name)+'" at line '+str(elements[k].get_line()))
-
-        for k in range(len(timevar)):
-            if name == timevar[k]:
-                error_('Name "'+str(name)+'" is reserved for timescale, used at line '+str(elements[i].get_line()))
+                error_('ERROR: Redefinition error: "'+str(name)+'" at line '+str(elements[k].get_line()))
+        
         if add_type == True:
-            all_names.append(name,elements[i].get_type())
+            all_names.append(name,e.get_type())
         else:
             all_names.append(name)
+
+        i = i+1
     return all_names
 
-def parameter_evaluation(n_parameters):
-    n = n_parameters.get_size()
-    parameters = n_parameters.get_elements()
-    all_values = Vector()
+def parameter_evaluation(n_parameters,definitions):
     
-    for i in range(n):
-        e = parameters[i].get_expression()
+    for parameter in n_parameters:
+        e = parameter.get_expression()
+        name = parameter.get_name()
         if e != None:
-            name = parameters[i].get_name()
-            value = evaluate_expression(e,all_values)
-            name_value_tuple = [name,value]
-            all_values.add_element(name_value_tuple)
+            value = e.evaluate_expression(definitions)
+            value = [value]
         else:
-            all_values = evaluate_table(parameters[i],all_values)
+            value = evaluate_table(parameter.get_vector(),definitions)
+        definitions[name]=value
 
-    return all_values
-
-def evaluate_table(parameters,definitions):
-    name = parameters.get_name()
-    values = parameters.get_vector()
-    tuple_value_name = []
-    for i in range(len(values)):
-        value_i = values[i].get_name()
-        if type(value_i) != float and type(value_i) !=int:
-            type_val = value_i.get_type()
-            defined = definitions.get_elements()
-            length_def = definitions.get_size()
-            found = False
-            for j in range(length_def):
-                if type_val == "basic":
-                    if value_i.get_name() == defined[j][0]:
-                        value_i = defined[j][1]
-                        found = True
-                        break
-                elif type_val == "assign":
-                    if value_i.name_compare(defined[j][0]) and evaluate_expression(value_i.get_expression(),definitions)==evaluate_expression(defined[j][0].get_expression(),definitions):
-                        found = True
-                        value_i = defined[j][1]
-                        break
-            if found == False:
-                error_('Undefined parameter : '+str(value_i))
-        expr = Expression('literal',i)
-        identifier = Identifier('assign',name,expression=expr)
-        tuple_value_name = [identifier,value_i]
-        definitions.add_element(tuple_value_name)
     return definitions
 
+def evaluate_table(list_values,definitions):
+    all_values = []
+    for value in list_values:
+        value_i = value.get_name()
 
+        if type(value_i) != float and type(value_i) !=int:
+            type_val = value_i.get_type()
+            id_name = value_i.get_name()
 
-def evaluate_expression(expression,definitions):
+            if not (id_name in definitions):
+                error_('Undefined parameter : '+str(value_i))
 
-    e_type = expression.get_type()
-    nb_child = expression.get_nb_children()
+            values = definitions[id_name]
+            if type_val == "basic" and len(values)==1:
+                value_i = values[0]
 
-    if e_type == 'u-':
-        if nb_child != 1:
-            error_("INTERNAL ERROR : unary minus must have one child, got "+str(nb_child)+" check internal parser")
+            elif type_val == "basic" and len(values)>1:
+                error_('Parameter not properly defined : '+str(value_i))
 
-        children = expression.get_children()
-        term1 = evaluate_expression(children[0],definitions)
-        value = -term1
-
-    elif e_type == 'literal':
-        if nb_child != 0:
-            error_("INTERNAL ERROR : literal must have zero child, got "+str(nb_child)+" check internal parser")
-
-        identifier = expression.get_name()
-
-        if type(expression.get_name())==float or type(expression.get_name())==int:
-            value = identifier
-        else:
-            id_type = identifier.get_type()
-            
-            n = definitions.get_size()
-            found = False
-            defined = definitions.get_elements()
-            
-            for i in range(n):
-                if identifier.name_compare(defined[i][0]):
-                    if id_type == "basic" and type(defined[i][0])!=str and defined[i][0].get_type()=="assign":
-
-                        time_evaluation = evaluate_expression(defined[i][0].get_expression(),definitions)
-                        for element,value_element in defined:
-                            if element == "t" and value_element ==time_evaluation:
-                                found = True
-                                value = defined[i][1]
-                    elif id_type == "basic":
-                        value = defined[i][1]
-                        found = True
-                    elif (id_type =="assign")and (evaluate_expression(identifier.get_expression(),definitions)==evaluate_expression(defined[i][0].get_expression(),definitions)):
-                        value = defined[i][1]
-                        found = True
-            if found == False:
+            elif type_val == "assign":
+                inner_expr = value_i.get_expression()
+                index = inner_expr.evaluate_expression(definitions)
+                if len(values)<index+1:
+                    error_('Parameter does not exit at this index : '+str(value_i))
                 
-                for i in range(len(timevar)):
-                    if identifier == timevar[i]:
-                        error_('A Parameter can not depend on time variable :"'+str(timevar[i])+'" at line '+str(expression.get_line()))
-                error_('Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
-    else:
-        if nb_child != 2:
-            error_("INTERNAL ERROR : binary operators must have two children, got "+str(nb_child)+" check internal parser")
+                value_i = values[index]
 
-        children = expression.get_children()
-        term1 = evaluate_expression(children[0],definitions)
-        term2 = evaluate_expression(children[1],definitions)
-        if e_type == '+':
-            value = term1 + term2
-        elif e_type =='*':
-            value = term1 * term2
-        elif e_type == '/':
-            value = term1/term2
-        elif e_type == '-':
-            value = term1-term2
-        elif e_type == '**':
-            value = term1**term2
-        elif e_type == "mod":
-            value = term1%term2
-        else:
-            error_("INTERNAL ERROR : unexpected e_type "+str(e_type)+" check internal parser")
+        all_values.append(value_i)
 
-    return value
+    return all_values
 
 def check_in_brackets(identifier,variables,parameters):
     id_type = identifier.get_type()
@@ -656,30 +548,36 @@ def check_expr_in_brackets(expression,variables,parameters):
             error_("INTERNAL ERROR : literal must have zero child, got "+str(nb_child)+" check internal parser")
         identifier = expression.get_name()
 
-        if type(expression.get_name())==float or type(expression.get_name())==int:
-            value = identifier
-        else:
-            id_type = identifier.get_type()
-            if id_type != 'basic':
-                error_('Parameter shall not have this type of structure '+str(identifier))
-            identifier = identifier.get_name()
+        if type(expression.get_name())!=float and type(expression.get_name())!=int:
 
-            for i in range(len(parameters)):
-                if identifier == parameters[i]:
+            id_type = identifier.get_type()
+
+            #if id_type != 'basic':
+            #    error_('Parameter shall not have this type of structure '+str(identifier))
+            #identifier = identifier.get_name()
+
+            for param in parameters:
+                if identifier.name_compare(param):
                     found = True
                     break
+            
+            time_variables = ["t","T"]
 
-            for i in range(len(timevar)):
-                if identifier == timevar[i]:
+            for time_var in time_variables:
+                if identifier.name_compare(time_var):
                     is_time_var = True
                     found = True
                     break
             
-            for i in range(len(variables)):
-                if variables[i].name_compare(identifier):
+            for var in variables:
+                if var.name_compare(identifier):
                     error_('Variable in brackets for assignement ')
+
             if found == False:
-                error_('Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
+                error_(' 1 Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
+            
+            if id_type == "assign":
+                is_time_var = check_expr_in_brackets(identifier.get_expression(),variables,parameters)
 
     elif e_type == 'u-':
         if nb_child != 1:
@@ -694,10 +592,16 @@ def check_expr_in_brackets(expression,variables,parameters):
         children = expression.get_children()
         is_time_var1 = check_expr_in_brackets(children[0],variables,parameters)
         is_time_var2 = check_expr_in_brackets(children[1],variables,parameters)
+
         if e_type == '+' or e_type == '-':
             if is_time_var2 or is_time_var1:
+                is_time_var = True       
+        elif e_type =='*':
+            if is_time_var2 and is_time_var1:
+                error_("Non linearity in assignement")
+            elif is_time_var2 or is_time_var1:
                 is_time_var = True
-        elif e_type =='*' or e_type == '/':
+        elif e_type == '/':
             if is_time_var2:
                 error_("Non linearity in assignement")
             if is_time_var1:
@@ -713,51 +617,41 @@ def check_expr_in_brackets(expression,variables,parameters):
 
     return is_time_var
 
-def check_var(node,variables,parameters,param_name,time):
+def check_var(node,variables,definitions,param_name):
     constraints = node.get_constraints()
-    cons = constraints.get_elements()
-    nb_cons = constraints.get_size()
-    if time!=None:
-        T = time.time
-        step = time.step 
+    
+    if not("T" in definitions):
+        error_("INTERNAL ERROR: T not found in list of parameters")
+    T = definitions["T"][0]
 
-        tuple_time = ["T",T]
-        parameters.add_element(tuple_time)
-        tuple_time = ["step",step]
-        parameters.add_element(tuple_time)
-    else:
-        T = 1
-
+    start_time = t.time()
     all_variables = []
+
     for k in range(T):
         variables_for_time = []
-        for i in range(len(variables)):
-            var = copy.copy(variables[i])
+        for variable in variables:
+            var = copy.copy(variable)
             expr = Expression('literal',k)
             var.set_expression(expr)
 
             variables_for_time.append(var)
         all_variables.append(variables_for_time)
 
+
     X = np.array(all_variables)
     node.set_variable_matrix(X)
-
+ 
     n,_ = np.shape(X)
     start_time = t.time()
-    flag_t_factor = True
-    for i in range(nb_cons):
-        constr = cons[i]
-        constr_leafs = constr.get_leafs()
 
+    for constr in constraints:
+        constr_leafs = constr.get_leafs()
         variables_used = []
 
         for leaf in constr_leafs:
             identifier = leaf.get_name()
             if type(identifier)!=int and type(identifier)!=float:
-                i = 0
-                if identifier.name_compare("t"):
-                    flag_t_factor = True
-
+                i=0
                 for variable in variables: 
                     if identifier.name_compare(variable):
                         variables_used.append([i,identifier])
@@ -768,23 +662,26 @@ def check_var(node,variables,parameters,param_name,time):
         
         #print('CONSTRAINT '+str(i+1) + ': '+str(constr))
 
-        if(is_time_dependant_constraint(constr,variables)):
+        constr_range = constr.get_time_range(definitions)
+        if constr_range == None:
             t_horizon = T
-        else:
-            t_horizon = 1
+            constr_range = range(t_horizon)
+
+        unique_constraint = False
+        if(not is_time_dependant_constraint(constr,variables)):
+            unique_constraint = True
 
         #print("time : "+str(is_time_dependant_constraint(constr,variables)))
+        #print(constr)
+        #print("t horizon" + str(t_horizon))
+        add_t = 0
+        for k in constr_range:
+            definitions['t']=[k]
 
-        values_computed = False
-        for k in range(t_horizon):
-            
-            tuple_time = ['t',k] 
-            parameters.add_element(tuple_time)
+            if constr.check_time(definitions)==False:
+                continue
 
-            if flag_t_factor == True or values_computed == False:
-                new_values = np.zeros(nb_variables)
-            else:
-                new_values = old_values
+            new_values = np.zeros(nb_variables)
             
             rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
@@ -797,15 +694,12 @@ def check_var(node,variables,parameters,param_name,time):
                 if id_type == "basic":
                     j = k
                 else : 
-                    j = evaluate_expression(identifier.get_expression(),parameters)
+                    j = identifier.get_expression().evaluate_expression(definitions)
                     if j >= T:
                         flag_out_of_bounds = True
                         break
-                if flag_t_factor == True or values_computed == False:
-                    term,flag_out_of_bounds = variable_in_constraint(constr,X[j][n],parameters)
-                    new_values[l]=term
-                else:
-                    new_values = old_values
+                term,flag_out_of_bounds = variable_in_constraint(constr,X[j][n],definitions)
+                new_values[l]=term
 
                 rows[l]=n
                 columns[l]=j
@@ -814,23 +708,20 @@ def check_var(node,variables,parameters,param_name,time):
                     break
                 l+=1
             
-            if flag_out_of_bounds==False: 
-                if flag_t_factor == True or values_computed == False:
-                    constant = constant_in_constraint(constr,variables,parameters,param_name)
-                values_computed = True
-                
-                #print("constant "+str(constant))
+            if flag_out_of_bounds==False:
+                starting_t = t.time() 
+                constant = constant_in_constraint(constr,variables,definitions,param_name)
+                add_t += t.time()-starting_t
                 sign = constr.get_sign()
                 matrix = [new_values,rows,columns]
-                #print(node.get_name())
-                #print(matrix)
+                #print([matrix,constant,sign])
+
                 node.add_constraints_matrix([matrix,constant,sign])
-            
-            old_values = new_values
-            
-            parameters.delete_last()
-    #print(matrix)
-    print("Check_var --- %s seconds ---" % (t.time() - start_time))
+                if unique_constraint == True:
+                    break
+                        
+        #print("add_time --- %s seconds ---" % (add_t))
+    #print("Check_var --- %s seconds ---" % (t.time() - start_time))
 
 
     
@@ -847,102 +738,100 @@ def constant_in_constraint(constr,variables,constants,param_name):
 
 def constant_factor_in_expression(expression,variables,constants,param_name):
     e_type = expression.get_type()
-    nb_child = expression.get_nb_children()
     children = expression.get_children()
     value = 0
 
-    if variables_in_expression(expression,variables,param_name)==False:
-        value = evaluate_expression(expression,constants)
+    if variables_in_expression(expression,variables,param_name,check_in = False)==False:
+        value = expression.evaluate_expression(constants)
     else:
         if e_type == 'u-':
-            is_var = variables_in_expression(children[0],variables,param_name)
+            is_var = variables_in_expression(children[0],variables,param_name,check_in = False)
             if is_var==False:
-                value = evaluate_expression(children[0],constants)
+                value = children[0].evaluate_expression(constants)
             else: 
                 value = constant_factor_in_expression(children[0],variables,constants,param_name)
         elif e_type == "/":
-            is_var1 = variables_in_expression(children[0],variables,param_name)
-            is_var2 = variables_in_expression(children[1],variables,param_name)
+            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
 
             if is_var1 == False and is_var2 == False:
-                value = evaluate_expression(children[0],constants)/evaluate_expression(children[1],constants)
+                value = children[0].evaluate_expression(constants)/children[1].evaluate_expression(constants)
             elif is_var1 == True:
-                value = constant_factor_in_expression(children[0],variables,constants,param_name)/evaluate_expression(children[1],constants)
+                value = constant_factor_in_expression(children[0],variables,constants,param_name)/children[1].evaluate_expression(constants)
         elif e_type == "*":
-            is_var1 = variables_in_expression(children[0],variables,param_name)
-            is_var2 = variables_in_expression(children[1],variables,param_name)
+            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
             if is_var1 == False and is_var2 == False:
-                value = evaluate_expression(children[0],constants)*evaluate_expression(children[1],constants)
+                value = children[0].evaluate_expression(constants)*children[1].evaluate_expression(constants)
             else:
                 if is_var1:
                     value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
                 else:
-                    value1 = evaluate_expression(children[0],constants)
+                    value1 = children[0].evaluate_expression(constants)
                 if is_var2:
                     value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
                 else:
-                    value2 = evaluate_expression(children[1],constants)
+                    value2 = children[1].evaluate_expression(constants)
 
                 value = value1*value2
         elif e_type == '+':
-            is_var1 = variables_in_expression(children[0],variables,param_name)
-            is_var2 = variables_in_expression(children[1],variables,param_name)
+            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
             if is_var1 == False and is_var2 == False:
-                value = evaluate_expression(children[0],constants)+evaluate_expression(children[1],constants)
+                value = children[0].evaluate_expression(constants)+children[1].evaluate_expression(constants)
             else:
                 if is_var1:
                     value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
                 else:
-                    value1 = evaluate_expression(children[0],constants)
+                    value1 = children[0].evaluate_expression(constants)
                 if is_var2:
                     value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
                 else:
-                    value2 = evaluate_expression(children[1],constants)
+                    value2 = children[1].evaluate_expression(constants)
 
                 value = value1+value2
         elif e_type == '-':
-            is_var1 = variables_in_expression(children[0],variables,param_name)
-            is_var2 = variables_in_expression(children[1],variables,param_name)
+            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
             if is_var1 == False and is_var2 == False:
-                value = evaluate_expression(children[0],constants)-evaluate_expression(children[1],constants)
+                value = children[0].evaluate_expression(constants)-children[1].evaluate_expression(constants)
             else:
                 if is_var1:
                     value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
                 else:
-                    value1 = evaluate_expression(children[0],constants)
+                    value1 = children[0].evaluate_expression(constants)
                 if is_var2:
                     value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
                 else:
-                    value2 = evaluate_expression(children[1],constants)
+                    value2 = children[1].evaluate_expression(constants)
 
                 value = value1-value2
         elif e_type == '**':
-            is_var1 = variables_in_expression(children[0],variables,param_name)
-            is_var2 = variables_in_expression(children[1],variables,param_name)
+            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
             if is_var1 == False and is_var2 == False:
-                value = evaluate_expression(children[0],constants)**evaluate_expression(children[1],constants)
+                value = children[0].evaluate_expression(constants)**children[1].evaluate_expression(constants)
             else:
                 if is_var1:
                     value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
                 else:
-                    value1 = evaluate_expression(children[0],constants)
-                value2 = evaluate_expression(children[1],constants)
+                    value1 = children[0].evaluate_expression(constants)
+                value2 = children[1].evaluate_expression(constants)
 
                 value = value1**value2
     return value
 
-def convert_objectives_matrix(node,variables,parameters,time):
+def convert_objectives_matrix(node,variables,definitions):
     matrixVar = node.get_variable_matrix()
     n,_ = np.shape(matrixVar)
 
-    objectives_vector = node.get_objectives()
-    objectives = objectives_vector.get_elements()
-    obj_size = objectives_vector.get_size()
+    objectives = node.get_objectives()
+    obj_size = len(objectives)
 
-    if time!=None:
-        T = time.time        
-    else:
-        T = 1
+    if not("T" in definitions):
+        error_("INTERNAL ERROR: T not found in list of definitions")
+
+    T = definitions["T"][0]
 
     for i in range(obj_size):
         obj = objectives[i]
@@ -971,9 +860,7 @@ def convert_objectives_matrix(node,variables,parameters,time):
             t_horizon = 1
 
         for k in range(t_horizon):
-        
-            tuple_time = ['t',k] 
-            parameters.add_element(tuple_time)
+            definitions["t"]=[k]
 
             values = np.zeros(nb_variables)
             rows = np.zeros(nb_variables)
@@ -986,11 +873,12 @@ def convert_objectives_matrix(node,variables,parameters,time):
                 if id_type == "basic":
                     j = k
                 else : 
-                    j = evaluate_expression(identifier.get_expression(),parameters)
+                    j = identifier.get_expression().evaluate_expression(definitions)
+
                     if j >= T:
                         flag_out_of_bounds = True
                         break
-                _,term,flag_out_of_bounds = variable_factor_in_expression(expr,matrixVar[j][n],parameters)
+                _,term,flag_out_of_bounds = variable_factor_in_expression(expr,matrixVar[j][n],definitions)
 
                 values[l] = term
                 rows[l] = n
@@ -1003,8 +891,6 @@ def convert_objectives_matrix(node,variables,parameters,time):
             if flag_out_of_bounds == False:
                 matrix = [values,rows,columns]
                 node.add_objective_matrix([matrix,obj_type])
-
-            parameters.delete_last()
 
 
 def variable_in_constraint(constr,variable,constants):
@@ -1019,14 +905,11 @@ def variable_in_constraint(constr,variable,constants):
         flag_out_of_bounds = True
     return value,flag_out_of_bounds
 
-def variable_factor_in_expression(expression,variable,constants):
+def variable_factor_in_expression(expression,variable,definitions):
     e_type = expression.get_type()
-    nb_child = expression.get_nb_children()
     found = False
     value = 0
     flag_out_of_bounds = False
-
-    var_id = variable.get_type()
 
     if e_type == 'literal':
         identifier = expression.get_name()
@@ -1035,40 +918,45 @@ def variable_factor_in_expression(expression,variable,constants):
                 type_id = identifier.get_type()
                 if type_id == 'assign':
                     t_expr = identifier.get_expression()
-                    t_value = evaluate_expression(t_expr,constants)
+                    t_value = t_expr.evaluate_expression(definitions)
 
-                    const = constants.get_elements()
-                    for i in range(constants.get_size()):
-                        if const[constants.get_size()-i-1][0]=='T':
-                            T = const[constants.get_size()-i-1][1]
+                    if not('T' in definitions):
+                        error_("INTERNAL ERROR: T not found")
+                    
+                    values_T = definitions['T']
+                    T = values_T[0]
 
-                    if t_value<0 or t_value >=T:
+                    if t_value < 0 or t_value >= T:
                         flag_out_of_bounds = True
-                    value1 = evaluate_expression(variable.get_expression(),constants)
+
+                    value1 = variable.get_expression().evaluate_expression(definitions)
                     if value1 == t_value:
                         found = True
                         value = 1
                 else:
-                    value1 = evaluate_expression(variable.get_expression(),constants)
-                    const = constants.get_elements()
-                    for i in range(constants.get_size()):
-                        if const[i][0]=='t':
-                            t = const[i][1]
+                    value1 = variable.get_expression().evaluate_expression(definitions)
+                    
+                    if not('t' in definitions):
+                        error_("INTERNAL ERROR: t not found")
+
+                    values_t = definitions['t']
+                    t = values_t[0]
+                    
                     if t == value1:
                         found = True
                         value = 1
     else:
         children = expression.get_children()
         if e_type == 'u-':
-            found,value,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,constants)
+            found,value,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,definitions)
             if flag_out_of_bounds:
                 return found,value,flag_out_of_bounds
             value = - value
         else:
-            found1,value1,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,constants)
+            found1,value1,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,definitions)
             if flag_out_of_bounds:
                 return found,value,flag_out_of_bounds
-            found2,value2,flag_out_of_bounds = variable_factor_in_expression(children[1],variable,constants)
+            found2,value2,flag_out_of_bounds = variable_factor_in_expression(children[1],variable,definitions)
             if flag_out_of_bounds:
                 return found,value,flag_out_of_bounds
 
@@ -1099,11 +987,11 @@ def variable_factor_in_expression(expression,variable,constants):
                     child = children[0]
                     value = value2
                 found = True
-                constant = evaluate_expression(child,constants) #MUST BE ALL CONSTANTS AS DEFINITIONS
+                constant = child.evaluate_expression(definitions) #MUST BE ALL CONSTANTS AS DEFINITIONS
                 value = value*constant
             elif e_type == '/':
                 if found1:
-                    constant = evaluate_expression(children[1],constants)
+                    constant = children[1].evaluate_expression(definitions)
                     value = value1/constant
                     found = True
                     
@@ -1146,6 +1034,7 @@ def is_time_dependant_expression(expression,variables):
 
     return found
 
+
 #def check_definition_order(constraints,variables):
 #    nb_cons = constraints.get_size()
 #    cons = constraints.get_elements()
@@ -1160,6 +1049,7 @@ def get_variables_constraint(constraint,variables):
     lhs_list = get_variables_expression(lhs,variables)
 
     full_list = rhs_list + lhs_list
+    return full_list
 
 def get_variables_expression(expression,variables):
     e_type = expression.get_type()
@@ -1180,9 +1070,6 @@ def get_variables_expression(expression,variables):
             variable_list = curr_var + variable_list  
     return variable_list
 
-def error_(message):
-    print(message)
-    exit(-1)
 
 # def check_input_output(root):
 #     n = root.get_size()

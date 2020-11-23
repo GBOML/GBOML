@@ -69,9 +69,9 @@ def plot_results(x,T,name_tuples):
         for _,index_variables in name_tuples:
             for index, variable in index_variables:
                 if index==i:
-                    if  variable in ["ppv","pc","pbt"]:
-                        legend.append(str(variable))
-                        found = True
+                    #if  variable in ["ppv","pc","pbt"]:
+                    legend.append(str(variable))
+                    found = True
                     #print(str(variable)+" "+str(x[i]))
         if found :
             plt.plot(x[i:(i+T)])
@@ -89,8 +89,8 @@ def convert_pandas(x,T,name_tuples):
             columns.append(full_name)
             ordered_values.append(values)
 
-    print(ordered_values)
-    print(columns)
+    #print(ordered_values)
+    #print(columns)
 
     df = pd.DataFrame(ordered_values,index=columns)
     return df
@@ -109,16 +109,10 @@ if __name__ == '__main__':
 
     parser.add_argument("--linprog",help = "Scipy linprog solver",action='store_const',const=True)
 
-    parser.add_argument("--gurobi",help = "Gurobi solver with call to Julia",action="store_const",const=True)
-
     args = parser.parse_args()
 
-    if args.linprog and args.gurobi: 
-        print("SOLVER ERROR: you can choose only one solver, not both")
-        exit(-1)
-    elif not args.linprog and not args.gurobi:
-        print("SOLVER ERROR: you must choose one solver")
-        exit(-1) 
+    if args.linprog==False: 
+        print("The default solver is GUROBI")
 
     if args.input_file:
         if args.lex:
@@ -144,19 +138,21 @@ if __name__ == '__main__':
 
         #np.set_printoptions(threshold=sys.maxsize)
 
-        if args.gurobi:
+        if args.linprog:
+            x,flag_solved = solver_scipy(A,b,C_sum)
+
+        else:
             #x,flag_solved = solver_julia(A.toarray(),b,C_sum)
             #print(A.toarray())
             x,flag_solved = solver_julia_2(A,b,C_sum)
 
-        elif args.linprog:
-            x,flag_solved = solver_scipy(A,b,C_sum)
+        
 
         if not flag_solved: 
             print("The solver did not find a solution to the problem")
             exit()
 
-        plot_results(x,T,name_tuples)
+        #plot_results(x,T,name_tuples)
         panda_datastruct = convert_pandas(x,T,name_tuples)
 
         filename_split = args.input_file.split(".")

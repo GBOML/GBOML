@@ -1,18 +1,20 @@
-#TIMESCALE
-horizon: 2
-step: 1
+#TIMEHORIZON
+T= 5
 
 #NODE H
 #PARAMETERS
+try = {1000,2000}
 un = 1
 deux = 2
-trois = 3
+trois = un + deux
 quatre_cinq = {4,5}
 #VARIABLES 
 internal : x
+internal : y
 #CONSTRAINTS
--3*x[0]+x[1]<=6
-x[0]+2*x[1]<=4
+//y[t] = try;
+-3*x[0]+x[1]<=6 where not(t < 0 or t!=0) and t>=0;
+x[0]+2*x[1]<=4 for t in [0:25];
 x[1]>=-3
 #OBJECTIVES
 min : -x[0]+4*x[1]

@@ -12,6 +12,7 @@ class Node:
         self.v_matrix = None
         self.c_triplet_list = []
         self.objective_list = []
+        self.nb_constraint_matrix = 0
 
     def __str__(self):
         string = '['+str(self.name)+' , '
@@ -67,6 +68,7 @@ class Node:
         return self.v_matrix
 
     def add_constraints_matrix(self,c_matrix):
+        self.nb_constraint_matrix += 1
         self.c_triplet_list.append(c_matrix)
 
     def get_constraints_matrix(self):
@@ -77,3 +79,6 @@ class Node:
 
     def get_objective_list(self):
         return self.objective_list
+
+    def get_nb_constraints_matrix(self):
+        return self.nb_constraint_matrix

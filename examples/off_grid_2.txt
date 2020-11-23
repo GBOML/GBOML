@@ -1,6 +1,5 @@
-#TIMESCALE 
-horizon : 120 // hours 
-step : 1 //hour
+#TIMEHORIZON
+T = 120 // hours 
 
 
 #NODE INVEST_PV

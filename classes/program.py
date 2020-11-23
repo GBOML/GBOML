@@ -1,3 +1,5 @@
+from utils import list_to_string,error_
+
 class Program: 
     def __init__(self,vector_n,timescale = None,links = None):
         self.vector_nodes = vector_n
@@ -22,15 +24,15 @@ class Program:
         string = "Full program\n"
         if self.time != None:
             string += "Time horizon : "+str(self.time.time)+"\n"
-            string += "Time step : "+str(self.time.step)+"\n"
+            string += "Time step : "+str(self.time.expr)+"\n"
         string += 'All the defined nodes : \n'
-        elements = self.vector_nodes.get_elements()
-        for i in range(self.vector_nodes.get_size()):
-            string += '\tName : '+ str(elements[i].get_name())+'\n'
-            string += '\t\tParameters : '+ str(elements[i].get_parameters())+'\n'
-            string += '\t\tVariables : '+ str(elements[i].get_variables())+'\n'
-            string += '\t\tConstraints : '+ str(elements[i].get_constraints())+'\n'
-            string += '\t\tObjectives : '+ str(elements[i].get_objectives())+'\n'
+        elements = self.vector_nodes
+        for i in range(len(self.vector_nodes)):
+            string += '\tName : '+ list_to_string(elements[i].get_name())+'\n'
+            string += '\t\tParameters : '+ list_to_string(elements[i].get_parameters())+'\n'
+            string += '\t\tVariables : '+ list_to_string(elements[i].get_variables())+'\n'
+            string += '\t\tConstraints : '+ list_to_string(elements[i].get_constraints())+'\n'
+            string += '\t\tObjectives : '+ list_to_string(elements[i].get_objectives())+'\n'
 
         string += '\nLinks predefined are : '+ str(self.links)
         return string
@@ -55,3 +57,23 @@ class Program:
 
     def get_link_constraints(self):
         return self.link_constraints
+    
+    def get_number_constraints(self):
+        sum_constraints = 0
+        for node in self.vector_nodes:
+            sum_constraints += node.get_nb_constraints_matrix()
+        return sum_constraints 
+    
+    def check_objective_existance(self):
+        nodes = self.vector_nodes
+        found = False
+        
+        for node in nodes:
+            objectives = node.get_objectives()
+            nb_objectives = len(objectives)
+            if nb_objectives != 0:
+                found = True
+                break
+
+        if found == False:
+            error_("ERROR: No objective function was defined")

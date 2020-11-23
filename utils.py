@@ -42,6 +42,13 @@ class Vector:
         self.n = self.n-1
         self.deleted.append(element)
 
+def list_to_string(list_e):
+    string = ""
+    for e in list_e:
+        string += str(e)+" "
+    return string
+
+
 def error_(message):
     print(message)
     exit(-1)

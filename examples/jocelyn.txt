@@ -1,6 +1,5 @@
-#TIMESCALE
-horizon: 8760 
-step: 1
+#TIMEHORIZON
+T=8760
 
 #NODE PV
 #PARAMETERS
@@ -9,7 +8,7 @@ depreciation_period = 25.0
 lifetime = 25.0
 performance_loss = 0.005
 opex_p_kWp_p_y = 13.0
-radiations_kW_p_GWp = import "PV_radiations_kW_p_GWp.csv"
+radiations_kW_p_GWp = import "examples/PV_radiations_kW_p_GWp.csv"
 #VARIABLES
 internal: curtailed_GW
 output: electricity_GW
@@ -17,15 +16,16 @@ output: capacity_GWp
 output: C0_$
 output: OM_$
 #CONSTRAINTS
-capacity_GWp[t] = capacity_GWp[0]
-C0_$[0] = C0_$[t]
-OM_$[0] = OM_$[t] 
-electricity_GW[t] = capacity_GWp[t] * radiations_kW_p_GWp[t]/(10**6)  - curtailed_GW[t] for t in [0:1:8760]
-electricity_GW[t] <= capacity_GWp[t] * radiations_kW_p_GWp[t]/(10**6)
-electricity_GW[t] >= 0
-curtailed_GW[t] >= 0
-C0_$[0] = capacity_GWp[0] * (capex_p_Wp * 10**9)  
-OM_$[0] = capacity_GWp[0] * (opex_p_kWp * 10**6) * lifetime + performance_loss *  capacity_GWp[0] * (capex_p_Wp * 10**9) * (lifetime -1) 
+capacity_GWp[t] = capacity_GWp[0];
+C0_$[0] = C0_$[t];
+OM_$[0] = OM_$[t];
+electricity_GW[t] = capacity_GWp[t] * radiations_kW_p_GWp[t]/(10**6)  - curtailed_GW[t];
+electricity_GW[t] <= capacity_GWp[t] * radiations_kW_p_GWp[t]/(10**6);
+electricity_GW[t] >= 0;
+curtailed_GW[t] >= 0;
+C0_$[0] = capacity_GWp[0] * (capex_p_Wp * 10**9);
+OM_$[0] = capacity_GWp[0] * (opex_p_kWp_p_y * 10**6) * lifetime + 
+          performance_loss *  capacity_GWp[0] * (capex_p_Wp * 10**9) * (lifetime -1);
 
  
 #NODE Battery
@@ -47,19 +47,20 @@ internal : power_GW
 output: discharged_GW
 output : C0_$
 output : OM_$
-#CONTRAINTS
-capacity_GWh[0] = capacity_GWh[t]
-power_GW[0] = power_GW[t] 
-C0_$[0] = C0_$[t]
-OM_$[0] = OM_$[t] 
-energy_GWh[0] = Initial_SOC * capacity_GWh
-energy_GWh[t] = energy_GWh[t-1] + charge_eff * charged_GW[t] - 1/discharge * discharged_GW[t] for t in [1:1:8760]
-energy_GWh[8759] = Initial_SOC * capacity_GWh
-energy_GWh <= capacity_GWh
-power_GW <= capacity_GWh/4
-charged_GW[t] + discharged_GW[t] <= power_GW
-C0_$[0] = capacity_GWh[0] *  Capacity_cost_$_p_kWh * 10**6 + power_GW[0] * Power_cost_$_p_kW * 10**6
-OM_$[0] = (capacity_GWh[0] *  Capacity_OM_$_p_kWh * 10**6 + power_GW[0] * Power_OM_$_p_kW * 10**6) * lifetime + C0_$[0] * (lifetime/Battery_lifetime_y) 
+#CONSTRAINTS
+capacity_GWh[0] = capacity_GWh[t];
+power_GW[0] = power_GW[t];
+C0_$[0] = C0_$[t];
+OM_$[0] = OM_$[t];
+energy_GWh[0] = Initial_SOC * capacity_GWh;
+energy_GWh[t] = energy_GWh[t-1] + charge_eff * charged_GW[t] - 1/discharge_eff * discharged_GW[t];
+energy_GWh[8759] = Initial_SOC * capacity_GWh;
+energy_GWh <= capacity_GWh;
+power_GW <= capacity_GWh/4;
+charged_GW[t] + discharged_GW[t] <= power_GW;
+C0_$[0] = capacity_GWh[0] *  Capacity_cost_$_p_kWh * 10**6 + power_GW[0] * Power_cost_$_p_kW * 10**6;
+OM_$[0] = (capacity_GWh[0] *  Capacity_OM_$_p_kWh * 10**6 + 
+          power_GW[0] * Power_OM_$_p_kW * 10**6) * lifetime + C0_$[0] * (lifetime/Battery_lifetime_y);
  
 
 #NODE CSP_gen
@@ -68,9 +69,9 @@ output: CSP_electricity_GW
 output: C0_$
 output: OM_$
 #CONSTRAINTS
-CSP_electricity_GW = 0
-C0_$ = 0
-OM_$ = 0
+CSP_electricity_GW = 0;
+C0_$ = 0;
+OM_$ = 0;
 
 
 #NODE Substation
@@ -82,7 +83,7 @@ annuity_inflation = 0.0339
 #VARIABLES
 input: PV_electricity_GW
 input: discharged_GW
-input: CSP_ electricity_GW
+input: CSP_electricity_GW
 input: C0_PV_$
 input: OM_PV_$
 input: C0_Batt_$
@@ -93,35 +94,35 @@ internal: C0_tot_$
 internal: OM_tot_$
 output: demand_electricity_GW
 output : charged_GW
-#CONTRAINTS
-PV_electricity_GW + CSP_electricity_GW + discharged_GW= demand_electricity_GW + charged_GW
-charged_GW[t] <= PV_electricity_GW[t]
-C0_tot_$ = C0_PV_$ + C0_Batt_$ + C0_CSP_$
-OM_tot_$ = OM_PV_$ + OM_Batt_$ + OM_CSP_$
-C0_tot_$[0] = C0_tot_$[t]
-OM_tot_$[0] = OM_tot_$[t]
-#OBJECTIVE
+#CONSTRAINTS
+PV_electricity_GW + CSP_electricity_GW + discharged_GW= demand_electricity_GW + charged_GW;
+charged_GW[t] <= PV_electricity_GW[t];
+C0_tot_$ = C0_PV_$ + C0_Batt_$ + C0_CSP_$;
+OM_tot_$ = OM_PV_$ + OM_Batt_$ + OM_CSP_$;
+C0_tot_$[0] = C0_tot_$[t];
+OM_tot_$[0] = OM_tot_$[t];
+#OBJECTIVES
 min : C0_tot_$ + OM_tot_$ * (1/annuity_inflation)
 
 
 #NODE Demand
 #PARAMETERS
-Load_belgium_kW = import"Load_bel_hour.csv"
+Load_belgium_kW = import"examples/Load_bel_hour.csv"
 #VARIABLES
 input: demand_electricity_GW
 #CONSTRAINTS
-Load_belgium_kW/(10**6) = demand_electricity_GW
+Load_belgium_kW/(10**6) = demand_electricity_GW;
 
 
 #LINKS
-Substation.PV_electricity_GW = PV.electricity_GW  
-Substation.CSP_electricity_GW = CSP_gen.electricity_GW  
-Substation.discharged_GW  = Battery.discharged_GW  
-Demand.demand_electricity_GW = Substation.demand_electricity_GW
-Battery.charged_GW = Substation.charged_GW
-Substation.C0_PV_$ = PV.C0_$
-Substation.OM_PV_$ = PV.OM_$
-Substation.C0_Batt_$ = Battery.C0_$
-Substation.OM_Batt_$ = Battery.OM_$
-Substation.C0_CSP_$ = CSP.C0_$
-Substation.OM_CSP_$ = CSP.OM_$
+PV.electricity_GW = Substation.PV_electricity_GW 
+CSP_gen.CSP_electricity_GW  = Substation.CSP_electricity_GW
+Battery.discharged_GW  = Substation.discharged_GW 
+Substation.demand_electricity_GW = Demand.demand_electricity_GW 
+Substation.charged_GW = Battery.charged_GW 
+PV.C0_$ = Substation.C0_PV_$
+PV.OM_$ = Substation.OM_PV_$
+Battery.C0_$ = Substation.C0_Batt_$ 
+Battery.OM_$ = Substation.OM_Batt_$  
+CSP_gen.C0_$ = Substation.C0_CSP_$ 
+CSP_gen.OM_$ = Substation.OM_CSP_$  

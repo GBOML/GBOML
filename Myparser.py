@@ -1,3 +1,4 @@
+
 # Myparser.py
 #
 # Writer : MIFTARI B
@@ -6,18 +7,21 @@
 import ply.yacc as yacc
 from lexer import tokens
 from classes import Time, Expression, Variable, Parameter, Link, \
-    Attribute, Program, Objective, Node, Identifier, Constraint
-from utils import Vector
+    Attribute, Program, Objective, Node, Identifier, Constraint, \
+    Condition, TimeInterval
 
-# precendence rules from most to least priority with associativity also specified
+# precendence rules from least to most priority with associativity also specified
 
-precedence = (
-    ('nonassoc','EQUAL','LEQ','BEQ'),
+precedence = (  # Unary minus operator
+    ('nonassoc', 'OR'),
+    ('nonassoc', 'AND'),
+    ('right', 'NOT'),
+    ('nonassoc','EQUAL','LEQ','BEQ','BIGGER','LOWER'),
     ('left', 'PLUS', 'MINUS'),
     ('left', 'MULT', 'DIVIDE'),
-    ('right', 'UMINUS'),# Unary minus operator 
-    ('left','POW'),
-)
+    ('right', 'UMINUS'),
+    ('left', 'POW'),
+    )
 
 
 # Start symbol
@@ -28,35 +32,18 @@ def p_start(p):
     p[0] = Program(p[2], p[1], p[3])
 
 
+    # exit()
 
 def p_time(p):
-    '''time : TIME time_def step_def
-            | TIME step_def time_def
+    '''time : TIME ID EQUAL expr
             | empty'''
 
-    if len(p) > 2:
-        if p[2][0] == 'horizon':
-            p[0] = Time(p[2][1], p[3][1])
-        else:
-            p[0] = Time(p[3][1], p[2][1])
-
-
-def p_time_def(p):
-    '''time_def : HORIZON COLON INT'''
-
-    type_value = []
-    type_value.append(p[1])
-    type_value.append(p[3])
-    p[0] = type_value
-
-
-def p_step_def(p):
-    '''step_def : STEP COLON INT'''
-
-    type_value = []
-    type_value.append(p[1])
-    type_value.append(p[3])
-    p[0] = type_value
+    if len(p) == 5:
+        p[0] = Time(p[2], p[4], line=p.lineno(2))
+    else : 
+        expr = Expression('literal', 1, line=p.lineno(1))
+        p[0] = Time("T", expr)
+        print("WARNING: No timescale was defined ! Default : T = 1")
 
 
 def p_links(p):
@@ -64,49 +51,49 @@ def p_links(p):
              | empty'''
 
     if len(p) > 2:
-        p[3].add_begin(p[2])
+        p[3].append(p[2])
         p[0] = p[3]
     else:
-        p[0] = Vector()
+        p[0] = []
 
 
 def p_link_def(p):
-    '''link_def : NAME EQUAL NAME more_id
-                | NAME DOT ID EQUAL NAME DOT ID more_id_aux'''
+    '''link_def : ID EQUAL ID more_id
+                | ID DOT ID EQUAL ID DOT ID more_id_aux'''
 
     if len(p) == 5:
         rhs = Attribute(p[1])
         a = Attribute(p[3])
-        p[4].add_begin(a)
+        p[4].append(a)
         p[0] = Link(rhs, p[4])
     else:
         rhs = Attribute(p[1], p[3])
         a = Attribute(p[5], p[7])
-        p[8].add_begin(a)
+        p[8].append(a)
         p[0] = Link(rhs, p[8])
 
 
 def p_more_id_aux(p):
-    '''more_id_aux : COMMA NAME DOT ID more_id_aux
+    '''more_id_aux : COMMA ID DOT ID more_id_aux
                    | empty'''
 
     if len(p) == 2:
-        p[0] = Vector()
+        p[0] = []
     else:
         a = Attribute(p[2], p[4])
-        p[5].add_begin(a)
+        p[5].append(a)
         p[0] = p[5]
 
 
 def p_more_id(p):
-    '''more_id : COMMA NAME more_id
+    '''more_id : COMMA ID more_id
                | empty'''
 
     if len(p) == 2:
-        p[0] = Vector()
+        p[0] = []
     else:
         a = Attribute(p[2])
-        p[3].add_begin(a)
+        p[3].append(a)
         p[0] = p[3]
 
 
@@ -115,9 +102,9 @@ def p_link_aux(p):
                 | empty'''
 
     if len(p) == 2:
-        p[0] = Vector()
+        p[0] = []
     else:
-        p[2].add_begin(p[1])
+        p[2].append(p[1])
         p[0] = p[2]
 
 
@@ -126,14 +113,14 @@ def p_program(p):
                 | empty '''
 
     if p[1] == None:
-        p[0] = Vector()
+        p[0] = []
     else:
-        p[2].add_element(p[1])
+        p[2].append(p[1])
         p[0] = p[2]
 
 
 def p_node(p):
-    '''node : NODE NAME parameters variables constraints objectives'''
+    '''node : NODE ID parameters variables constraints objectives'''
 
     p[0] = Node(p[2])
     p[0].set_line(p.lexer.lineno)
@@ -143,18 +130,12 @@ def p_node(p):
     p[0].set_objectives(p[6])
 
 
-def p_empty(p):
-    '''empty :'''
-
-    pass
-
-
 def p_parameters(p):
     '''parameters : PARAM define_parameters
                   | empty'''
 
     if len(p) == 2:
-        p[0] = Vector()
+        p[0] = []
     else:
         p[0] = p[2]
 
@@ -164,25 +145,25 @@ def p_define_parameters(p):
                          | empty'''
 
     if len(p) == 2:
-        p[0] = Vector()
+        p[0] = []
     else:
-        p[2].add_begin(p[1])
+        p[2].insert(0, p[1])
         p[0] = p[2]
 
 
 def p_parameter(p):
-    '''parameter : ID unity EQUAL expr
-                 | ID unity EQUAL LCBRAC term more_values RCBRAC
-                 | ID unity EQUAL IMPORT FILENAME'''
+    '''parameter : ID EQUAL expr
+                 | ID EQUAL LCBRAC term more_values RCBRAC
+                 | ID EQUAL IMPORT FILENAME'''
 
-    if len(p) == 5:
-        p[0] = Parameter(p[1], p[4], p[2], line=p.lineno(1))
-    elif len(p) == 8:
+    if len(p) == 4:
+        p[0] = Parameter(p[1], p[3], line=p.lineno(1))
+    elif len(p) == 7:
         p[0] = Parameter(p[1], None, line=p.lineno(1))
-        p[6].add_begin(p[5])
-        p[0].set_vector(p[6])
+        p[5].insert(0, p[4])
+        p[0].set_vector(p[5])
     else:
-        p[0] = Parameter(p[1], p[5], line=p.lineno(1))
+        p[0] = Parameter(p[1], p[4], line=p.lineno(1))
 
 
 def p_more_values(p):
@@ -190,9 +171,9 @@ def p_more_values(p):
                     | empty'''
 
     if len(p) == 2:
-        p[0] = Vector()
+        p[0] = []
     else:
-        p[3].add_begin(p[2])
+        p[3].insert(0, p[2])
         p[0] = p[3]
 
 
@@ -203,13 +184,13 @@ def p_variables(p):
 
 
 def p_define_variables(p):
-    '''define_variables : INTERNAL COLON id unity var_aux
-                        | OUTPUT COLON id unity var_aux
-                        | INPUT COLON id unity var_aux'''
+    '''define_variables : INTERNAL COLON id var_aux
+                        | OUTPUT COLON id var_aux
+                        | INPUT COLON id var_aux'''
 
-    var = Variable(p[3], p[1], p[4], line=p.lineno(1))
-    p[5].add_begin(var)
-    p[0] = p[5]
+    var = Variable(p[3], p[1], line=p.lineno(1))
+    p[4].insert(0, var)
+    p[0] = p[4]
 
 
 def p_var_aux(p):
@@ -217,7 +198,7 @@ def p_var_aux(p):
                 | empty'''
 
     if p[1] == None:
-        p[0] = Vector()
+        p[0] = []
     else:
         p[0] = p[1]
 
@@ -227,7 +208,7 @@ def p_constraints(p):
                    | empty'''
 
     if len(p) == 2:
-        p[0] = Vector()
+        p[0] = []
     else:
         p[0] = p[2]
 
@@ -237,20 +218,68 @@ def p_constraints_aux(p):
                        | define_constraints SEMICOLON
                        | define_constraints'''
 
-    if len(p) == 2 or len(p)==3:
-        p[0] = Vector()
-        p[0].add_element(p[1])
+    if len(p) == 2 or len(p) == 3:
+        p[0] = []
+        p[0].append(p[1])
     else:
-        p[3].add_begin(p[1])
+        p[3].insert(0, p[1])
         p[0] = p[3]
 
 
 def p_define_constraints(p):
-    '''define_constraints : expr EQUAL expr 
-                          | expr LEQ expr
-                          | expr BEQ expr '''
+    '''define_constraints : expr EQUAL expr time_loop condition
+                          | expr LEQ expr time_loop condition
+                          | expr BEQ expr time_loop condition'''
 
-    p[0] = Constraint(p[2], p[1], p[3], line=p.lexer.lineno)
+    p[0] = Constraint(
+        p[2],
+        p[1],
+        p[3],
+        time_interval=p[4],
+        condition=p[5],
+        line=p.lineno(2),
+        )
+
+
+def p_condition(p):
+    '''condition : WHERE bool_condition
+                 | empty'''
+
+    if len(p) == 3:
+        p[0] = p[2]
+
+
+def p_bool_condition(p):
+    '''bool_condition : bool_condition AND bool_condition
+                      | NOT bool_condition
+                      | bool_condition OR bool_condition
+                      | LPAR bool_condition RPAR
+                      | expr DOUBLE_EQ expr
+                      | expr NEQ expr
+                      | expr LOWER expr
+                      | expr BIGGER expr
+                      | expr LEQ expr 
+                      | expr BEQ expr'''
+
+    if len(p) == 4:
+        if type(p[2]) == str:
+            children = [p[1], p[3]]
+            p[0] = Condition(p[2], children, line=p.lineno(2))
+        else:
+            p[0] = p[2]
+    else:
+        p[0] = Condition(p[1], [p[2]], line=p.lineno(1))
+
+
+def p_time_loop(p):
+    '''time_loop : FOR ID IN LBRAC expr COLON expr COLON expr RBRAC
+                 | FOR ID IN LBRAC expr COLON expr RBRAC
+                 | empty'''
+
+    if len(p) == 11:
+        p[0] = TimeInterval(p[2], p[5], p[9], p[7], p.lineno(2))
+    elif len(p) == 9:
+        p[0] = TimeInterval(p[2], p[5], p[7], 1, p.lineno(2))
 
 
 def p_objectives(p):
@@ -258,7 +287,7 @@ def p_objectives(p):
                   | empty'''
 
     if p[1] == None:
-        p[0] = Vector()
+        p[0] = []
     else:
         p[0] = p[2]
 
@@ -268,7 +297,7 @@ def p_define_objectives(p):
                          | MAX COLON expr obj_aux'''
 
     obj = Objective(p[1], p[3], line=p.lineno(1))
-    p[4].add_begin(obj)
+    p[4].append(obj)
     p[0] = p[4]
 
 
@@ -277,7 +306,7 @@ def p_obj_aux(p):
                | empty'''
 
     if p[1] == None:
-        p[0] = Vector()
+        p[0] = []
     else:
         p[0] = p[1]
 
@@ -306,18 +335,18 @@ def p_expr(p):
 
     if len(p) == 4:
         if type(p[2]) == str:
-            p[0] = Expression(p[2])
+            p[0] = Expression(p[2],line = p.lineno(2))
             p[0].add_child(p[1])
             p[0].add_child(p[3])
         else:
             p[0] = p[2]
     elif len(p) == 3:
 
-        p[0] = Expression('u-')
+        p[0] = Expression('u-',line = p.lineno(1))
         p[0].add_child(p[2])
-    elif len(p)==7:
-        
-        p[0]=Expression(p[1])
+    elif len(p) == 7:
+
+        p[0] = Expression(p[1],line = p.lineno(1))
         p[0].add_child(p[3])
         p[0].add_child(p[5])
     else:
@@ -335,21 +364,16 @@ def p_term(p):
         p[0].set_line(p[1].get_line())
 
 
-def p_unity(p):
-    '''unity : IN expr
-             | empty'''
+def p_empty(p):
+    '''empty :'''
 
-    if p[1] != None:
-        p[0] = Expression('unity')
-        p[0].add_child(p[2])
-    else:
-        p[0] = None
+    pass
 
 
 # Error rule for syntax errors
 
 def p_error(p):
-    print(p)
+
     if p != None:
         print('Syntax error:' + str(p.lineno) + ':' \
             + str(find_column(p.lexer.lexdata, p)) \
@@ -379,7 +403,3 @@ def parse_file(name):
 
     result = parser.parse(data)
     return result
-
-
-
-			

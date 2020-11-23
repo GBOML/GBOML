@@ -1,11 +1,10 @@
 from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
 import numpy as np
 from scipy.sparse import coo_matrix
+from utils import error_
 
 def matrix_generationC(root):
-	node_vector = root.get_nodes()
-	nodes = node_vector.get_elements()
-
+	nodes = root.get_nodes()
 	nb_objectives = 0
 	all_rows = []
 	all_values = []
@@ -14,10 +13,7 @@ def matrix_generationC(root):
 	nb_variables = root.nb_variables
 
 	time_root = root.get_time()
-	if time_root != None:
-		T = time_root.time
-	else: 
-		T = 1
+	T = time_root.get_value()
 
 	for node in nodes:
 		objectives = node.get_objective_list()
@@ -48,14 +44,10 @@ def matrix_generationC(root):
 	return coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
 
 def matrix_generationAb(root):
-	node_vector = root.get_nodes()
-	nodes = node_vector.get_elements()
-
+	nodes = root.get_nodes()
+	
 	time_root = root.get_time()
-	if time_root != None:
-		T = time_root.time
-	else: 
-		T = 1
+	T = time_root.get_value()
 
 	nb_constraints = 0
 	index_start = 0
@@ -156,6 +148,7 @@ def matrix_generationAb(root):
 	values = np.concatenate(all_values)
 
 	b_values = np.array(list_of_b)
+
 	b_links = np.zeros(nb_link_constr)
 
 	b_values = np.append(b_values,b_links)
@@ -172,7 +165,3 @@ def set_index(variable_matrix,start):
 		start = start+n
 		
 	return start,tuple_name
-
-def error_(string):
-	print(string)
-	exit(-1)

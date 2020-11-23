@@ -1,9 +1,12 @@
+
+# -*- coding: utf-8 -*-
 # lexer.py
 #
 # Writer : MIFTARI B
 # ------------
 
 import ply.lex as lex
+import re
 
 
 def tokenize(data):
@@ -50,10 +53,13 @@ keywords = {
     'output': 'OUTPUT',
     'internal': 'INTERNAL',
     'in': 'IN',
-    'horizon': 'HORIZON',
-    'step': 'STEP',
     'import': 'IMPORT',
-    'mod':"MOD",
+    'mod': 'MOD',
+    'for': 'FOR',
+    'where': 'WHERE',
+    'and': 'AND',
+    'or': 'OR',
+    'not': 'NOT',
     }
 
 reserved = {
@@ -62,7 +68,7 @@ reserved = {
     '#CONSTRAINTS': 'CONS',
     '#VARIABLES': 'VAR',
     '#OBJECTIVES': 'OBJ',
-    '#TIMESCALE': 'TIME',
+    '#TIMEHORIZON': 'TIME',
     '#LINKS': 'LINKS',
     }
 
@@ -88,10 +94,13 @@ tokens = (
     'LEQ',
     'BEQ',
     'COLON',
-    'NAME',
     'DOT',
     'FILENAME',
     'SEMICOLON',
+    'DOUBLE_EQ',
+    'BIGGER',
+    'LOWER',
+    'NEQ',
     ) + tuple(keywords.values()) + tuple(reserved.values())
 
 # Regular expression rules for simple tokens
@@ -109,22 +118,34 @@ t_DIVIDE = r'/'
 t_LPAR = r'\('
 t_RPAR = r'\)'
 t_EQUAL = r'\='
+t_BIGGER = r'\>'
+t_LOWER = r'\<'
 t_LEQ = r'\<\='
 t_BEQ = r'\>\='
 t_COLON = r'\:'
 t_SEMICOLON = r'\;'
 t_DOT = r'\.'
+t_DOUBLE_EQ = r'\=\='
+t_NEQ = r'\!\='
 
 
-def t_FILENAME(t):
-    r'''["][a-zA-Z_0-9./]+["]'''
+def t_filename(t):
+    r'''\".*\"'''
 
-    t.value = t.value.replace('"', '')
-    return t
+    filename = t.value.replace('"', '')
+    legal_characters = r"[a-zA-Z_0-9./]+"
+    r = re.compile(legal_characters)
+
+    if re.fullmatch(r, filename):
+        t.type = 'FILENAME'
+        t.value = filename
+        return t
+    else:
+        t_error(t)
 
 
 def t_ID(t):
-    r'''[a-z][a-zA-Z_0-9]*'''
+    r'''[a-zA-Z_][a-zA-Z_0-9$]*'''
 
     if t.value in keywords:
         t.type = keywords.get(t.value, 'ID')
@@ -132,19 +153,13 @@ def t_ID(t):
 
 
 def t_reserved(t):
-    r'''[#][A-Z]+'''
+    r'''[#][a-zA-Z_0-9]+'''
 
     if t.value in reserved:
         t.type = reserved.get(t.value, 'ID')
         return t
     else:
         t_error(t)
-
-
-def t_NAME(t):
-    r'''[A-Z][a-zA-Z_0-9]*'''
-
-    return t
 
 
 def t_COMMENT(t):
@@ -185,14 +200,20 @@ t_ignore = ' \t\r\f'
 # Error handling rule
 
 def t_error(t):
-    print('Lexing error:' + str(t.lineno) + ':' \
-        + str(find_column(lexer.lexdata, t)) \
-        + ":Illegal character '%s'" % t.value[0])
+    message = 'Lexing error:' + str(t.lineno) + ':' \
+        + str(find_column(lexer.lexdata, t)) + ':'
+
+    if t.type == 'filename':
+        message += "Illegal filename '%s'" % t.value
+    elif t.type == 'reserved':
+        message += "Illegal reserved word '%s'" % t.value
+    else:
+        message += "Illegal character '%s'" % t.value[0]
+
+    print(message)
     exit(-1)
 
 
 lexer = lex.lex()
 
 # tokenize_file("text.txt")
-
-			
