@@ -69,9 +69,8 @@ class TimeInterval:
             step_value = self.step.evaluate_expression(definitions)
         
         time_horizon = sys.maxsize
-        for name,value in definitions:
-            if name=="T":
-                time_horizon = value
+
+        time_horizon = definitions["T"][0]
 
         begin_value, end_value,step_value = self.check(begin_value,end_value,step_value,time_horizon)
         return range(begin_value,end_value,step_value)

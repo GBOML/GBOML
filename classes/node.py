@@ -1,12 +1,12 @@
-from utils import Vector
+from utils import Vector,error_
 
 class Node: 
     def __init__(self,name,line = 0):
         self.name = name
-        self.constraints = Vector()
-        self.variables = Vector()
-        self.parameters = Vector()
-        self.objectives = Vector()
+        self.constraints = []
+        self.variables = []
+        self.parameters = []
+        self.objectives = []
         self.line = line
         self.links = []
         self.v_matrix = None
@@ -82,3 +82,34 @@ class Node:
 
     def get_nb_constraints_matrix(self):
         return self.nb_constraint_matrix
+
+    def get_dictionary_variables(self):
+        variables = self.variables
+        all_variables = {}
+        reserved_names = ["t","T"]
+        for var in variables:
+            identifier = var.get_name()
+            name = identifier.get_name()
+            if name in reserved_names:
+                error_("Semantic error, variable named "+str(name)+" is not allowed at line "+str(var.get_line()))
+
+            if name not in all_variables:
+                all_variables[name]=identifier
+            else : 
+                error_("Semantic error, redefinition of variable "+str(name)+" at line "+str(var.get_line()))
+        return all_variables
+
+    def get_all_parameters_name(self):
+        parameters = self.parameters
+        all_parameters = set()
+        reserved_names = ["t","T"]
+        for param in parameters:
+            name = param.get_name()
+            if name in reserved_names:
+                error_("Semantic error, variable named "+str(name)+" is not allowed at line "+str(param.get_line()))
+
+            if name not in all_parameters:
+                all_parameters.add(name)
+            else : 
+                error_("Semantic error, redefinition of variable "+str(name)+" at line "+str(param.get_line()))
+        return all_parameters

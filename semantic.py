@@ -1,8 +1,9 @@
-
-# semantic.py
+# -----------------------------------------------------------
+# semantic analyzer of GSML language
 #
-# Writer : MIFTARI B
-# ------------
+# MIFTARI Bardhyl, Liege, Belgium
+# 
+# -----------------------------------------------------------
 
 from classes import Time, Expression,Variable,Parameter,Link,\
     Attribute,Program,Objective,Node,Identifier,Constraint
@@ -11,69 +12,58 @@ import numpy as np
 from utils import Vector,error_,list_to_string
 import time as t
 
-# To check 
-#   if linear                                                   DONE
-#   if defined in expression                                    DONE
-#   if output match Input                                       DONE
-#   if valuable                                                 DONE
-#   if at least one objective exists                            DONE
-#   if constraints and objective are not meant for parameters   DONE
-#   if output don't have same name as another output            DONE
-#   if input - output - internal not defined twice              DONE
-#   if rediffined 
-#   if a variable has the same name as a parameter              DONE
-#   A LHS term shall not be in the RHS
-#   OUTPUT MUST HAVE A formula                                  DONE
-#   Check that a certain variable is defined in a link
-#   if all the elements are zero in matrix constraint 
-
 def semantic(program):
-    # WRAPPER that checks all the possible errors that could happen
+    """
+    Semantic check function : Augments the inputed Program object and checks several errors     
+    INPUT:  initialized Program object
+    OUTPUT: augmented Program object ready to be transformed to matrix
+    """
 
-    #retrieve time horizon
+    #Retrieve time horizon
     time = program.get_time()
     time.check()
     time_value = time.get_value()
-
-    root = program.get_nodes()
     
-    #CHECK If all nodes have different names
+    #Check if all nodes have different names
+    root = program.get_nodes()
     check_names(root)
 
-    #CHECK If an objective function is defined
+    #Check if an objective function is defined
     program.check_objective_existance()
 
     #Inside each node 
     for node in root:
+        #Initialize dictionary of defined parameters
         parameter_dictionary = {}
         parameter_dictionary["T"]=[time_value]
-        #CHECK if all parameters of a node have different names
-        
-        all_parameters = check_names(node.get_parameters())
-        #CHECK if all variables of a node have different names
-        all_variables = check_names(node.get_variables())
 
-        #CHECK if dont share the same name
+        #Retrieve all the parameters'names in set
+        all_parameters = node.get_all_parameters_name()
+
+        #Retrieve a dictionary of [name,identifier object] tuple
+        all_variables = node.get_dictionary_variables()
+
+        #Check if variables and parameters share names
         match_names(all_parameters,all_variables)
 
-        #TRY to evaluate the parameters
+        #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
 
+        #Check constraints and objectives expressions
         check_expressions_dependancy(node,all_variables,all_parameters)
-        #check_definition_order(elements[i].get_constraints())
-        check_var(node,all_variables,parameter_dictionary,all_parameters)
 
+        #Augment node with constraintes written in matrix format
+        convert_constraints_matrix(node,all_variables,parameter_dictionary)
+
+        #Augment node with objectives written in matrix format
         convert_objectives_matrix(node,all_variables,parameter_dictionary)
 
-    #vector_parameters = vector_parameters
-    #for i in range(len(vector_parameters)):
-    #    print("name: "+str(vector_parameters[i][0])+" value : "+str(vector_parameters[i][1]))
-    #print(vector_parameters)
-    #check_input_output(root)
-
+    #if the model does not have a proper constraint defined
     if program.get_number_constraints()==0:
         error_("ERROR: no valid constraint was defined making the problem unsolvable")
 
+
+    #LINKS conversion
     all_input_output_pairs = check_link(program)
 
     all_input_output_pairs = regroup_by_name(all_input_output_pairs)
@@ -128,7 +118,6 @@ def regroup_by_name(input_output_pairs):
         if not found : 
             triplet.append([name_input,node_input,name_output,node_output,[link]])
 
-    #print(triplet)
     return triplet
 
 def check_link(program):
@@ -355,40 +344,35 @@ def check_expressions_dependancy(node,variables,parameters):
 def variables_in_expression(expression,variables,parameters,check_in = True):
     leafs = expression.get_leafs()
     is_variable = False
+    defined = False
 
     for expr_id in leafs:
         
         identifier = expr_id.get_name()
 
         if type(identifier)!=int and type(identifier)!=float:
-            for var in variables:
-                if identifier.name_compare(var):
-                    is_variable = True
-                    break
-
-            if is_variable == False:
-                defined = False
-                for param in parameters:
-                    if identifier.name_compare(param):
-                        defined = True
-                        break
-
-                special_names=["T","t"]
-                for name in special_names:
-                    if identifier.name_compare(name):
-                        defined = True
-                        id_type = identifier.get_type()
-                        if id_type == "assign":
-                            error_("Error: can not assign time variables : "+str(expression.get_name())+\
-                                " at line "+str(expression.get_line()))
-                        break
-
-                if defined == False:
-                    error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
-
+            id_name = identifier.get_name() 
+            reserved_names = ["T","t"]
+            if id_name in variables:
+                is_variable = True
+                defined = True
+            
+            elif id_name in parameters:
+                defined = True
+            
+            elif id_name in reserved_names:
+                defined = True 
+                id_type = identifier.get_type()
+                if id_type == "assign":
+                    error_("Error: can not assign time variables : "+str(expression.get_name())+\
+                        " at line "+str(expression.get_line()))
+            
+            if defined == False:
+                error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
+            
             if check_in == True:
                 check_in_brackets(identifier,variables,parameters)
-
+            
     return is_variable
 
 def check_linear(expression,variables,parameters):
@@ -454,11 +438,13 @@ def check_linear(expression,variables,parameters):
     return True
 
 
-def match_names(list1,list2):
-    for name1 in list1:
-        for name2 in list2:
-            if name2.name_compare(name1):
-                error_("A variable and a parameter share the same name '"+str(name1)+"'")
+def match_names(dict,set_compare):
+    dictionary_set = set(dict)
+ 
+    inter_set = dictionary_set.intersection(set_compare)  
+ 
+    if len(inter_set)!=0:
+        error_("ERROR : some variables and parameters share the same name: "+str(inter_set))
 
 def check_names(elements,add_type = False):
     
@@ -548,33 +534,28 @@ def check_expr_in_brackets(expression,variables,parameters):
             error_("INTERNAL ERROR : literal must have zero child, got "+str(nb_child)+" check internal parser")
         identifier = expression.get_name()
 
-        if type(expression.get_name())!=float and type(expression.get_name())!=int:
-
+        if type(identifier)!=float and type(identifier)!=int:
+            id_name = identifier.get_name()
             id_type = identifier.get_type()
+            
+            time_variables = ["t","T"]
+
+            if id_name in parameters:
+                found = True
+                    
+            elif id_name in time_variables:
+                is_time_var = True
+                found = True
+            
+            elif id_name in variables:
+                error_('Variable in brackets for assignement ')
 
             #if id_type != 'basic':
             #    error_('Parameter shall not have this type of structure '+str(identifier))
             #identifier = identifier.get_name()
 
-            for param in parameters:
-                if identifier.name_compare(param):
-                    found = True
-                    break
-            
-            time_variables = ["t","T"]
-
-            for time_var in time_variables:
-                if identifier.name_compare(time_var):
-                    is_time_var = True
-                    found = True
-                    break
-            
-            for var in variables:
-                if var.name_compare(identifier):
-                    error_('Variable in brackets for assignement ')
-
             if found == False:
-                error_(' 1 Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
+                error_('Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
             
             if id_type == "assign":
                 is_time_var = check_expr_in_brackets(identifier.get_expression(),variables,parameters)
@@ -617,7 +598,16 @@ def check_expr_in_brackets(expression,variables,parameters):
 
     return is_time_var
 
-def check_var(node,variables,definitions,param_name):
+def convert_constraints_matrix(node,variables,definitions):
+    """
+    convert_constraints_matrix function : converts a node's constraints and variables 
+    into constraint and variables matrices of the respective form [value,lign,column]
+    and full matrix 
+    INPUT:  node, node object treated
+            variables, dictionary of variables
+            definitions, dictionary with all the parameters and constants
+    OUTPUT: None, augments the node object with the corresponding matrices
+    """
     constraints = node.get_constraints()
     
     if not("T" in definitions):
@@ -629,7 +619,9 @@ def check_var(node,variables,definitions,param_name):
 
     for k in range(T):
         variables_for_time = []
-        for variable in variables:
+        var_identifiers = list(variables.values())
+
+        for variable in var_identifiers:
             var = copy.copy(variable)
             expr = Expression('literal',k)
             var.set_expression(expr)
@@ -668,7 +660,7 @@ def check_var(node,variables,definitions,param_name):
             constr_range = range(t_horizon)
 
         unique_constraint = False
-        if(not is_time_dependant_constraint(constr,variables)):
+        if(not is_time_dependant_constraint(constr,variables,definitions)):
             unique_constraint = True
 
         #print("time : "+str(is_time_dependant_constraint(constr,variables)))
@@ -710,110 +702,127 @@ def check_var(node,variables,definitions,param_name):
             
             if flag_out_of_bounds==False:
                 starting_t = t.time() 
-                constant = constant_in_constraint(constr,variables,definitions,param_name)
+                constant = constant_in_constraint(constr,variables,definitions)
                 add_t += t.time()-starting_t
                 sign = constr.get_sign()
                 matrix = [new_values,rows,columns]
-                #print([matrix,constant,sign])
+                print(constr)
+                print([matrix,constant,sign])
 
                 node.add_constraints_matrix([matrix,constant,sign])
                 if unique_constraint == True:
                     break
                         
         #print("add_time --- %s seconds ---" % (add_t))
-    #print("Check_var --- %s seconds ---" % (t.time() - start_time))
+    print("Check_var --- %s seconds ---" % (t.time() - start_time))
 
 
     
-def constant_in_constraint(constr,variables,constants,param_name):
+def constant_in_constraint(constr,variables,constants):
+    """
+    constant_in_constraint function : computes the constant factor 
+    in an constraint
+    INPUT:  constr, considered constraint
+            variables, dictionary of variables
+            constants, dictionary with all the parameters and constants
+    OUTPUT: value, value of the constant in the constraint
+    """
     rhs = constr.get_rhs()
     lhs = constr.get_lhs()
 
-    value1 = constant_factor_in_expression(rhs,variables,constants,param_name)
+    value1 = constant_factor_in_expression(rhs,variables,constants)
     
-    value2 = constant_factor_in_expression(lhs,variables,constants,param_name)
+    value2 = constant_factor_in_expression(lhs,variables,constants)
     
     value = value2 - value1
     return value
 
-def constant_factor_in_expression(expression,variables,constants,param_name):
+def constant_factor_in_expression(expression,variables,constants):
+    """
+    constant_factor_in_expression function : computes the constant factor 
+    in an expression
+    INPUT:  expression, considered expression
+            variables, dictionary of variables
+            constants, dictionary with all the parameters and constants
+    OUTPUT: value, value of the constant in the expression
+    """
     e_type = expression.get_type()
     children = expression.get_children()
     value = 0
 
-    if variables_in_expression(expression,variables,param_name,check_in = False)==False:
+    if variables_in_expression(expression,variables,constants,check_in = False)==False:
         value = expression.evaluate_expression(constants)
     else:
         if e_type == 'u-':
-            is_var = variables_in_expression(children[0],variables,param_name,check_in = False)
+            is_var = variables_in_expression(children[0],variables,constants,check_in = False)
             if is_var==False:
                 value = children[0].evaluate_expression(constants)
             else: 
-                value = constant_factor_in_expression(children[0],variables,constants,param_name)
+                value = constant_factor_in_expression(children[0],variables,constants)
         elif e_type == "/":
-            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
-            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
+            is_var1 = variables_in_expression(children[0],variables,constants,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,constants,check_in = False)
 
             if is_var1 == False and is_var2 == False:
                 value = children[0].evaluate_expression(constants)/children[1].evaluate_expression(constants)
             elif is_var1 == True:
-                value = constant_factor_in_expression(children[0],variables,constants,param_name)/children[1].evaluate_expression(constants)
+                value = constant_factor_in_expression(children[0],variables,constants)/children[1].evaluate_expression(constants)
         elif e_type == "*":
-            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
-            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
+            is_var1 = variables_in_expression(children[0],variables,constants,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,constants,check_in = False)
             if is_var1 == False and is_var2 == False:
                 value = children[0].evaluate_expression(constants)*children[1].evaluate_expression(constants)
             else:
                 if is_var1:
-                    value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
+                    value1 = constant_factor_in_expression(children[0],variables,constants)
                 else:
                     value1 = children[0].evaluate_expression(constants)
                 if is_var2:
-                    value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
+                    value2 = constant_factor_in_expression(children[1],variables,constants)
                 else:
                     value2 = children[1].evaluate_expression(constants)
 
                 value = value1*value2
         elif e_type == '+':
-            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
-            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
+            is_var1 = variables_in_expression(children[0],variables,constants,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,constants,check_in = False)
             if is_var1 == False and is_var2 == False:
                 value = children[0].evaluate_expression(constants)+children[1].evaluate_expression(constants)
             else:
                 if is_var1:
-                    value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
+                    value1 = constant_factor_in_expression(children[0],variables,constants)
                 else:
                     value1 = children[0].evaluate_expression(constants)
                 if is_var2:
-                    value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
+                    value2 = constant_factor_in_expression(children[1],variables,constants)
                 else:
                     value2 = children[1].evaluate_expression(constants)
 
                 value = value1+value2
         elif e_type == '-':
-            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
-            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
+            is_var1 = variables_in_expression(children[0],variables,constants,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,constants,check_in = False)
             if is_var1 == False and is_var2 == False:
                 value = children[0].evaluate_expression(constants)-children[1].evaluate_expression(constants)
             else:
                 if is_var1:
-                    value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
+                    value1 = constant_factor_in_expression(children[0],variables,constants)
                 else:
                     value1 = children[0].evaluate_expression(constants)
                 if is_var2:
-                    value2 = constant_factor_in_expression(children[1],variables,constants,param_name)
+                    value2 = constant_factor_in_expression(children[1],variables,constants)
                 else:
                     value2 = children[1].evaluate_expression(constants)
 
                 value = value1-value2
         elif e_type == '**':
-            is_var1 = variables_in_expression(children[0],variables,param_name,check_in = False)
-            is_var2 = variables_in_expression(children[1],variables,param_name,check_in = False)
+            is_var1 = variables_in_expression(children[0],variables,constants,check_in = False)
+            is_var2 = variables_in_expression(children[1],variables,constants,check_in = False)
             if is_var1 == False and is_var2 == False:
                 value = children[0].evaluate_expression(constants)**children[1].evaluate_expression(constants)
             else:
                 if is_var1:
-                    value1 = constant_factor_in_expression(children[0],variables,constants,param_name)
+                    value1 = constant_factor_in_expression(children[0],variables,constants)
                 else:
                     value1 = children[0].evaluate_expression(constants)
                 value2 = children[1].evaluate_expression(constants)
@@ -822,6 +831,14 @@ def constant_factor_in_expression(expression,variables,constants,param_name):
     return value
 
 def convert_objectives_matrix(node,variables,definitions):
+    """
+    convert_objectives_matrix function : converts a node's objectives 
+    into objective matrices of the form [value,lign,column]
+    INPUT:  node, node object treated
+            variables, dictionary of variables
+            definitions, dictionary with all the parameters and constants
+    OUTPUT: None, augments the node object with the corresponding matrices
+    """
     matrixVar = node.get_variable_matrix()
     n,_ = np.shape(matrixVar)
 
@@ -854,7 +871,7 @@ def convert_objectives_matrix(node,variables,definitions):
     
         nb_variables = len(variables_used)
 
-        if(is_time_dependant_expression(expr,variables)):
+        if(is_time_dependant_expression(expr,variables,definitions)):
             t_horizon = T
         else:
             t_horizon = 1
@@ -894,6 +911,15 @@ def convert_objectives_matrix(node,variables,definitions):
 
 
 def variable_in_constraint(constr,variable,constants):
+    """
+    variable_in_constraint function : computes the constant term
+    multiplying a variable in a constraint
+    INPUT:  constr, constraint considered
+            variable, identifier object containing a variable
+            constants, dictionary with all the parameters and constants
+    OUTPUT: value, value that multiplies the variable in the expression
+            flag_out_of_bound, predicate if the variable is out of bounds
+    """
     rhs = constr.get_rhs()
     lhs = constr.get_lhs()
     flag_out_of_bounds = False
@@ -906,6 +932,16 @@ def variable_in_constraint(constr,variable,constants):
     return value,flag_out_of_bounds
 
 def variable_factor_in_expression(expression,variable,definitions):
+    """
+    variable_factor_in_expression function : computes the constant term
+    multiplying a variable in an expression
+    INPUT:  expression, expression considered
+            variable, identifier object containing a variable
+            definitions, dictionary with all the parameters and constants
+    OUTPUT: found, is variable in expression predicate
+            value, value that multiplies the variable in the expression
+            flag_out_of_bounds, if the valuation of the variable out of bounds 
+    """
     e_type = expression.get_type()
     found = False
     value = 0
@@ -997,120 +1033,59 @@ def variable_factor_in_expression(expression,variable,definitions):
                     
     return found,value,flag_out_of_bounds
 
-def is_time_dependant_constraint(constraint,variables):
+def is_time_dependant_constraint(constraint,variables_dictionary,parameter_dictionary):
+    """
+    is_time_dependant_constraint predicate : checks if constraint is time dependant
+    A constraint is time dependant if its right hand side or left depend on "t"
+    INPUT:  constraint, constraint to check
+            variables_dictionary, dictionary with all the variables
+            parameter_dictionary, dictionary with all the parameters and constants
+    OUTPUT: predicate, the boolean corresponding to the predicate
+    """
     rhs = constraint.get_rhs()
-    time_dep = is_time_dependant_expression(rhs,variables)
+    time_dep = is_time_dependant_expression(rhs,variables_dictionary,parameter_dictionary)
     lhs = constraint.get_lhs()
     if time_dep == False:
-        time_dep = is_time_dependant_expression(lhs,variables)
+        time_dep = is_time_dependant_expression(lhs,variables_dictionary,parameter_dictionary)
     return time_dep
 
-def is_time_dependant_expression(expression,variables):
+def is_time_dependant_expression(expression,variables_dictionary,parameter_dictionary):
+    """
+    is_time_dependant_expression predicate : checks if expression is time dependant
+    An expression is time dependant if it depends on "t"
+    INPUT:  expression, expression to check
+            variables_dictionary, dictionary with all the variables
+            parameter_dictionary, dictionary with all the parameters and constants
+    OUTPUT: predicate, the boolean corresponding to the predicate
+    """
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     children = expression.get_children()
-    found = False
+    predicate = False
 
     if e_type == 'literal':
         identifier = expression.get_name()
         if type(expression.get_name())!=float and type(expression.get_name())!=int:
             id_type = identifier.get_type()
-            if identifier.name_compare("t"):
-                if id_type != "basic":
-                    error_("Identifier t is used with [expression] at line "+identifier.get_line())
-                found = True
+            id_name = identifier.get_name()
+            
+            if id_name == "t":
+                predicate = True
+            elif id_name == "T":
+                predicate = False
             else:
-                if id_type == 'assign':
-                    found = is_time_dependant_expression(identifier.get_expression(),variables)
-                else:
-                    for variable in variables:
-                        if variable.name_compare(expression.get_name()):
-                            found = True
+                if id_name in variables_dictionary or id_name in parameter_dictionary: 
+                    if id_type =="assign":
+                        predicate = is_time_dependant_expression(identifier.get_expression(),\
+                            variables_dictionary,parameter_dictionary)
+                    else: 
+                        predicate = True
+
     else:
         for i in range(nb_child):
-            found1 = is_time_dependant_expression(children[i],variables)
-            if found1:
-                found = found1
+            predicate_i = is_time_dependant_expression(children[i],variables_dictionary,parameter_dictionary)
+            if predicate_i:
+                predicate = predicate_i
+                break
 
-    return found
-
-
-#def check_definition_order(constraints,variables):
-#    nb_cons = constraints.get_size()
-#    cons = constraints.get_elements()
-#    for i in range(nb_cons):
-#        variable_list = get_variables_constraint(cons[i],variables,[])
-
-def get_variables_constraint(constraint,variables):
-    rhs = constraint.get_rhs()
-    lhs = constraint.get_lhs()
-
-    rhs_list = get_variables_expression(rhs,variables)
-    lhs_list = get_variables_expression(lhs,variables)
-
-    full_list = rhs_list + lhs_list
-    return full_list
-
-def get_variables_expression(expression,variables):
-    e_type = expression.get_type()
-    nb_child = expression.get_nb_children()
-    children = expression.get_children()
-    variable_list = []
-
-    if e_type == "literal":
-        identifier = expression.get_name()
-        if type(identifier) != int and type(identifier) != float:
-            for i in range(len(variables)):
-                if identifier.name_compare(variables[i]):
-                    variable_list.append(identifier)
-                    break
-    else: 
-        for i in range(nb_child):
-            curr_var = get_variables_expression(children[i],variables)
-            variable_list = curr_var + variable_list  
-    return variable_list
-
-
-# def check_input_output(root):
-#     n = root.get_size()
-#     elements = root.get_elements()
-#     input_var = []
-#     output_var = []
-
-#     for i in range(n):
-#         variables_vector = elements[i].get_variables()
-#         nb_var = variables_vector.get_size()
-#         variables = variables_vector.get_elements()
-
-#         constraints_vector = elements[i].get_constraints()
-#         nb_cons = constraints_vector.get_size()
-#         constraints = constraints_vector.get_elements()
-#         for j in range(nb_var):
-#             v_type = variables[j].get_type()
-#             name = variables[j].get_name()
-#             if v_type == "input": 
-#                 input_var.append(name)
-#             elif v_type == "output": 
-#                 for k in range(len(output_var)):
-#                     if name == output_var[k]:
-#                         error_("Two Nodes output the same variable named : "+str(name)+" rediffined at "+str(elements[i].get_line())+" node "+str(elements[i].get_name()))
-#                 output_var.append(name)
-
-#             found = False
-#             for k in range(nb_cons):
-#                 if name == constraints[i].get_name():
-#                     found = True
-
-#             if found == False:
-#                 if v_type == 'output':
-#                     error_("Output '"+str(name)+"' does not have a formula associated however defined at line "+str(variables[j].get_line()))
-
-#     for i in range(len(input_var)):
-#         in_var = input_var[i]
-#         found = False
-#         for j in range(len(output_var)):
-#             out_var = output_var[i]
-#             if in_var == out_var:
-#                 found = True
-#         if found == False: 
-#             error_("Input Variable "+str(in_var)+" is not outputted from any node")
+    return predicate

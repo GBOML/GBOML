@@ -35,13 +35,14 @@ def solver_julia_2(A,b,C):
     C = C.reshape((-1,1))
     A = A.astype(float)
     flag_solved = False
+    x = None
 
     Main.include("linear_solver2.jl") # load the MyFuncs module
-    #try : 
-    x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
-    flag_solved = True
-    #except(RuntimeError): 
-    #    flag_solved = False
+    try : 
+        x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
+        flag_solved = True
+    except(RuntimeError): 
+        flag_solved = False
     return x,flag_solved
 
     #print(constraint_matrix)
@@ -51,7 +52,7 @@ def solver_julia(A,b,C):
     C = C.reshape((-1,1))
     A = A.astype(float)
     flag_solved = False
-
+    x = None
     Main.include("linear_solver.jl") # load the MyFuncs module
     try : 
         x = Main.lin_solve(C.astype(float),A.astype(float),b.astype(float))
