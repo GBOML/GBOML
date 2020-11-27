@@ -706,8 +706,8 @@ def convert_constraints_matrix(node,variables,definitions):
                 add_t += t.time()-starting_t
                 sign = constr.get_sign()
                 matrix = [new_values,rows,columns]
-                print(constr)
-                print([matrix,constant,sign])
+                #print(constr)
+                #print([matrix,constant,sign])
 
                 node.add_constraints_matrix([matrix,constant,sign])
                 if unique_constraint == True:

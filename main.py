@@ -16,6 +16,7 @@ import numpy as np
 import sys
 from julia import Main 
 import pandas as pd
+import os
 
 
 def solver_scipy(A,b,C):
@@ -70,9 +71,9 @@ def plot_results(x,T,name_tuples):
         for _,index_variables in name_tuples:
             for index, variable in index_variables:
                 if index==i:
-                    #if  variable in ["ppv","pc","pbt"]:
-                    legend.append(str(variable))
-                    found = True
+                    if  variable in ["ppv","pc","pbt"]:
+                        legend.append(str(variable))
+                        found = True
                     #print(str(variable)+" "+str(x[i]))
         if found :
             plt.plot(x[i:(i+T)])
@@ -97,6 +98,25 @@ def convert_pandas(x,T,name_tuples):
     return df
 
 
+def compile_file(directory,file):
+    path = os.path.join(directory,file)
+    result = parse_file(path)
+    program = semantic(result)
+    A,b,name_tuples = matrix_generationAb(program)
+    C = matrix_generationC(program)
+    C_sum = C.sum(axis=0)
+    x,_ = solver_julia_2(A,b,C_sum)
+    T = program.get_time().get_value()
+    panda_datastruct = convert_pandas(x,T,name_tuples)
+    
+    filename_split = file.split(".")
+    filename = filename_split[0]
+
+    
+    panda_datastruct.to_csv(filename+".csv")
+
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Compiler and solver for the generic system model language')
@@ -107,6 +127,7 @@ if __name__ == '__main__':
     parser.add_argument("--matrix",help="Prints matrix representation",action='store_const',const=True)
     
     parser.add_argument("--json", help="Convert results to JSON format",action='store_const',const=True)
+    parser.add_argument("--csv", help="Convert results to CSV format",action='store_const',const=True)
 
     parser.add_argument("--linprog",help = "Scipy linprog solver",action='store_const',const=True)
 
@@ -153,7 +174,7 @@ if __name__ == '__main__':
             print("The solver did not find a solution to the problem")
             exit()
 
-        #plot_results(x,T,name_tuples)
+        plot_results(x,T,name_tuples)
         panda_datastruct = convert_pandas(x,T,name_tuples)
 
         filename_split = args.input_file.split(".")
@@ -161,7 +182,7 @@ if __name__ == '__main__':
 
         if args.json: 
             panda_datastruct.to_json(filename+".json")
-        else: 
+        if args.csv:
             panda_datastruct.to_csv(filename+".csv")
 
     else: 
