@@ -4,10 +4,10 @@
 # Writer : MIFTARI B
 # ------------
 
-from lexer import tokenize_file
-from Myparser import parse_file
-from semantic import semantic
-from matrixGeneration import matrix_generationAb,matrix_generationC
+from .lexer import tokenize_file
+from .Myparser import parse_file
+from .semantic import semantic
+from .matrixGeneration import matrix_generationAb,matrix_generationC
 import argparse
 import time
 from scipy.optimize import linprog
@@ -38,7 +38,10 @@ def solver_julia_2(A,b,C):
     flag_solved = False
     x = None
 
-    Main.include("linear_solver2.jl") # load the MyFuncs module
+    dir = os.path.dirname(os.path.realpath(__file__))
+    full_path = os.path.join(dir, "linear_solver2.jl")
+
+    Main.include(full_path) # load the MyFuncs module
     try : 
         x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
         flag_solved = True
@@ -97,7 +100,6 @@ def convert_pandas(x,T,name_tuples):
     df = pd.DataFrame(ordered_values,index=columns)
     return df
 
-
 def compile_file(directory,file):
     path = os.path.join(directory,file)
     result = parse_file(path)
@@ -110,12 +112,9 @@ def compile_file(directory,file):
     panda_datastruct = convert_pandas(x,T,name_tuples)
     
     filename_split = file.split(".")
-    filename = filename_split[0]
+    filename = filename_split[0] + "_solution.csv"
 
-    
-    panda_datastruct.to_csv(filename+".csv")
-
-
+    panda_datastruct.to_csv(os.path.join(directory,filename))
 
 if __name__ == '__main__':
 

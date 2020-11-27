@@ -1,7 +1,7 @@
-from classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
+from .classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
 import numpy as np
 from scipy.sparse import coo_matrix
-from utils import error_
+from .utils import error_
 
 def matrix_generationC(root):
 	nodes = root.get_nodes()
