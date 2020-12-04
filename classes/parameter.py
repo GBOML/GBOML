@@ -31,12 +31,13 @@ class Parameter(Symbol):
     def get_values_from_file(self,expression):
         self.vector = []
         if type(expression)==str:
+
             if(os.path.isfile('./'+expression))==False:
                 error_("No such file as "+str(expression))
-            f = open(expression, "r")
+            f = open('./'+expression, "r")
             for line in f: 
-                line = line.replace("\n","")
-                line = line.replace(";","")
+                line = line.replace("\n"," ")
+                line = line.replace(";"," ")
                 line = line.split(" ")
                 for nb in line:
                     if nb == "":
