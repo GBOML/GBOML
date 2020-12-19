@@ -1,5 +1,5 @@
 #TIMEHORIZON
-T = 120 // hours 
+T = 144// hours 
 
 
 #NODE INVEST_PV

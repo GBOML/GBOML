@@ -4,7 +4,8 @@ T= 5
 #NODE H
 #PARAMETERS
 try = {1000,2000}
-un = 1
+//a = import "example1.csv"
+un = 1.
 deux = 2
 trois = un + deux
 quatre_cinq = {4,5}

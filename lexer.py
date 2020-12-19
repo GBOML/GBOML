@@ -133,7 +133,7 @@ def t_filename(t):
     r'''\".*\"'''
 
     filename = t.value.replace('"', '')
-    legal_characters = r"[a-zA-Z_0-9./]+"
+    legal_characters = r"[a-zA-Z_0-9./:\\]+"
     r = re.compile(legal_characters)
 
     if re.fullmatch(r, filename):
@@ -170,17 +170,15 @@ def t_COMMENT(t):
 
      # No return value. Token discarded
 
-def t_FLOAT(t):
-    r'''[0-9]+[\.][0-9]*'''
+def t_number(t):
+    r'''[0-9]+[\.][0-9]*|[0-9]+'''
 
-    t.value = float(t.value)
-    return t
-
-
-def t_INT(t):
-    r'''[0-9]+'''
-
-    t.value = int(t.value)
+    if "." in t.value:
+        t.value = float(t.value)
+        t.type = "FLOAT"
+    else:
+        t.value = int(t.value)
+        t.type = "INT"
     return t
 
 

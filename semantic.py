@@ -539,7 +539,6 @@ def check_expr_in_brackets(expression,variables,parameters):
             id_type = identifier.get_type()
             
             time_variables = ["t","T"]
-
             if id_name in parameters:
                 found = True
                     

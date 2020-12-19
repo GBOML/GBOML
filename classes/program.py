@@ -1,4 +1,4 @@
-from ..utils import list_to_string,error_
+from utils import list_to_string,error_
 
 class Program: 
     def __init__(self,vector_n,timescale = None,links = None):
