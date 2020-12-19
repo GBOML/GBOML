@@ -95,7 +95,7 @@ def convert_pandas(x,T,name_tuples):
     #print(columns)
 
     df = pd.DataFrame(ordered_values,index=columns)
-    return df
+    return df.T
 
 
 def compile_file(directory,file):
