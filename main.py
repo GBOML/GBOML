@@ -100,6 +100,7 @@ def convert_pandas(x,T,name_tuples):
     df = pd.DataFrame(ordered_values,index=columns)
     return df
 
+
 def compile_file(directory,file):
     path = os.path.join(directory,file)
     result = parse_file(path)
@@ -112,9 +113,12 @@ def compile_file(directory,file):
     panda_datastruct = convert_pandas(x,T,name_tuples)
     
     filename_split = file.split(".")
-    filename = filename_split[0] + "_solution.csv"
+    filename = filename_split[0]
 
-    panda_datastruct.to_csv(os.path.join(directory,filename))
+    
+    panda_datastruct.to_csv(filename+".csv")
+
+
 
 if __name__ == '__main__':
 
@@ -136,16 +140,29 @@ if __name__ == '__main__':
         print("The default solver is GUROBI")
 
     if args.input_file:
+        if(os.path.isfile(args.input_file)==False):
+            print("No such file as "+str(args.input_file))
+            exit(-1)
+
+        curr_dir = os.getcwd()
+
+        dir_path = os.path.dirname(args.input_file)
+        filename = os.path.basename(args.input_file) 
+        #print(dir_path)
+        os.chdir(dir_path)
+
         if args.lex:
-            tokenize_file(args.input_file)
+            tokenize_file(filename)
         
-        result = parse_file(args.input_file)
+
+        result = parse_file(filename)
+
         if args.parse:
             print(result.to_string())
         start_time = time.time()
 
         program = semantic(result)
-        print("Semantic --- %s seconds ---" % (time.time() - start_time))
+        
         T = program.get_time().get_value()
 
         A,b,name_tuples = matrix_generationAb(program)
@@ -156,8 +173,11 @@ if __name__ == '__main__':
         C = matrix_generationC(program)
 
         C_sum = C.sum(axis=0)
-
+        print(C_sum.shape)
+        print("All --- %s seconds ---" % (time.time() - start_time))
         #np.set_printoptions(threshold=sys.maxsize)
+
+        os.chdir(curr_dir)
 
         if args.linprog:
             x,flag_solved = solver_scipy(A,b,C_sum)
