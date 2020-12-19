@@ -190,7 +190,7 @@ if __name__ == '__main__':
             print("The solver did not find a solution to the problem")
             exit()
 
-        plot_results(x,T,name_tuples)
+        #plot_results(x,T,name_tuples)
         panda_datastruct = convert_pandas(x,T,name_tuples)
 
         filename_split = args.input_file.split(".")
