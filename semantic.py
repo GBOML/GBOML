@@ -509,7 +509,7 @@ def evaluate_table(list_values,definitions):
 
                 if type(index) == float:
                     if index.is_integer()==False:
-                        print("WARNING: an index was rounded in term "+ str(value_i))
+                        error_("Error: an index is a float: "+ str(value_i))
                     index = int(round(index))
 
                 if index<0 or len(values)<=index:
@@ -694,7 +694,7 @@ def convert_constraints_matrix(node,variables,definitions):
                     j = identifier.get_expression().evaluate_expression(definitions)
                     if type(j) == float:
                         if j.is_integer()==False:
-                            print("WARNING: an index was rounded in term "+ str(identifier)+\
+                            error_("Error: an index is a float: "+ str(identifier)+\
                                 'at line '+str(identifier.get_line())+"for t = "+str(k))
                         j = int(round(j))
 
@@ -907,7 +907,7 @@ def convert_objectives_matrix(node,variables,definitions):
 
                     if type(j) == float:
                         if j.is_integer()==False:
-                            print("WARNING: an index was rounded in term "+ str(identifier)+\
+                            error_("Error: an index is a float: "+ str(identifier)+\
                                 'at line '+str(identifier.get_line())+"for t = "+str(k))
                         j = int(round(j))
 

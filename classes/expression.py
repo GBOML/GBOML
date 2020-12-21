@@ -92,7 +92,7 @@ class Expression(Symbol):
                     index = definitions["t"][0]
                     if type(index) == float:
                         if index.is_integer()==False:
-                            print("WARNING: an index was rounded in term "+ str(identifier)+\
+                            error_("Error: an index is a float: "+ str(identifier)+\
                                 'at line '+str(identifier.get_line()))
                         index = int(round(index))
 
@@ -106,7 +106,7 @@ class Expression(Symbol):
                     
                     if type(index) == float:
                         if index.is_integer()==False:
-                            print("WARNING: an index was rounded in term "+ str(identifier)+\
+                            error_("Error: an index is a float: "+ str(identifier)+\
                                 'at line '+str(identifier.get_line()))
                         index = int(round(index))
 
