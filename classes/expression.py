@@ -90,18 +90,33 @@ class Expression(Symbol):
 
                 elif id_type =="basic" and ("t" in definitions):
                     index = definitions["t"][0]
-                    if index+1 > nb_values or index < 0:
+                    if type(index) == float:
+                        if index.is_integer()==False:
+                            print("WARNING: an index was rounded in term "+ str(identifier)+\
+                                'at line '+str(identifier.get_line()))
+                        index = int(round(index))
+
+                    if index >= nb_values or index < 0:
                         error_("Wrong indexing in Identifier '"+ str(identifier)+ "' at line, "+str(self.get_line()))
+                    
                     value = vector_value[index]
                 
                 elif id_type == "assign":
                     index = id_expr.evaluate_expression(definitions)
-                    if index+1 > nb_values or index < 0:
+                    
+                    if type(index) == float:
+                        if index.is_integer()==False:
+                            print("WARNING: an index was rounded in term "+ str(identifier)+\
+                                'at line '+str(identifier.get_line()))
+                        index = int(round(index))
+
+                    if index >= nb_values or index < 0:
                         error_("Wrong indexing in Identifier '"+ str(identifier)+ "' at line, "+str(self.get_line()))
+                    
                     value = vector_value[index]
                 
                 else:
-                    error_('Time t is not accessible')
+                    error_("Wrong time indexing in Identifier '"+ str(identifier)+ "' at line, "+str(self.get_line()))
 
         # MORE THAN one child
         else:

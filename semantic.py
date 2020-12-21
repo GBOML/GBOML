@@ -506,9 +506,15 @@ def evaluate_table(list_values,definitions):
             elif type_val == "assign":
                 inner_expr = value_i.get_expression()
                 index = inner_expr.evaluate_expression(definitions)
-                if len(values)<index+1:
+
+                if type(index) == float:
+                    if index.is_integer()==False:
+                        print("WARNING: an index was rounded in term "+ str(value_i))
+                    index = int(round(index))
+
+                if index<0 or len(values)<=index:
                     error_('Parameter does not exit at this index : '+str(value_i))
-                
+
                 value_i = values[index]
 
         all_values.append(value_i)
@@ -686,9 +692,17 @@ def convert_constraints_matrix(node,variables,definitions):
                     j = k
                 else : 
                     j = identifier.get_expression().evaluate_expression(definitions)
-                    if j >= T:
+                    if type(j) == float:
+                        if j.is_integer()==False:
+                            print("WARNING: an index was rounded in term "+ str(identifier)+\
+                                'at line '+str(identifier.get_line())+"for t = "+str(k))
+                        j = int(round(j))
+
+                    if j >= T or j<0:
                         flag_out_of_bounds = True
                         break
+                    
+
                 term,flag_out_of_bounds = variable_in_constraint(constr,X[j][n],definitions)
                 new_values[l]=term
 
@@ -891,9 +905,16 @@ def convert_objectives_matrix(node,variables,definitions):
                 else : 
                     j = identifier.get_expression().evaluate_expression(definitions)
 
-                    if j >= T:
+                    if type(j) == float:
+                        if j.is_integer()==False:
+                            print("WARNING: an index was rounded in term "+ str(identifier)+\
+                                'at line '+str(identifier.get_line())+"for t = "+str(k))
+                        j = int(round(j))
+
+                    if j >= T or j<0:
                         flag_out_of_bounds = True
                         break
+                    
                 _,term,flag_out_of_bounds = variable_factor_in_expression(expr,matrixVar[j][n],definitions)
 
                 values[l] = term
