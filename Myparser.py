@@ -13,10 +13,10 @@ from classes import Time, Expression, Variable, Parameter, Link, \
 # precendence rules from least to most priority with associativity also specified
 
 precedence = (  # Unary minus operator
-    ('nonassoc', 'OR'),
-    ('nonassoc', 'AND'),
+    ('left', 'OR'),
+    ('left', 'AND'),
     ('right', 'NOT'),
-    ('nonassoc','EQUAL','LEQ','BEQ','BIGGER','LOWER'),
+    ('nonassoc','EQUAL','LEQ','BEQ','BIGGER','LOWER','NEQ'),
     ('left', 'PLUS', 'MINUS'),
     ('left', 'MULT', 'DIVIDE'),
     ('right', 'UMINUS'),

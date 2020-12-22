@@ -37,6 +37,7 @@ class Parameter(Symbol):
             f = open('./'+expression, "r")
             for line in f: 
                 line = line.replace("\n"," ")
+                line = line.replace(","," ")
                 line = line.replace(";"," ")
                 line = line.split(" ")
                 for nb in line:
