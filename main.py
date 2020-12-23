@@ -207,7 +207,7 @@ if __name__ == '__main__':
         if args.json: 
             dictionary = convert_dictionary(x,T,name_tuples)
             with open(filename+".json", 'w') as outfile:
-                json.dump(dictionary, outfile)
+                json.dump(dictionary, outfile,indent=4)
         if args.csv:
             panda_datastruct = convert_pandas(x,T,name_tuples)
             panda_datastruct.to_csv(filename+".csv")
