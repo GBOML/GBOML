@@ -4,9 +4,9 @@ T = 144// hours
 
 #NODE INVEST_PV
 #PARAMETERS
-c_pv = 1 //cost per unit of PV capacity in currency per watt
-rate = 0.07 // interest rate
-n = 2 // number of years
+c_pv = 1; //cost per unit of PV capacity in currency per watt
+rate = 0.07; // interest rate
+n = 2 ;// number of years
 #VARIABLES
 internal: ipv // internal variable of the total cost in currency
 internal: p // intermediate variable for cost
@@ -23,7 +23,7 @@ c_p = p / 8760;
 #NODE PV
 #PARAMETERS
 avg_prod = {0,0,0,0,0,0,0,0,0,0.04,0.08,0.12,0.14,0.15,
-            0.14,0.12,0.08,0.04,0,0,0,0,0,0} // average PV production per installed capacity (percentage)
+            0.14,0.12,0.08,0.04,0,0,0,0,0,0}; // average PV production per installed capacity (percentage)
 #VARIABLES
 input : ppv_max // max production in watt 
 internal: var 
@@ -35,9 +35,9 @@ ppv[t] = avg_prod[mod(t,24)] * ppv_max[t];
 
 #NODE INVEST_BAT
 #PARAMETERS
-c_unit = 1 //cost per unit of storage capacity installed in currency per watt
-rate = 0.07 // interest rate
-n = 2 // number of years
+c_unit = 1; //cost per unit of storage capacity installed in currency per watt
+rate = 0.07; // interest rate
+n = 2; // number of years
 #VARIABLES
 internal: ib //total cost of investment in currency 
 internal: p //intermediate variable for cost
@@ -53,7 +53,7 @@ c_b = p / 8760;
 
 #NODE BATTERY
 #PARAMETERS
-p = 1 // proportion of battery capacity
+p = 1; // proportion of battery capacity
 #VARIABLES
 input: soCmax // max installed capacity in watt 
 internal: soC //state of charge of the battery in watt hour
@@ -69,7 +69,7 @@ soC[t+1] = soC[t] + pbt[t];
 #NODE DEMAND
 #PARAMETERS
 demand = {6.9,6.4,6.1,5.9,5.7,5.4,4.8, 4.5, 4.6, 
-          4.6,4.7,4.9,5.1,5.3,5.4,5.4,5.4,5.8, 8.4,10.6,11.0,10.5,9.2,7.8}
+          4.6,4.7,4.9,5.1,5.3,5.4,5.4,5.4,5.8, 8.4,10.6,11.0,10.5,9.2,7.8};
 #VARIABLES
 output: pc //consumption in watt 
 #CONSTRAINTS
@@ -78,7 +78,7 @@ pc[t] = demand[mod(t,24)];
 
 #NODE OPERATION_COST
 #PARAMETERS
-pi_shed = 10 //  in curr/watt
+pi_shed = 10; //  in curr/watt
 #VARIABLES
 input: pbt //in watt
 input: ppv //in watt

@@ -152,13 +152,13 @@ def p_define_parameters(p):
 
 
 def p_parameter(p):
-    '''parameter : ID EQUAL expr
-                 | ID EQUAL LCBRAC term more_values RCBRAC
-                 | ID EQUAL IMPORT FILENAME'''
+    '''parameter : ID EQUAL expr SEMICOLON
+                 | ID EQUAL LCBRAC term more_values RCBRAC SEMICOLON
+                 | ID EQUAL IMPORT FILENAME SEMICOLON'''
 
-    if len(p) == 4:
+    if len(p) == 5:
         p[0] = Parameter(p[1], p[3], line=p.lineno(1))
-    elif len(p) == 7:
+    elif len(p) == 8:
         p[0] = Parameter(p[1], None, line=p.lineno(1))
         p[5].insert(0, p[4])
         p[0].set_vector(p[5])

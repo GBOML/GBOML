@@ -17,6 +17,7 @@ import sys
 from julia import Main 
 import pandas as pd
 import os
+import json
 
 
 def solver_scipy(A,b,C):
@@ -79,7 +80,18 @@ def plot_results(x,T,name_tuples):
             plt.plot(x[i:(i+T)])
     plt.legend(legend)
     plt.show()
-    
+
+def convert_dictionary(x,T,name_tuples):
+    dictionary = {}
+
+    for node_name,index_variables in name_tuples:
+        dico_node = {}
+        for index,variable in index_variables:
+            dico_node[variable] = x[index:(index+T)].flatten().tolist()
+        dictionary[node_name] = dico_node
+
+    return dictionary
+
 def convert_pandas(x,T,name_tuples):
     ordered_values = []
     columns = []
@@ -170,7 +182,6 @@ if __name__ == '__main__':
         C = matrix_generationC(program)
 
         C_sum = C.sum(axis=0)
-        print(C_sum.shape)
         print("All --- %s seconds ---" % (time.time() - start_time))
         #np.set_printoptions(threshold=sys.maxsize)
 
@@ -184,21 +195,21 @@ if __name__ == '__main__':
             #print(A.toarray())
             x,flag_solved = solver_julia_2(A,b,C_sum)
 
-        
-
         if not flag_solved: 
             print("The solver did not find a solution to the problem")
             exit()
 
         #plot_results(x,T,name_tuples)
-        panda_datastruct = convert_pandas(x,T,name_tuples)
-
-        filename_split = args.input_file.split(".")
+        
+        filename_split = args.input_file.rsplit('.', 1)
         filename = filename_split[0]
 
         if args.json: 
-            panda_datastruct.to_json(filename+".json")
+            dictionary = convert_dictionary(x,T,name_tuples)
+            with open(filename+".json", 'w') as outfile:
+                json.dump(dictionary, outfile)
         if args.csv:
+            panda_datastruct = convert_pandas(x,T,name_tuples)
             panda_datastruct.to_csv(filename+".csv")
 
     else: 
