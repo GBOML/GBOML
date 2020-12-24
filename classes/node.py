@@ -1,4 +1,4 @@
-from utils import Vector,error_
+from utils import error_
 
 class Node: 
     def __init__(self,name,line = 0):

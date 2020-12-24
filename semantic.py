@@ -9,7 +9,7 @@ from classes import Time, Expression,Variable,Parameter,Link,\
     Attribute,Program,Objective,Node,Identifier,Constraint
 import copy
 import numpy as np
-from utils import Vector,error_,list_to_string
+from utils import error_,list_to_string
 import time as t
 
 def semantic(program):

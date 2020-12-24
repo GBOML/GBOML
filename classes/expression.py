@@ -1,5 +1,5 @@
 from .parent import Symbol
-from utils import Vector,error_
+from utils import error_
 
 class Expression(Symbol):
     def __init__(self,node_type,name = None,line = 0):
