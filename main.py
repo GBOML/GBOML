@@ -39,7 +39,7 @@ def solver_julia_2(A,b,C):
     flag_solved = False
     x = None
 
-    Main.include("linear_solver2.jl") # load the MyFuncs module
+    Main.include("linear_solver.jl") # load the MyFuncs module
     try : 
         x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
         flag_solved = True
