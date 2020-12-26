@@ -27,18 +27,30 @@ The command line goes as follows,
 python main.py <file> 
 ```
 List of optional arguments
-Markup : *Print tokens
+-Print tokens
     To print the tokens outputted by the lexer you can add  
-    > --lex
-         *Print the syntax tree
+    ```
+    --lex
+    ```
+-Print the syntax tree
     To print the syntax tree by the parser you can add
-    > --parser
-         *Print the matrices
+    ```
+    --parser
+    ```
+-Print the matrices
     To print the matrix A, the vector b and C
-    > --matrix
-         *Use Linprog solver instead of Gurobi
-    > --linprog
-         *Output format CSV (default)
-    > --csv
-         *Output format json
-    > --json
+    ```
+    --matrix
+    ```
+-Use Linprog solver instead of Gurobi
+    ```
+    --linprog
+    ```
+-Output format CSV (default)
+    ```
+    --csv
+    ```
+-Output format json
+    ```
+    --json
+    ```
