@@ -28,35 +28,44 @@ python main.py <file>
 ```
 List of optional arguments
 
--Print tokens
+-**Print tokens:**
+
     To print the tokens outputted by the lexer you can add  
     ```
     --lex
     ```
 
--Print the syntax tree
+-**Print the syntax tree:**
+
     To print the syntax tree by the parser you can add
     ```
     --parser
     ```
 
--Print the matrices
+-**Print the matrices:**
+
     To print the matrix A, the vector b and C
     ```
     --matrix
     ```
 
--Use Linprog solver instead of Gurobi
+-**Linprog:** 
+
+    Use Linprog solver instead of Gurobi
     ```
     --linprog
     ```
 
--Output format CSV (default)
+-**CSV :** 
+
+    Output format CSV (default)
     ```
     --csv
     ```
 
--Output format json
+-**JSON**
+
+    Output format json
     ```
     --json
     ```
