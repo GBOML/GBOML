@@ -185,6 +185,11 @@ if __name__ == '__main__':
         print("All --- %s seconds ---" % (time.time() - start_time))
         #np.set_printoptions(threshold=sys.maxsize)
 
+        if args.matrix:
+            print("Matrix A ",A)
+            print("Vector b ",b)
+            print("Vector C ",C_sum)
+
         os.chdir(curr_dir)
 
         if args.linprog:
