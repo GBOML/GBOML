@@ -35,30 +35,20 @@ List of optional arguments
 
 -**Print the syntax tree:** To print the syntax tree by the parser you can add
 
-    ```
-    --parser
-    ```
+--parser
 
 -**Print the matrices:** To print the matrix A, the vector b and C
 
-    ```
-    --matrix
-    ```
+--matrix
 
 -**Linprog:** Use Linprog solver instead of Gurobi
 
-    ```
-    --linprog
-    ```
+--linprog
 
 -**CSV :** Output format CSV (default)
 
-    ```
-    --csv
-    ```
+--csv
 
 -**JSON** Output format json
 
-    ```
-    --json
-    ```
+--json
