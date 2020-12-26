@@ -30,24 +30,33 @@ List of optional arguments
 
 -**Print tokens:** To print the tokens outputted by the lexer you can add  
 
+```
 --lex
-
+```
 
 -**Print the syntax tree:** To print the syntax tree by the parser you can add
 
+```
 --parser
+```
 
 -**Print the matrices:** To print the matrix A, the vector b and C
 
+```
 --matrix
+```
 
 -**Linprog:** Use Linprog solver instead of Gurobi
 
+```
 --linprog
+```
 
 -**CSV :** Output format CSV (default)
 
+```
 --csv
+```
 
 -**JSON** Output format json
 
