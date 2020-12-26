@@ -51,4 +51,6 @@ List of optional arguments
 
 -**JSON** Output format json
 
+```
 --json
+```
