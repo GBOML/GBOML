@@ -30,9 +30,8 @@ List of optional arguments
 
 -**Print tokens:** To print the tokens outputted by the lexer you can add  
 
-```
 --lex
-```
+
 
 -**Print the syntax tree:** To print the syntax tree by the parser you can add
 
