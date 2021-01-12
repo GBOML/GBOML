@@ -1094,13 +1094,20 @@ def is_time_dependant_expression(expression,variables_dictionary,parameter_dicti
             elif id_name == "T":
                 predicate = False
             else:
-                if id_name in variables_dictionary or id_name in parameter_dictionary: 
+                if id_name in variables_dictionary:
                     if id_type =="assign":
                         predicate = is_time_dependant_expression(identifier.get_expression(),\
                             variables_dictionary,parameter_dictionary)
                     else: 
                         predicate = True
-
+                elif id_name in parameter_dictionary:
+                    if id_type =="assign":
+                        predicate = is_time_dependant_expression(identifier.get_expression(),\
+                            variables_dictionary,parameter_dictionary)
+                    else:
+                        vector = parameter_dictionary[id_name]
+                        if len(vector)>1:
+                            predicate = True
     else:
         for i in range(nb_child):
             predicate_i = is_time_dependant_expression(children[i],variables_dictionary,parameter_dictionary)

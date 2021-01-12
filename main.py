@@ -4,14 +4,15 @@
 # Writer : MIFTARI B
 # ------------
 
-from lexer import tokenize_file
-from Myparser import parse_file
-from semantic import semantic
+from gboml_lexer import tokenize_file
+from gboml_parser import parse_file
+from gboml_semantic import semantic
 from matrixGeneration import matrix_generationAb,matrix_generationC
 import argparse
 import time
 from scipy.optimize import linprog
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import sys
 from julia import Main 
@@ -66,18 +67,23 @@ def solver_julia(A,b,C):
 def plot_results(x,T,name_tuples):
     
     legend = []
+    font = {'size'   : 15}
 
+    matplotlib.rc('font', **font)
     for i in range(0,len(x),T):
         found = False
-        for _,index_variables in name_tuples:
-            for index, variable in index_variables:
-                if index==i:
-                    if  variable in ["ppv","pc","pbt"]:
-                        legend.append(str(variable))
-                        found = True
-                    #print(str(variable)+" "+str(x[i]))
+        for node,index_variables in name_tuples:
+            if node == "OPERATION_COST":
+                for index, variable in index_variables:
+                    if index==i:
+                        if  variable in ["pv_production","battery","consumption","shed"]:
+                            legend.append(str(variable))
+                            found = True
+                        #print(str(variable)+" "+str(x[i]))
         if found :
             plt.plot(x[i:(i+T)])
+    plt.ylabel('Power[watt]', size = 20)
+    plt.xlabel('Time[hour]', size = 20)
     plt.legend(legend)
     plt.show()
 
@@ -180,7 +186,7 @@ if __name__ == '__main__':
         #exit()
 
         C = matrix_generationC(program)
-
+        print(C)
         C_sum = C.sum(axis=0)
         print("All --- %s seconds ---" % (time.time() - start_time))
         #np.set_printoptions(threshold=sys.maxsize)
@@ -204,7 +210,7 @@ if __name__ == '__main__':
             print("The solver did not find a solution to the problem")
             exit()
 
-        #plot_results(x,T,name_tuples)
+        plot_results(x,T,name_tuples)
         
         filename_split = args.input_file.rsplit('.', 1)
         filename = filename_split[0]

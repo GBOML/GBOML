@@ -5,7 +5,7 @@ using Plots
 # DEFINE PARAMETERS
 
 # TIME DATA
-n_d = 5;
+n_d = 4;
 dT = 1;
 T = 24*dT*n_d;
 time = [t for t = 1:T];
@@ -73,5 +73,5 @@ optimize!(LP_model)
 
 # PLOTTING
 
-fig = plot(time, [C_v, value.(P_S), value.(P_B)]);
-savefig(fig, "test.pdf");
+fig = plot(time, [value.(P_B), value.(P_S), C_v],label = ["battery" "pv_production" "consumption"]);
+savefig(fig, "test_1.pdf");

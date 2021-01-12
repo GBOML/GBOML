@@ -1,5 +1,5 @@
 #TIMEHORIZON
-T = 144// hours 
+T = 24*4// hours 
 
 
 #NODE INVEST_PV
@@ -57,7 +57,6 @@ p = 1; // proportion of battery capacity
 #VARIABLES
 input: soCmax // max installed capacity in watt 
 internal: soC //state of charge of the battery in watt hour
-internal: pb //intermediate variable for limiting battery capacity
 output: pbt  //actual charging power in watt
 #CONSTRAINTS
 soC[0] = soCmax / 2;
@@ -78,21 +77,21 @@ pc[t] = demand[mod(t,24)];
 
 #NODE OPERATION_COST
 #PARAMETERS
-pi_shed = 10; //  in curr/watt
+pi_shed = 1; //  in curr/watt
 #VARIABLES
-input: pbt //in watt
-input: ppv //in watt
+input: battery //in watt
+input: pv_production //in watt
 input: c_p //in curr
 input: c_b //in curr
-input: pc //in watt
+input: consumption //in watt
 internal: cfix  //fixed cost in curr
 internal: cshed //variable cost in curr
-internal: pcurtail //power curtailed in watt
+internal: shed //power curtailed in watt
 output: r //reward
 #CONSTRAINTS
-ppv[t] - pbt[t] + pcurtail[t] = pc[t];
-cshed[t] = pcurtail[t]*pi_shed;
-pcurtail[t] >= 0;
+pv_production[t] - battery[t] + shed[t] = consumption[t];
+cshed[t] = shed[t]*pi_shed;
+shed[t] >= 0;
 cfix = c_p + c_b;
 r[t]= 8760 * cfix / 120 +cshed[t];
 #OBJECTIVES
@@ -101,8 +100,8 @@ min: r
 #LINKS //take the form of output = input
 INVEST_PV.ppv_max = PV.ppv_max
 INVEST_BAT.soCmax = BATTERY.soCmax
-PV.ppv = OPERATION_COST.ppv
-DEMAND.pc = OPERATION_COST.pc
-BATTERY.pbt = OPERATION_COST.pbt
+PV.ppv = OPERATION_COST.pv_production
+DEMAND.pc = OPERATION_COST.consumption
+BATTERY.pbt = OPERATION_COST.battery
 INVEST_PV.c_p = OPERATION_COST.c_p
 INVEST_BAT.c_b = OPERATION_COST.c_b
