@@ -13,8 +13,10 @@ import time
 from scipy.optimize import linprog
 import matplotlib.pyplot as plt
 import numpy as np
+from cylp.cy import CyClpSimplex
+from cylp.py.modeling.CyLPModel import CyLPArray
 import sys
-from julia import Main 
+#from julia import Main 
 import pandas as pd
 import os
 import json
@@ -39,13 +41,13 @@ def solver_julia_2(A,b,C):
     flag_solved = False
     x = None
 
-    Main.include("linear_solver.jl") # load the MyFuncs module
-    try : 
-        x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
-        flag_solved = True
-    except(RuntimeError): 
-        flag_solved = False
-    return x,flag_solved
+#    Main.include("linear_solver.jl") # load the MyFuncs module
+#    try : 
+#        x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
+#        flag_solved = True
+#    except(RuntimeError): 
+#        flag_solved = False
+#    return x,flag_solved
 
     #print(constraint_matrix)
 
@@ -55,12 +57,41 @@ def solver_julia(A,b,C):
     A = A.astype(float)
     flag_solved = False
     x = None
-    Main.include("linear_solver.jl") # load the MyFuncs module
-    try : 
-        x = Main.lin_solve(C.astype(float),A.astype(float),b.astype(float))
+#    Main.include("linear_solver.jl") # load the MyFuncs module
+#    try : 
+#        x = Main.lin_solve(C.astype(float),A.astype(float),b.astype(float))
+#        flag_solved = True
+#    except(RuntimeError): 
+#        flag_solved = False
+#    return x,flag_solved
+
+def solver_clp(A,b,C):
+    # Initialize return values
+    x = None
+    flag_solved = False
+
+    # Compute model info
+    nvars = np.shape(C)[1]
+    print('\033[93m', "DEBUG: CLP number of variables: %d" % nvars, '\033[0m')
+
+    # Build CLP model
+    solver = CyClpSimplex()
+    variables = solver.addVariable('variables', nvars)
+
+    solver.addConstraint(A * variables <= b)
+    solver.objective = C * variables
+
+    # Solve model
+    solver.primal()
+
+    # Return solution
+    x = solver.primalVariableSolution['variables']
+    if solver.getStatusCode() == 0:
         flag_solved = True
-    except(RuntimeError): 
-        flag_solved = False
+    print('\033[93m', "DEBUG: CLP solver status: %s" % solver.getStatusString(), '\033[0m')
+    print('\033[93m', "DEBUG: CLP return x:", '\033[0m')
+    print('\033[93m', x, '\033[0m')
+    print('\033[93m', "DEBUG: CLP return flag_solved: %s" % flag_solved, '\033[0m')
     return x,flag_solved
 
 def plot_results(x,T,name_tuples):
@@ -196,9 +227,7 @@ if __name__ == '__main__':
             x,flag_solved = solver_scipy(A,b,C_sum)
 
         else:
-            #x,flag_solved = solver_julia(A.toarray(),b,C_sum)
-            #print(A.toarray())
-            x,flag_solved = solver_julia_2(A,b,C_sum)
+            x,flag_solved = solver_clp(A,b,C_sum)
 
         if not flag_solved: 
             print("The solver did not find a solution to the problem")
