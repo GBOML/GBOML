@@ -70,6 +70,9 @@ def solver_clp(A,b,C):
     x = None
     flag_solved = False
 
+    # Initialize local time
+    start_time = time.time()
+
     # Compute model info
     nvars = np.shape(C)[1]
     print('\033[93m', "DEBUG: CLP number of variables: %d" % nvars, '\033[0m')
@@ -80,6 +83,8 @@ def solver_clp(A,b,C):
 
     solver.addConstraint(A * variables <= b)
     solver.objective = C * variables
+
+    print('\033[93m', "DEBUG: CLP translation time: %s seconds" % (time.time() - start_time), '\033[0m')
 
     # Solve model
     solver.primal()
@@ -92,6 +97,7 @@ def solver_clp(A,b,C):
     print('\033[93m', "DEBUG: CLP return x:", '\033[0m')
     print('\033[93m', x, '\033[0m')
     print('\033[93m', "DEBUG: CLP return flag_solved: %s" % flag_solved, '\033[0m')
+    print('\033[93m', "DEBUG: CLP total time: %s seconds" % (time.time() - start_time), '\033[0m')
     return x,flag_solved
 
 def plot_results(x,T,name_tuples):
