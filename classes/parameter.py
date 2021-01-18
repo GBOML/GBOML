@@ -34,7 +34,7 @@ class Parameter(Symbol):
 
             if(os.path.isfile('./'+expression))==False:
                 error_("No such file as "+str(expression))
-            f = open('./'+expression, "r")
+            f = open('./'+expression, "r",encoding = "ISO-8859-1")
             for line in f: 
                 line = line.replace("\n"," ")
                 line = line.replace(","," ")

@@ -20,6 +20,18 @@ class Program:
 
         return string
 
+    def to_dict(self):
+        dictionary = {}
+        dictionary["horizon"]=str(self.time.get_value())
+        dictionary["number of nodes"]=len(self.vector_nodes)
+        node_dict = {}
+
+        for node in self.vector_nodes:
+            node_dict[node.get_name()] = node.to_dict()
+
+        dictionary["nodes"] = node_dict
+        return dictionary
+
     def to_string(self):
         string = "Full program\n"
         if self.time != None:

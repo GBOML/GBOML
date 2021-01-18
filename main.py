@@ -24,7 +24,7 @@ import json
 def solver_scipy(A,b,C):
     x0_bounds = (None, None)
     solution = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
-    return solution.x,solution.success
+    return solution.x,solution,solution.success
 
 def solver_julia_2(A,b,C):
     #number_elements = len(A.row)
@@ -37,16 +37,16 @@ def solver_julia_2(A,b,C):
     b = b.reshape((-1,1))
     C = C.reshape((-1,1))
     A = A.astype(float)
-    flag_solved = False
+    optimal = None
+    status = False
     x = None
 
     Main.include("linear_solver.jl") # load the MyFuncs module
     try : 
-        x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
-        flag_solved = True
-    except(RuntimeError): 
-        flag_solved = False
-    return x,flag_solved
+        x, optimal ,status= Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
+    except RuntimeError as e:
+        print(e)
+    return x, optimal ,status
 
     #print(constraint_matrix)
 
@@ -87,15 +87,20 @@ def plot_results(x,T,name_tuples):
     plt.legend(legend)
     plt.show()
 
-def convert_dictionary(x,T,name_tuples):
-    dictionary = {}
-
+def convert_dictionary(x,T,name_tuples,optimal,status,program_dict):
+    dictionary = program_dict
+    dictionary["objective"] = optimal
+    dictionary["status"] = status
+    dictionary_nodes = dictionary["nodes"]
     for node_name,index_variables in name_tuples:
-        dico_node = {}
+        dico_node = dictionary_nodes[node_name]
+        dico_variables = {}
         for index,variable in index_variables:
-            dico_node[variable] = x[index:(index+T)].flatten().tolist()
-        dictionary[node_name] = dico_node
+            dico_variables[variable] = x[index:(index+T)].flatten().tolist()
+        dico_node["variables"] = dico_variables
+        dictionary_nodes[node_name]=dico_node
 
+    dictionary["nodes"]= dictionary_nodes
     return dictionary
 
 def convert_pandas(x,T,name_tuples):
@@ -181,12 +186,13 @@ if __name__ == '__main__':
         T = program.get_time().get_value()
 
         A,b,name_tuples = matrix_generationAb(program)
+
         
         #solver_julia_2(A,b,1)
         #exit()
 
         C = matrix_generationC(program)
-        print(C)
+
         C_sum = C.sum(axis=0)
         print("All --- %s seconds ---" % (time.time() - start_time))
         #np.set_printoptions(threshold=sys.maxsize)
@@ -199,24 +205,27 @@ if __name__ == '__main__':
         os.chdir(curr_dir)
 
         if args.linprog:
-            x,flag_solved = solver_scipy(A,b,C_sum)
+            x, optimal, status = solver_scipy(A,b,C_sum)
 
         else:
             #x,flag_solved = solver_julia(A.toarray(),b,C_sum)
             #print(A.toarray())
-            x,flag_solved = solver_julia_2(A,b,C_sum)
+            x, optimal ,status = solver_julia_2(A,b,C_sum)
 
-        if not flag_solved: 
-            print("The solver did not find a solution to the problem")
+        if status == False : 
+            print("An error occured !")
+            exit()
+        elif status == "no solution":
+            print("The problem is either unsolvable or possesses too many solutions")
             exit()
 
-        plot_results(x,T,name_tuples)
+        #plot_results(x,T,name_tuples)
         
         filename_split = args.input_file.rsplit('.', 1)
         filename = filename_split[0]
 
         if args.json: 
-            dictionary = convert_dictionary(x,T,name_tuples)
+            dictionary = convert_dictionary(x,T,name_tuples,optimal,status,program.to_dict())
             with open(filename+".json", 'w') as outfile:
                 json.dump(dictionary, outfile,indent=4)
         if args.csv:

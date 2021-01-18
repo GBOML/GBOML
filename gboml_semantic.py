@@ -49,6 +49,9 @@ def semantic(program):
         #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
 
+        #Keep parameter dictionary
+        node.set_parameter_dict(parameter_dictionary)
+
         #Check constraints and objectives expressions
         check_expressions_dependancy(node,all_variables,all_parameters)
 
@@ -57,6 +60,11 @@ def semantic(program):
 
         #Augment node with objectives written in matrix format
         convert_objectives_matrix(node,all_variables,parameter_dictionary)
+
+        if "T" in parameter_dictionary:
+            parameter_dictionary.pop("T")
+        if 't' in parameter_dictionary:
+            parameter_dictionary.pop("t")
 
     #if the model does not have a proper constraint defined
     if program.get_number_constraints()==0:
@@ -727,6 +735,7 @@ def convert_constraints_matrix(node,variables,definitions):
                     break
                         
         #print("add_time --- %s seconds ---" % (add_t))
+
     print("Check_var --- %s seconds ---" % (t.time() - start_time))
 
 
@@ -928,6 +937,7 @@ def convert_objectives_matrix(node,variables,definitions):
             if flag_out_of_bounds == False:
                 matrix = [values,rows,columns]
                 node.add_objective_matrix([matrix,obj_type])
+
 
 
 def variable_in_constraint(constr,variable,constants):

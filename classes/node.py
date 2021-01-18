@@ -13,6 +13,7 @@ class Node:
         self.c_triplet_list = []
         self.objective_list = []
         self.nb_constraint_matrix = 0
+        self.param_dict = None
 
     def __str__(self):
         string = '['+str(self.name)+' , '
@@ -22,11 +23,26 @@ class Node:
         string += str(self.objectives)+']'
         return string
 
+    def to_dict(self):
+        dictionary = {}
+        dictionary["number of constraints declared"] = len(self.constraints)
+        dictionary["number of constraints derived"] = len(self.c_triplet_list)
+        dictionary["number of variables declared"] = len(self.variables)
+        dictionary["number of parameters declared"] = len(self.parameters)
+        dictionary["number of objectives declared"] = len(self.objectives)
+        dictionary["number of objectives derived"] = len(self.objective_list)
+        dictionary["parameters"] = self.param_dict
+        dictionary["variables"] = {}
+        return dictionary
+
     def set_line(self,line):
         self.line = line
 
     def get_line(self):
         return self.line
+
+    def set_parameter_dict(self,param):
+        self.param_dict = param
 
     def add_link(self,link):
         self.links.append(link)
