@@ -114,14 +114,17 @@ def convert_pandas(x,T,name_tuples):
             columns.append(full_name)
             ordered_values.append(values)
 
-    #print(ordered_values)
-    #print(columns)
-
     df = pd.DataFrame(ordered_values,index=columns)
     return df.T
 
 
-def compile_file(directory,file):
+def compile_file(directory,file,log=False):
+    if log == True:
+        filename_split = file.rsplit('.', 1)
+        filename = filename_split[0]
+        f = open(filename+".out", 'w')
+        sys.stdout = f
+
     path = os.path.join(directory,file)
     result = parse_file(path)
     program = semantic(result)
@@ -154,12 +157,20 @@ if __name__ == '__main__':
 
     parser.add_argument("--linprog",help = "Scipy linprog solver",action='store_const',const=True)
 
+    parser.add_argument("--log",help="Get log in a file",action="store_const",const=True)
+
     args = parser.parse_args()
 
     if args.linprog==False: 
         print("The default solver is GUROBI")
 
     if args.input_file:
+        if args.log == True:
+            filename_split = args.input_file.rsplit('.', 1)
+            filename = filename_split[0]
+            f = open(filename+".out", 'w')
+            sys.stdout = f
+
         if(os.path.isfile(args.input_file)==False):
             print("No such file as "+str(args.input_file))
             exit(-1)
