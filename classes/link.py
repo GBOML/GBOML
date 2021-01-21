@@ -36,3 +36,11 @@ class Link:
     def __str__(self):
         string = '['+str(self.attribute)+' , '+str(self.vector)+']'
         return string
+
+    def to_vector(self):
+        lhs = str(self.attribute)
+        vector = []
+        for attr in self.vector:
+            rhs = str(attr)
+            vector.append(lhs+" = "+rhs)
+        return vector

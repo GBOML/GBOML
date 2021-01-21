@@ -4,14 +4,15 @@
 # Writer : MIFTARI B
 # ------------
 
-from lexer import tokenize_file
-from Myparser import parse_file
-from semantic import semantic
+from gboml_lexer import tokenize_file
+from gboml_parser import parse_file
+from gboml_semantic import semantic
 from matrixGeneration import matrix_generationAb,matrix_generationC
 import argparse
 import time
 from scipy.optimize import linprog
 import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 from cylp.cy import CyClpSimplex
 from cylp.py.modeling.CyLPModel import CyLPArray
@@ -25,7 +26,7 @@ import json
 def solver_scipy(A,b,C):
     x0_bounds = (None, None)
     solution = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
-    return solution.x,solution.success
+    return solution.x,solution.fun,solution.success
 
 def solver_julia_2(A,b,C):
     #number_elements = len(A.row)
@@ -38,7 +39,8 @@ def solver_julia_2(A,b,C):
     b = b.reshape((-1,1))
     C = C.reshape((-1,1))
     A = A.astype(float)
-    flag_solved = False
+    optimal = None
+    status = False
     x = None
 
 #    Main.include("linear_solver.jl") # load the MyFuncs module
@@ -91,42 +93,55 @@ def solver_clp(A,b,C):
 
     # Return solution
     x = solver.primalVariableSolution['variables']
+    obj = solver.objectiveValue
     if solver.getStatusCode() == 0:
-        flag_solved = True
+        solved = True
     print('\033[93m', "DEBUG: CLP solver status: %s" % solver.getStatusString(), '\033[0m')
     print('\033[93m', "DEBUG: CLP return x:", '\033[0m')
     print('\033[93m', x, '\033[0m')
-    print('\033[93m', "DEBUG: CLP return flag_solved: %s" % flag_solved, '\033[0m')
+    print('\033[93m', "DEBUG: CLP return obj: %s" % obj, '\033[0m')
+    print('\033[93m', "DEBUG: CLP return solved: %s" % solved, '\033[0m')
     print('\033[93m', "DEBUG: CLP total time: %s seconds" % (time.time() - start_time), '\033[0m')
-    return x,flag_solved
+    return x, obj, solved
 
 def plot_results(x,T,name_tuples):
     
     legend = []
+    font = {'size'   : 15}
 
+    matplotlib.rc('font', **font)
     for i in range(0,len(x),T):
         found = False
-        for _,index_variables in name_tuples:
-            for index, variable in index_variables:
-                if index==i:
-                    if  variable in ["ppv","pc","pbt"]:
-                        legend.append(str(variable))
-                        found = True
-                    #print(str(variable)+" "+str(x[i]))
+        for node,index_variables in name_tuples:
+            if node == "OPERATION_COST":
+                for index, variable in index_variables:
+                    if index==i:
+                        if  variable in ["pv_production","battery","consumption","shed"]:
+                            legend.append(str(variable))
+                            found = True
+                        #print(str(variable)+" "+str(x[i]))
         if found :
             plt.plot(x[i:(i+T)])
+    plt.ylabel('Power[watt]', size = 20)
+    plt.xlabel('Time[hour]', size = 20)
     plt.legend(legend)
     plt.show()
 
-def convert_dictionary(x,T,name_tuples):
-    dictionary = {}
-
+def convert_dictionary(x,T,name_tuples,optimal,status,program_dict):
+    dictionary = program_dict
+    dictionary["version"] = "0.0.0"
+    dictionary["objective"] = optimal
+    dictionary["status"] = status
+    dictionary_nodes = dictionary["nodes"]
     for node_name,index_variables in name_tuples:
-        dico_node = {}
+        dico_node = dictionary_nodes[node_name]
+        dico_variables = {}
         for index,variable in index_variables:
-            dico_node[variable] = x[index:(index+T)].flatten().tolist()
-        dictionary[node_name] = dico_node
+            dico_variables[variable] = x[index:(index+T)].flatten().tolist()
+        dico_node["variables"] = dico_variables
+        dictionary_nodes[node_name]=dico_node
 
+    dictionary["nodes"]= dictionary_nodes
     return dictionary
 
 def convert_pandas(x,T,name_tuples):
@@ -140,14 +155,17 @@ def convert_pandas(x,T,name_tuples):
             columns.append(full_name)
             ordered_values.append(values)
 
-    #print(ordered_values)
-    #print(columns)
-
     df = pd.DataFrame(ordered_values,index=columns)
     return df.T
 
 
-def compile_file(directory,file):
+def compile_file(directory,file,log=False):
+    if log == True:
+        filename_split = file.rsplit('.', 1)
+        filename = filename_split[0]
+        f = open(filename+".out", 'w')
+        sys.stdout = f
+
     path = os.path.join(directory,file)
     result = parse_file(path)
     program = semantic(result)
@@ -180,12 +198,20 @@ if __name__ == '__main__':
 
     parser.add_argument("--linprog",help = "Scipy linprog solver",action='store_const',const=True)
 
+    parser.add_argument("--log",help="Get log in a file",action="store_const",const=True)
+
     args = parser.parse_args()
 
     if args.linprog==False: 
         print("The default solver is GUROBI")
 
     if args.input_file:
+        if args.log == True:
+            filename_split = args.input_file.rsplit('.', 1)
+            filename = filename_split[0]
+            f = open(filename+".out", 'w')
+            sys.stdout = f
+
         if(os.path.isfile(args.input_file)==False):
             print("No such file as "+str(args.input_file))
             exit(-1)
@@ -212,6 +238,7 @@ if __name__ == '__main__':
         T = program.get_time().get_value()
 
         A,b,name_tuples = matrix_generationAb(program)
+
         
         #solver_julia_2(A,b,1)
         #exit()
@@ -230,13 +257,16 @@ if __name__ == '__main__':
         os.chdir(curr_dir)
 
         if args.linprog:
-            x,flag_solved = solver_scipy(A,b,C_sum)
+            x, optimal, status = solver_scipy(A,b,C_sum)
 
         else:
-            x,flag_solved = solver_clp(A,b,C_sum)
+            x, optimal, status = solver_clp(A,b,C_sum)
 
-        if not flag_solved: 
-            print("The solver did not find a solution to the problem")
+        if status == False : 
+            print("An error occured !")
+            exit()
+        elif status == "no solution":
+            print("The problem is either unsolvable or possesses too many solutions")
             exit()
 
         #plot_results(x,T,name_tuples)
@@ -245,7 +275,7 @@ if __name__ == '__main__':
         filename = filename_split[0]
 
         if args.json: 
-            dictionary = convert_dictionary(x,T,name_tuples)
+            dictionary = convert_dictionary(x,T,name_tuples,optimal,status,program.to_dict())
             with open(filename+".json", 'w') as outfile:
                 json.dump(dictionary, outfile,indent=4)
         if args.csv:

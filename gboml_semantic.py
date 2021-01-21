@@ -49,6 +49,9 @@ def semantic(program):
         #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
 
+        #Keep parameter dictionary
+        node.set_parameter_dict(parameter_dictionary)
+
         #Check constraints and objectives expressions
         check_expressions_dependancy(node,all_variables,all_parameters)
 
@@ -57,6 +60,11 @@ def semantic(program):
 
         #Augment node with objectives written in matrix format
         convert_objectives_matrix(node,all_variables,parameter_dictionary)
+
+        if "T" in parameter_dictionary:
+            parameter_dictionary.pop("T")
+        if 't' in parameter_dictionary:
+            parameter_dictionary.pop("t")
 
     #if the model does not have a proper constraint defined
     if program.get_number_constraints()==0:
@@ -727,6 +735,7 @@ def convert_constraints_matrix(node,variables,definitions):
                     break
                         
         #print("add_time --- %s seconds ---" % (add_t))
+
     print("Check_var --- %s seconds ---" % (t.time() - start_time))
 
 
@@ -930,6 +939,7 @@ def convert_objectives_matrix(node,variables,definitions):
                 node.add_objective_matrix([matrix,obj_type])
 
 
+
 def variable_in_constraint(constr,variable,constants):
     """
     variable_in_constraint function : computes the constant term
@@ -1094,13 +1104,20 @@ def is_time_dependant_expression(expression,variables_dictionary,parameter_dicti
             elif id_name == "T":
                 predicate = False
             else:
-                if id_name in variables_dictionary or id_name in parameter_dictionary: 
+                if id_name in variables_dictionary:
                     if id_type =="assign":
                         predicate = is_time_dependant_expression(identifier.get_expression(),\
                             variables_dictionary,parameter_dictionary)
                     else: 
                         predicate = True
-
+                elif id_name in parameter_dictionary:
+                    if id_type =="assign":
+                        predicate = is_time_dependant_expression(identifier.get_expression(),\
+                            variables_dictionary,parameter_dictionary)
+                    else:
+                        vector = parameter_dictionary[id_name]
+                        if len(vector)>1:
+                            predicate = True
     else:
         for i in range(nb_child):
             predicate_i = is_time_dependant_expression(children[i],variables_dictionary,parameter_dictionary)

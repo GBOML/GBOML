@@ -5,7 +5,7 @@
 # ------------
 
 import ply.yacc as yacc
-from lexer import tokens
+from gboml_lexer import tokens
 from classes import Time, Expression, Variable, Parameter, Link, \
     Attribute, Program, Objective, Node, Identifier, Constraint, \
     Condition, TimeInterval

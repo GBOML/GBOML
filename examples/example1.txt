@@ -1,5 +1,5 @@
 #TIMEHORIZON
-T= 5
+T= 100
 
 #NODE H
 #PARAMETERS
@@ -19,4 +19,4 @@ internal : y
 x[0]+2*x[1]<=4 for t in [0:25];
 x[1]>=-3
 #OBJECTIVES
-min : -x[0]+4*x[1]
+min : -un*x[0]+4*x[1]
