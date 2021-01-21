@@ -23,11 +23,16 @@ class Program:
     def to_dict(self):
         dictionary = {}
         dictionary["horizon"]=str(self.time.get_value())
-        dictionary["number of nodes"]=len(self.vector_nodes)
+        dictionary["number_of_nodes"]=len(self.vector_nodes)
         node_dict = {}
 
         for node in self.vector_nodes:
             node_dict[node.get_name()] = node.to_dict()
+
+        vector_links = []
+        for link in self.links:
+            vector_links += link.to_vector()
+        dictionary["links"] = vector_links
 
         dictionary["nodes"] = node_dict
         return dictionary

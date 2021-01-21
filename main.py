@@ -24,7 +24,7 @@ import json
 def solver_scipy(A,b,C):
     x0_bounds = (None, None)
     solution = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
-    return solution.x,solution,solution.success
+    return solution.x,solution.fun,solution.success
 
 def solver_julia_2(A,b,C):
     #number_elements = len(A.row)
@@ -89,6 +89,7 @@ def plot_results(x,T,name_tuples):
 
 def convert_dictionary(x,T,name_tuples,optimal,status,program_dict):
     dictionary = program_dict
+    dictionary["version"] = "0.0.0"
     dictionary["objective"] = optimal
     dictionary["status"] = status
     dictionary_nodes = dictionary["nodes"]

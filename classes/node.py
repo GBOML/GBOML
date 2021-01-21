@@ -25,12 +25,12 @@ class Node:
 
     def to_dict(self):
         dictionary = {}
-        dictionary["number of constraints declared"] = len(self.constraints)
-        dictionary["number of constraints derived"] = len(self.c_triplet_list)
-        dictionary["number of variables declared"] = len(self.variables)
-        dictionary["number of parameters declared"] = len(self.parameters)
-        dictionary["number of objectives declared"] = len(self.objectives)
-        dictionary["number of objectives derived"] = len(self.objective_list)
+        dictionary["number_of_constraints_declared"] = len(self.constraints)
+        dictionary["number_of_constraints_derived"] = len(self.c_triplet_list)
+        dictionary["number_of_variables_declared"] = len(self.variables)
+        dictionary["number_of_parameters_declared"] = len(self.parameters)
+        dictionary["number_of_objectives_declared"] = len(self.objectives)
+        dictionary["number_of_objectives_derived"] = len(self.objective_list)
         dictionary["parameters"] = self.param_dict
         dictionary["variables"] = {}
         return dictionary
