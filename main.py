@@ -1,7 +1,7 @@
 
 # main.py
 #
-# Writer : MIFTARI B
+# Writer : MIFTARI B - BERGER M
 # ------------
 
 from gboml_lexer import tokenize_file
@@ -16,11 +16,14 @@ import matplotlib
 import numpy as np
 import sys
 from julia import Main 
+#from julia.api import Julia
+#jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
+#jl = Julia(runtime=jpath,compiled_modules=False)
 import pandas as pd
 import os
 import json
 import gurobipy as gp
-import cplex
+#import cplex
 
 def solver_gurobi(A, b, c):
     A = A.astype(float)
@@ -256,7 +259,7 @@ if __name__ == '__main__':
 
         A,b,name_tuples = matrix_generationAb(program)
 
-        
+        print(A)
         #solver_julia_2(A,b,1)
         #exit()
 
@@ -283,6 +286,8 @@ if __name__ == '__main__':
             x, optimal ,status = solver_julia_2(A,b,C_sum)
         elif args.cplex:
             x, status = solver_cplex(A,b,C_sum)
+        elif args.gurobi:
+            x, status = solver_gurobi(A,b,C_sum)
         else: 
             print("No solver was chosen")
             exit()
