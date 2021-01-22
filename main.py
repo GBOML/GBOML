@@ -1,4 +1,3 @@
-
 # main.py
 #
 # Writer : MIFTARI B
@@ -15,13 +14,72 @@ import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
 import sys
-from julia import Main 
+from julia.api import Julia
+jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
+jl = Julia(runtime=jpath,compiled_modules=False)
+from julia import Main
 import pandas as pd
 import os
 import json
+import gurobipy as grbp
+from gurobipy import GRB
+import cplex
 
+def solver_gurobi(A, b, c):
+
+    A = A.astype(float)
+    m, n = np.shape(A)
+    b = b.reshape(-1)
+    c = c.reshape(-1)
+
+    model = grbp.Model()
+    x = model.addMVar(shape=n, lb=-float('inf'), ub=float('inf'), vtype=GRB.CONTINUOUS, name="x")
+    model.addMConstr(A, x, '<', b)
+    model.setObjective(c @ x, GRB.MINIMIZE)
+    model.setParam('Method',2)
+    model.setParam('BarHomogeneous',1)
+    model.setParam('Crossover',0)
+
+    try:
+        model.optimize()
+        if model.getAttr("Status") == 2:
+            flag_solved = True
+        else:
+            flag_solver = False
+    except RuntimeError as e:
+        print(e)
+        flag_solved = False
+    return x.X,flag_solved
+
+def solver_cplex(A, b, c):
+
+    A_zipped = zip(A.row.tolist(), A.col.tolist(), A.data)
+    m, n = np.shape(A)
+    b = list(b.reshape(-1))
+    c = c.tolist()[0]
+
+    model = cplex.Cplex()
+    model.variables.add(obj=c,lb=[-cplex.infinity]*n,ub=[cplex.infinity]*n,types=['C']*n)
+    model.linear_constraints.add(senses=['L']*m,rhs=b)
+    model.linear_constraints.set_coefficients(A_zipped)
+    model.objective.set_sense(model.objective.sense.minimize)
+    alg = model.parameters.lpmethod.values
+    model.parameters.lpmethod.set(alg.barrier)
+    model.parameters.barrier.crossover.set(model.parameters.barrier.crossover.values.none)
+
+    try:
+        model.solve()
+        if model.solution.get_status()==1 or model.solution.get_status()==101:
+            flag_solved = True
+        else:
+            flag_solved = False
+    except RuntimeError as e:
+        print(e)
+        flag_solved = False
+    return model.solution.get_values(),flag_solved
 
 def solver_scipy(A,b,C):
+    print(A,b,C)
     x0_bounds = (None, None)
     solution = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
     return solution.x,solution.success
@@ -41,10 +99,11 @@ def solver_julia_2(A,b,C):
     x = None
 
     Main.include("linear_solver.jl") # load the MyFuncs module
-    try : 
+    try :
         x = Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
         flag_solved = True
-    except(RuntimeError): 
+    except RuntimeError as e:
+        print(e)
         flag_solved = False
     return x,flag_solved
 
@@ -57,15 +116,15 @@ def solver_julia(A,b,C):
     flag_solved = False
     x = None
     Main.include("linear_solver.jl") # load the MyFuncs module
-    try : 
+    try :
         x = Main.lin_solve(C.astype(float),A.astype(float),b.astype(float))
         flag_solved = True
-    except(RuntimeError): 
+    except(RuntimeError):
         flag_solved = False
     return x,flag_solved
 
 def plot_results(x,T,name_tuples):
-    
+
     legend = []
     font = {'size'   : 15}
 
@@ -105,7 +164,7 @@ def convert_pandas(x,T,name_tuples):
     for node_name,index_variables in name_tuples:
         for index,variable in index_variables:
             full_name = str(node_name)+"."+str(variable)
-            values = x[index:(index+T)].flatten() 
+            values = x[index:(index+T)].flatten()
             columns.append(full_name)
             ordered_values.append(values)
 
@@ -126,11 +185,11 @@ def compile_file(directory,file):
     x,_ = solver_julia_2(A,b,C_sum)
     T = program.get_time().get_value()
     panda_datastruct = convert_pandas(x,T,name_tuples)
-    
+
     filename_split = file.split(".")
     filename = filename_split[0]
 
-    
+
     panda_datastruct.to_csv(filename+".csv")
 
 
@@ -143,15 +202,18 @@ if __name__ == '__main__':
     parser.add_argument("--lex",help="Prints all tokens found in input file",action='store_const',const=True)
     parser.add_argument("--parse",help="Prints the AST",action='store_const',const=True)
     parser.add_argument("--matrix",help="Prints matrix representation",action='store_const',const=True)
-    
+
     parser.add_argument("--json", help="Convert results to JSON format",action='store_const',const=True)
     parser.add_argument("--csv", help="Convert results to CSV format",action='store_const',const=True)
 
     parser.add_argument("--linprog",help = "Scipy linprog solver",action='store_const',const=True)
+    parser.add_argument("--jump",help = "JuMP + Gurobi solver",action='store_const',const=True)
+    parser.add_argument("--gurobi",help = "Gurobi solver",action='store_const',const=True)
+    parser.add_argument("--cplex",help = "Cplex solver",action='store_const',const=True)
 
     args = parser.parse_args()
 
-    if args.linprog==False: 
+    if args.linprog==False:
         print("The default solver is GUROBI")
 
     if args.input_file:
@@ -162,13 +224,13 @@ if __name__ == '__main__':
         curr_dir = os.getcwd()
 
         dir_path = os.path.dirname(args.input_file)
-        filename = os.path.basename(args.input_file) 
+        filename = os.path.basename(args.input_file)
         #print(dir_path)
         os.chdir(dir_path)
 
         if args.lex:
             tokenize_file(filename)
-        
+
 
         result = parse_file(filename)
 
@@ -177,16 +239,16 @@ if __name__ == '__main__':
         start_time = time.time()
 
         program = semantic(result)
-        
+
         T = program.get_time().get_value()
 
         A,b,name_tuples = matrix_generationAb(program)
-        
+
         #solver_julia_2(A,b,1)
         #exit()
 
         C = matrix_generationC(program)
-        print(C)
+        #print(C)
         C_sum = C.sum(axis=0)
         print("All --- %s seconds ---" % (time.time() - start_time))
         #np.set_printoptions(threshold=sys.maxsize)
@@ -201,21 +263,27 @@ if __name__ == '__main__':
         if args.linprog:
             x,flag_solved = solver_scipy(A,b,C_sum)
 
-        else:
+        elif args.jump:
             #x,flag_solved = solver_julia(A.toarray(),b,C_sum)
             #print(A.toarray())
             x,flag_solved = solver_julia_2(A,b,C_sum)
 
-        if not flag_solved: 
+        elif args.gurobi:
+            x, flag_solved = solver_gurobi(A,b,C_sum)
+
+        elif args.cplex:
+            x, flag_solved = solver_cplex(A,b,C_sum)
+
+        if not flag_solved:
             print("The solver did not find a solution to the problem")
             exit()
 
-        plot_results(x,T,name_tuples)
-        
+        #plot_results(x,T,name_tuples)
+
         filename_split = args.input_file.rsplit('.', 1)
         filename = filename_split[0]
 
-        if args.json: 
+        if args.json:
             dictionary = convert_dictionary(x,T,name_tuples)
             with open(filename+".json", 'w') as outfile:
                 json.dump(dictionary, outfile,indent=4)
@@ -223,6 +291,6 @@ if __name__ == '__main__':
             panda_datastruct = convert_pandas(x,T,name_tuples)
             panda_datastruct.to_csv(filename+".csv")
 
-    else: 
+    else:
         print('ERROR : expected input file')
     print("--- %s seconds ---" % (time.time() - start_time))
