@@ -1,6 +1,6 @@
 
 # -*- coding: utf-8 -*-
-# lexer.py
+# gboml_lexer.py
 #
 # Writer : MIFTARI B
 # ------------
