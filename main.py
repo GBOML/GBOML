@@ -17,16 +17,16 @@ import numpy as np
 #from cylp.cy import CyClpSimplex
 #from cylp.py.modeling.CyLPModel import CyLPArray
 import sys
-#from julia.api import Julia
-#jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
-#jl = Julia(runtime=jpath,compiled_modules=False)
+from julia.api import Julia
+jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
+jl = Julia(runtime=jpath,compiled_modules=False)
 from julia import Main
 import pandas as pd
 import os
 import json
 import gurobipy as grbp
 from gurobipy import GRB
-#import cplex
+import cplex
 
 
 def solver_clp(A,b,C):
@@ -124,11 +124,11 @@ def solver_cplex(A, b, c):
     except RuntimeError as e:
         print(e)
         flag_solved = False
-    
+
     solver_info = {}
     solver_info["name"] = "cplex"
     solver_info["algorithm"] = None
-    return model.solution.get_values(),model.get_objective_value(),flag_solved,solver_info
+    return np.array(model.solution.get_values()),model.solution.get_objective_value(),flag_solved,solver_info
 
 def solver_scipy(A,b,C):
     x0_bounds = (None, None)
@@ -157,7 +157,7 @@ def solver_julia_2(A,b,C):
         x, optimal ,status= Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
     except RuntimeError as e:
         print(e)
-    
+
     solver_info = {}
     solver_info["name"] = "gurobi jump"
     solver_info["algorithm"] = None
