@@ -26,7 +26,9 @@ import json
 def solver_scipy(A,b,C):
     x0_bounds = (None, None)
     solution = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
-    return solution.x,solution.fun,solution.success
+    solver_info = {}
+    solver_info["name"] = "linprog"
+    return solution.x, solution.fun, solution.success, solver_info
 
 def solver_julia_2(A,b,C):
     #number_elements = len(A.row)
@@ -102,7 +104,12 @@ def solver_clp(A,b,C):
     print('\033[93m', "DEBUG: CLP return obj: %s" % obj, '\033[0m')
     print('\033[93m', "DEBUG: CLP return solved: %s" % solved, '\033[0m')
     print('\033[93m', "DEBUG: CLP total time: %s seconds" % (time.time() - start_time), '\033[0m')
-    return x, obj, solved
+    print('\033[93m', "DEBUG: CLP iteration: %s" % solver.iteration, '\033[0m')
+
+    solver_info = {}
+    solver_info["name"] = "clp"
+    solver_info["algorithm"] = "primal simplex"
+    return x, obj, solved, solver_info
 
 def plot_results(x,T,name_tuples):
     
@@ -257,10 +264,10 @@ if __name__ == '__main__':
         os.chdir(curr_dir)
 
         if args.linprog:
-            x, optimal, status = solver_scipy(A,b,C_sum)
+            x, optimal, status, solver_info = solver_scipy(A,b,C_sum)
 
         else:
-            x, optimal, status = solver_clp(A,b,C_sum)
+            x, optimal, status, solver_info = solver_clp(A,b,C_sum)
 
         if status == False : 
             print("An error occured !")
@@ -276,6 +283,7 @@ if __name__ == '__main__':
 
         if args.json: 
             dictionary = convert_dictionary(x,T,name_tuples,optimal,status,program.to_dict())
+            dictionary["solver_info"] = solver_info
             with open(filename+".json", 'w') as outfile:
                 json.dump(dictionary, outfile,indent=4)
         if args.csv:

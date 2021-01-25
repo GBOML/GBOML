@@ -22,7 +22,7 @@ class Program:
 
     def to_dict(self):
         dictionary = {}
-        dictionary["horizon"]=str(self.time.get_value())
+        dictionary["horizon"]=self.time.get_value()
         dictionary["number_of_nodes"]=len(self.vector_nodes)
         node_dict = {}
 
