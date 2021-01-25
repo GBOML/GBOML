@@ -68,19 +68,19 @@ def matrix_generationAb(root):
 			
 			columns+=T*rows+index_start
 
-			null_index = []
-			i = 0
-			for value in values: 
-				if value == 0.0:
-					null_index.append(i)
-				i +=1
+			#null_index = []
+			#i = 0
+			#for value in values: 
+			#	if value == 0.0:
+			#		null_index.append(i)
+			#	i +=1
 					
-			values = np.delete(values,null_index)
-			rows = np.delete(rows,null_index)
-			columns = np.delete(columns,null_index)
+			#values = np.delete(values,null_index)
+			#rows = np.delete(rows,null_index)
+			#columns = np.delete(columns,null_index)
 
-			if values.size ==0:
-				continue
+			#if values.size ==0:
+			#	continue
 
 			nb_values = len(values)
 			row = np.zeros(nb_values)
@@ -170,7 +170,12 @@ def matrix_generationAb(root):
 
 	b_values = np.append(b_values,b_links)
 
-	return coo_matrix((values, (rows, columns)),shape=(nb_constraints, index_start)),b_values,tuples_names
+	sparse_matrix = coo_matrix((values, (rows, columns)),shape=(nb_constraints, index_start))
+
+	#sparse_matrix.sum_duplicates()
+	sparse_matrix.eliminate_zeros()
+
+	return sparse_matrix,b_values,tuples_names
 
 def set_index(variable_matrix,start):
 	n,m = np.shape(variable_matrix)

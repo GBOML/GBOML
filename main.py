@@ -22,7 +22,8 @@ from julia import Main
 import pandas as pd
 import os
 import json
-import gurobipy as gp
+import gurobipy as grbp
+from gurobipy import GRB
 #import cplex
 
 def solver_gurobi(A, b, c):
@@ -259,7 +260,6 @@ if __name__ == '__main__':
 
         A,b,name_tuples = matrix_generationAb(program)
 
-        print(A)
         #solver_julia_2(A,b,1)
         #exit()
 

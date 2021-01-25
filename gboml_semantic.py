@@ -687,10 +687,11 @@ def convert_constraints_matrix(node,variables,definitions):
                 continue
 
             new_values = np.zeros(nb_variables)
-            
             rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
             
+            dict_used_var = {}
+
             l = 0
             for n,identifier in variables_used:
                 
@@ -709,7 +710,17 @@ def convert_constraints_matrix(node,variables,definitions):
                     if j >= T or j<0:
                         flag_out_of_bounds = True
                         break
-                    
+
+                name = identifier.get_name()
+                if name in dict_used_var:
+                    list_indexes = dict_used_var[name]
+                    if [n,j] in list_indexes:
+                        continue
+                    else:
+                        list_indexes.append([n,j])
+                        dict_used_var[name]=list_indexes
+                else:
+                    dict_used_var[name]=[[n,j]]
 
                 term,flag_out_of_bounds = variable_in_constraint(constr,X[j][n],definitions)
                 new_values[l]=term
@@ -722,8 +733,12 @@ def convert_constraints_matrix(node,variables,definitions):
                 l+=1
             
             if flag_out_of_bounds==False:
+
                 starting_t = t.time() 
                 constant = constant_in_constraint(constr,variables,definitions)
+                if not np.any(new_values) and constant != 0:
+                    error_("Error constraint "+str(constr)+" is impossible for t="+str(k))
+
                 add_t += t.time()-starting_t
                 sign = constr.get_sign()
                 matrix = [new_values,rows,columns]
@@ -905,6 +920,7 @@ def convert_objectives_matrix(node,variables,definitions):
             rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
 
+            dict_used_var = {}
             l = 0
             for n,identifier in variables_used:
                 id_type = identifier.get_type()
@@ -923,7 +939,18 @@ def convert_objectives_matrix(node,variables,definitions):
                     if j >= T or j<0:
                         flag_out_of_bounds = True
                         break
-                    
+                
+                name = identifier.get_name()
+                if name in dict_used_var:
+                    list_indexes = dict_used_var[name]
+                    if [n,j] in list_indexes:
+                        continue
+                    else:
+                        list_indexes.append([n,j])
+                        dict_used_var[name]=list_indexes
+                else:
+                    dict_used_var[name]=[[n,j]]
+
                 _,term,flag_out_of_bounds = variable_factor_in_expression(expr,matrixVar[j][n],definitions)
 
                 values[l] = term
