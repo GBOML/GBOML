@@ -32,7 +32,6 @@ from gurobipy import GRB
 def solver_clp(A,b,C):
     # Initialize return values
     x = None
-    flag_solved = False
 
     # Initialize local time
     start_time = time.time()
@@ -94,7 +93,11 @@ def solver_gurobi(A, b, c):
     except RuntimeError as e:
         print(e)
         flag_solved = False
-    return x.X,flag_solved
+
+    solver_info = {}
+    solver_info["name"] = "gurobi"
+    solver_info["algorithm"] = None
+    return x.X,model.getObjective().getValue(),flag_solved,solver_info
 
 def solver_cplex(A, b, c):
 
@@ -121,7 +124,11 @@ def solver_cplex(A, b, c):
     except RuntimeError as e:
         print(e)
         flag_solved = False
-    return model.solution.get_values(),flag_solved
+    
+    solver_info = {}
+    solver_info["name"] = "cplex"
+    solver_info["algorithm"] = None
+    return model.solution.get_values(),model.get_objective_value(),flag_solved,solver_info
 
 def solver_scipy(A,b,C):
     x0_bounds = (None, None)
@@ -150,14 +157,19 @@ def solver_julia_2(A,b,C):
         x, optimal ,status= Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
     except RuntimeError as e:
         print(e)
-    return x, optimal ,status
+    
+    solver_info = {}
+    solver_info["name"] = "gurobi jump"
+    solver_info["algorithm"] = None
+
+    return x, optimal ,status, solver_info
 
     #print(constraint_matrix)
 
-def convert_dictionary(x,T,name_tuples,optimal,status,program_dict):
+def convert_dictionary(x,T,name_tuples,objective,status,program_dict):
     dictionary = program_dict
     dictionary["version"] = "0.0.0"
-    dictionary["objective"] = optimal
+    dictionary["objective"] = objective
     dictionary["status"] = status
     dictionary_nodes = dictionary["nodes"]
     for node_name,index_variables in name_tuples:
@@ -199,7 +211,7 @@ def compile_file(directory,file,log=False):
     A,b,name_tuples = matrix_generationAb(program)
     C = matrix_generationC(program)
     C_sum = C.sum(axis=0)
-    x,_ = solver_julia_2(A,b,C_sum)
+    x,_,_,_ = solver_julia_2(A,b,C_sum)
     T = program.get_time().get_value()
     panda_datastruct = convert_pandas(x,T,name_tuples)
 
@@ -290,17 +302,17 @@ if __name__ == '__main__':
         os.chdir(curr_dir)
 
         if args.linprog:
-            x, optimal, status,solver_info = solver_scipy(A,b,C_sum)
+            x, objective, status,solver_info = solver_scipy(A,b,C_sum)
         elif args.jump:
             #x,flag_solved = solver_julia(A.toarray(),b,C_sum)
             #print(A.toarray())
-            x, optimal ,status = solver_julia_2(A,b,C_sum)
+            x, objective ,status, solver_info = solver_julia_2(A,b,C_sum)
         elif args.clp:
-            x, optimal, status, solver_info = solver_clp(A,b,C_sum)
+            x, objective, status, solver_info = solver_clp(A,b,C_sum)
         elif args.cplex:
-            x, status = solver_cplex(A,b,C_sum)
+            x, objective, status, solver_info = solver_cplex(A,b,C_sum)
         elif args.gurobi:
-            x, status = solver_gurobi(A,b,C_sum)
+            x, objective, status, solver_info = solver_gurobi(A,b,C_sum)
         else:
             print("No solver was chosen")
             exit()
@@ -318,7 +330,7 @@ if __name__ == '__main__':
         filename = filename_split[0]
 
         if args.json:
-            dictionary = convert_dictionary(x,T,name_tuples,optimal,status,program.to_dict())
+            dictionary = convert_dictionary(x,T,name_tuples,objective,status,program.to_dict())
             dictionary["solver_info"] = solver_info
             with open(filename+".json", 'w') as outfile:
                 json.dump(dictionary, outfile,indent=4)
