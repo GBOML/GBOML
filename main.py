@@ -14,8 +14,8 @@ from scipy.optimize import linprog
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-from cylp.cy import CyClpSimplex
-from cylp.py.modeling.CyLPModel import CyLPArray
+#from cylp.cy import CyClpSimplex
+#from cylp.py.modeling.CyLPModel import CyLPArray
 import sys
 #from julia.api import Julia
 #jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
@@ -26,11 +26,54 @@ import os
 import json
 import gurobipy as grbp
 from gurobipy import GRB
-import cplex
+#import cplex
+
+
+def solver_clp(A,b,C):
+    # Initialize return values
+    x = None
+    flag_solved = False
+
+    # Initialize local time
+    start_time = time.time()
+
+    # Compute model info
+    nvars = np.shape(C)[1]
+    print('\033[93m', "DEBUG: CLP number of variables: %d" % nvars, '\033[0m')
+
+    # Build CLP model
+    solver = CyClpSimplex()
+    variables = solver.addVariable('variables', nvars)
+
+    solver.addConstraint(A * variables <= b)
+    solver.objective = C * variables
+
+    print('\033[93m', "DEBUG: CLP translation time: %s seconds" % (time.time() - start_time), '\033[0m')
+
+    # Solve model
+    solver.primal()
+
+    # Return solution
+    x = solver.primalVariableSolution['variables']
+    obj = solver.objectiveValue
+    if solver.getStatusCode() == 0:
+        solved = True
+    print('\033[93m', "DEBUG: CLP solver status: %s" % solver.getStatusString(), '\033[0m')
+    print('\033[93m', "DEBUG: CLP return x:", '\033[0m')
+    print('\033[93m', x, '\033[0m')
+    print('\033[93m', "DEBUG: CLP return obj: %s" % obj, '\033[0m')
+    print('\033[93m', "DEBUG: CLP return solved: %s" % solved, '\033[0m')
+    print('\033[93m', "DEBUG: CLP total time: %s seconds" % (time.time() - start_time), '\033[0m')
+    print('\033[93m', "DEBUG: CLP iteration: %s" % solver.iteration, '\033[0m')
+
+    solver_info = {}
+    solver_info["name"] = "clp"
+    solver_info["algorithm"] = "primal simplex"
+    return x, obj, solved, solver_info
 
 def solver_gurobi(A, b, c):
     A = A.astype(float)
-    m, n = np.shape(A)
+    _, n = np.shape(A)
     b = b.reshape(-1)
     c = c.reshape(-1)
 
@@ -111,43 +154,6 @@ def solver_julia_2(A,b,C):
 
     #print(constraint_matrix)
 
-def solver_julia(A,b,C):
-    b = b.reshape((-1,1))
-    C = C.reshape((-1,1))
-    A = A.astype(float)
-    flag_solved = False
-    x = None
-    Main.include("linear_solver.jl") # load the MyFuncs module
-    try :
-        x = Main.lin_solve(C.astype(float),A.astype(float),b.astype(float))
-        flag_solved = True
-    except(RuntimeError):
-        flag_solved = False
-    return x,flag_solved
-
-def plot_results(x,T,name_tuples):
-
-    legend = []
-    font = {'size'   : 15}
-
-    matplotlib.rc('font', **font)
-    for i in range(0,len(x),T):
-        found = False
-        for node,index_variables in name_tuples:
-            if node == "OPERATION_COST":
-                for index, variable in index_variables:
-                    if index==i:
-                        if  variable in ["pv_production","battery","consumption","shed"]:
-                            legend.append(str(variable))
-                            found = True
-                        #print(str(variable)+" "+str(x[i]))
-        if found :
-            plt.plot(x[i:(i+T)])
-    plt.ylabel('Power[watt]', size = 20)
-    plt.xlabel('Time[hour]', size = 20)
-    plt.legend(legend)
-    plt.show()
-
 def convert_dictionary(x,T,name_tuples,optimal,status,program_dict):
     dictionary = program_dict
     dictionary["version"] = "0.0.0"
@@ -222,6 +228,7 @@ if __name__ == '__main__':
     parser.add_argument("--jump",help = "JuMP + Gurobi solver",action='store_const',const=True)
     parser.add_argument("--gurobi",help = "Gurobi solver",action='store_const',const=True)
     parser.add_argument("--cplex",help = "Cplex solver",action='store_const',const=True)
+    parser.add_argument("--clp",help = "CLP solver",action='store_const',const=True)
 
     parser.add_argument("--log",help="Get log in a file",action="store_const",const=True)
 
@@ -283,11 +290,13 @@ if __name__ == '__main__':
         os.chdir(curr_dir)
 
         if args.linprog:
-            x, optimal, status = solver_scipy(A,b,C_sum)
+            x, optimal, status,solver_info = solver_scipy(A,b,C_sum)
         elif args.jump:
             #x,flag_solved = solver_julia(A.toarray(),b,C_sum)
             #print(A.toarray())
             x, optimal ,status = solver_julia_2(A,b,C_sum)
+        elif args.clp:
+            x, optimal, status, solver_info = solver_clp(A,b,C_sum)
         elif args.cplex:
             x, status = solver_cplex(A,b,C_sum)
         elif args.gurobi:
