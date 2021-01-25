@@ -14,6 +14,8 @@ from scipy.optimize import linprog
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
+from cylp.cy import CyClpSimplex
+from cylp.py.modeling.CyLPModel import CyLPArray
 import sys
 #from julia.api import Julia
 #jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
@@ -81,7 +83,9 @@ def solver_cplex(A, b, c):
 def solver_scipy(A,b,C):
     x0_bounds = (None, None)
     solution = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
-    return solution.x,solution.fun,solution.success
+    solver_info = {}
+    solver_info["name"] = "linprog"
+    return solution.x, solution.fun, solution.success, solver_info
 
 def solver_julia_2(A,b,C):
     #number_elements = len(A.row)
@@ -306,6 +310,7 @@ if __name__ == '__main__':
 
         if args.json:
             dictionary = convert_dictionary(x,T,name_tuples,optimal,status,program.to_dict())
+            dictionary["solver_info"] = solver_info
             with open(filename+".json", 'w') as outfile:
                 json.dump(dictionary, outfile,indent=4)
         if args.csv:
