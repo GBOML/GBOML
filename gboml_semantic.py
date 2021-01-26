@@ -1,15 +1,16 @@
-# -----------------------------------------------------------
-# semantic analyzer of GSML language
+
+# gboml_semantic.py
 #
-# MIFTARI Bardhyl, Liege, Belgium
-# 
-# -----------------------------------------------------------
+# Part of the GBOML Project
+# University of Liege
+# Writer : MIFTARI B
+# ------------
 
 from classes import Time, Expression,Variable,Parameter,Link,\
     Attribute,Program,Objective,Node,Identifier,Constraint
 import copy
 import numpy as np
-from utils import error_,list_to_string
+from utils import error_
 import time as t
 
 def semantic(program):
@@ -25,14 +26,14 @@ def semantic(program):
     time_value = time.get_value()
     
     #Check if all nodes have different names
-    root = program.get_nodes()
-    check_names(root)
+    node_list = program.get_nodes()
+    check_names_repetitions(node_list)
 
     #Check if an objective function is defined
-    program.check_objective_existance()
+    program.check_objective_existence()
 
     #Inside each node 
-    for node in root:
+    for node in node_list:
         #Initialize dictionary of defined parameters
         parameter_dictionary = {}
         parameter_dictionary["T"]=[time_value]
@@ -44,7 +45,7 @@ def semantic(program):
         all_variables = node.get_dictionary_variables()
 
         #Check if variables and parameters share names
-        match_names(all_parameters,all_variables)
+        match_dictionaries(all_parameters,all_variables)
 
         #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
@@ -82,7 +83,46 @@ def semantic(program):
 
     return program
 
+### -------------------------
+### NAME RELATED FUNCTIONS
+def match_dictionaries(dict1,dict2):
+    dict1_set = set(dict1)
+    dict2_set = set(dict2)
 
+    inter_set = dict1_set.intersection(dict2_set)  
+ 
+    if len(inter_set)!=0:
+        error_("ERROR : some variables and parameters share the same name: "+str(inter_set))
+
+def check_names_repetitions(elements_list,add_type = False):
+    
+    all_names = []
+    n = len(elements_list)
+    i = 0
+
+    for e in elements_list:
+        name = e.get_name()
+
+        if name == "T" or name == "t":
+            error_('ERROR: Name "'+str(name)+'" is reserved for time, used at line '+str(elements_list[i].get_line()))
+
+        for k in range(i+1,n):
+            if name == elements_list[k].get_name():
+                error_('ERROR: Redefinition error: "'+str(name)+'" at line '+str(elements_list[k].get_line()))
+        
+        if add_type == True:
+            all_names.append(name,e.get_type())
+        else:
+            all_names.append(name)
+
+        i = i+1
+    return all_names
+
+### END NAME RELATED FUNCTIONS
+### -------------------------
+
+### -------------------------
+### LINKS RELATED FUNCTIONS
 def convert_links_to_matrix(input_output_pairs):
     input_output_matrix = []
 
@@ -302,8 +342,6 @@ def get_index_link(link):
 
     return input_vector,output_vector
 
-
-
 def find_variable_and_type(node,attribute_name,output_v = True,internal_v = True, input_v=True):
     variables= node.get_variables()
     variable_size = len(variables)
@@ -321,7 +359,12 @@ def find_variable_and_type(node,attribute_name,output_v = True,internal_v = True
                 found =  True
     return found
 
+### End LINK FUNCTIONS
+### -------------------------
 
+
+### -------------------------
+### Expression FUNCTIONS
 
 def check_expressions_dependancy(node,variables,parameters):
     constraints = node.get_constraints()
@@ -442,41 +485,7 @@ def check_linear(expression,variables,parameters):
         else:
             error_("INTERNAL ERROR : unknown type '"+str(e_type)+"' check internal parser")
 
-
     return True
-
-
-def match_names(dict,set_compare):
-    dictionary_set = set(dict)
- 
-    inter_set = dictionary_set.intersection(set_compare)  
- 
-    if len(inter_set)!=0:
-        error_("ERROR : some variables and parameters share the same name: "+str(inter_set))
-
-def check_names(elements,add_type = False):
-    
-    all_names = []
-    n = len(elements)
-    i = 0
-
-    for e in elements:
-        name = e.get_name()
-
-        if name == "T" or name == "t":
-            error_('ERROR: Name "'+str(name)+'" is reserved for time, used at line '+str(elements[i].get_line()))
-
-        for k in range(i+1,n):
-            if name == elements[k].get_name():
-                error_('ERROR: Redefinition error: "'+str(name)+'" at line '+str(elements[k].get_line()))
-        
-        if add_type == True:
-            all_names.append(name,e.get_type())
-        else:
-            all_names.append(name)
-
-        i = i+1
-    return all_names
 
 def parameter_evaluation(n_parameters,definitions):
     
@@ -562,10 +571,6 @@ def check_expr_in_brackets(expression,variables,parameters):
             
             elif id_name in variables:
                 error_('Variable in brackets for assignement ')
-
-            #if id_type != 'basic':
-            #    error_('Parameter shall not have this type of structure '+str(identifier))
-            #identifier = identifier.get_name()
 
             if found == False:
                 error_('Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
@@ -664,8 +669,6 @@ def convert_constraints_matrix(node,variables,definitions):
                     i +=1
     
         nb_variables = len(variables_used)
-        
-        #print('CONSTRAINT '+str(i+1) + ': '+str(constr))
 
         constr_range = constr.get_time_range(definitions)
         if constr_range == None:
@@ -676,9 +679,6 @@ def convert_constraints_matrix(node,variables,definitions):
         if(not is_time_dependant_constraint(constr,variables,definitions)):
             unique_constraint = True
 
-        #print("time : "+str(is_time_dependant_constraint(constr,variables)))
-        #print(constr)
-        #print("t horizon" + str(t_horizon))
         add_t = 0
         for k in constr_range:
             definitions['t']=[k]
@@ -742,15 +742,11 @@ def convert_constraints_matrix(node,variables,definitions):
                 add_t += t.time()-starting_t
                 sign = constr.get_sign()
                 matrix = [new_values,rows,columns]
-                #print(constr)
-                #print([matrix,constant,sign])
 
                 node.add_constraints_matrix([matrix,constant,sign])
                 if unique_constraint == True:
                     break
                         
-        #print("add_time --- %s seconds ---" % (add_t))
-
     print("Check_var --- %s seconds ---" % (t.time() - start_time))
 
 
@@ -1153,3 +1149,6 @@ def is_time_dependant_expression(expression,variables_dictionary,parameter_dicti
                 break
 
     return predicate
+
+### END Expression FUNCTIONS
+### -------------------------

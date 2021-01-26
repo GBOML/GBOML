@@ -1,7 +1,8 @@
 
-# -*- coding: utf-8 -*-
 # gboml_lexer.py
 #
+# Part of the GBOML Project
+# University of Liege
 # Writer : MIFTARI B
 # ------------
 
@@ -167,8 +168,8 @@ def t_COMMENT(t):
 
     pass
 
-
      # No return value. Token discarded
+
 
 def t_number(t):
     r'''[0-9]+[\.][0-9]*|[0-9]+'''

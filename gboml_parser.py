@@ -1,6 +1,9 @@
 
-# Myparser.py
+
+# gboml_parser.py
 #
+# Part of the GBOML Project
+# University of Liege
 # Writer : MIFTARI B
 # ------------
 
@@ -10,7 +13,7 @@ from classes import Time, Expression, Variable, Parameter, Link, \
     Attribute, Program, Objective, Node, Identifier, Constraint, \
     Condition, TimeInterval
 
-# precendence rules from least to most priority with associativity also specified
+# precendence rules from least to highest priority with associativity also specified
 
 precedence = (  # Unary minus operator
     ('left', 'OR'),
@@ -31,8 +34,6 @@ def p_start(p):
 
     p[0] = Program(p[2], p[1], p[3])
 
-
-    # exit()
 
 def p_time(p):
     '''time : TIME ID EQUAL expr
@@ -231,14 +232,8 @@ def p_define_constraints(p):
                           | expr LEQ expr time_loop condition
                           | expr BEQ expr time_loop condition'''
 
-    p[0] = Constraint(
-        p[2],
-        p[1],
-        p[3],
-        time_interval=p[4],
-        condition=p[5],
-        line=p.lineno(2),
-        )
+    p[0] = Constraint(p[2], p[1], p[3], time_interval=p[4], \
+                     condition=p[5], line=p.lineno(2))
 
 
 def p_condition(p):

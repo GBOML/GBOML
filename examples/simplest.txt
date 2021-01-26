@@ -1,8 +1,0 @@
-#NODE A
-#VARIABLES
-input : x
-#CONSTRAINTS
-x>=0;
-x<=10
-#OBJECTIVES
-max : x

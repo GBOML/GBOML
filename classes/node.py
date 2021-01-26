@@ -117,7 +117,7 @@ class Node:
 
     def get_all_parameters_name(self):
         parameters = self.parameters
-        all_parameters = set()
+        all_parameters = dict()
         reserved_names = ["t","T"]
         for param in parameters:
             name = param.get_name()
@@ -125,7 +125,7 @@ class Node:
                 error_("Semantic error, variable named "+str(name)+" is not allowed at line "+str(param.get_line()))
 
             if name not in all_parameters:
-                all_parameters.add(name)
+                all_parameters[name]=param
             else : 
                 error_("Semantic error, redefinition of variable "+str(name)+" at line "+str(param.get_line()))
         return all_parameters

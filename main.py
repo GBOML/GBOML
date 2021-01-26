@@ -1,7 +1,7 @@
 
 # main.py
 #
-# Writer : MIFTARI B - BERGER M
+# Writer : MIFTARI B - BERGER M - DJELASSI H
 # ------------
 
 from gboml_lexer import tokenize_file
@@ -14,12 +14,12 @@ from scipy.optimize import linprog
 import matplotlib.pyplot as plt
 import matplotlib
 import numpy as np
-#from cylp.cy import CyClpSimplex
-#from cylp.py.modeling.CyLPModel import CyLPArray
+from cylp.cy import CyClpSimplex
+from cylp.py.modeling.CyLPModel import CyLPArray
 import sys
-from julia.api import Julia
-jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
-jl = Julia(runtime=jpath,compiled_modules=False)
+#from julia.api import Julia
+#jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
+#jl = Julia(runtime=jpath,compiled_modules=False)
 from julia import Main
 import pandas as pd
 import os
@@ -113,7 +113,8 @@ def solver_cplex(A, b, c):
     model.objective.set_sense(model.objective.sense.minimize)
     alg = model.parameters.lpmethod.values
     model.parameters.lpmethod.set(alg.barrier)    # uses a barrier method
-    model.parameters.barrier.crossover.set(model.parameters.barrier.crossover.values.none)    # disables crossover (yields a nonbasic solution)
+    model.parameters.solutiontype.set(2)
+    #model.parameters.barrier.crossover.set(model.parameters.barrier.crossover.values.none)    # disables crossover (yields a nonbasic solution)
 
     try:
         model.solve()

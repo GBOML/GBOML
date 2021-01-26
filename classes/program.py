@@ -81,7 +81,7 @@ class Program:
             sum_constraints += node.get_nb_constraints_matrix()
         return sum_constraints 
     
-    def check_objective_existance(self):
+    def check_objective_existence(self):
         nodes = self.vector_nodes
         found = False
         

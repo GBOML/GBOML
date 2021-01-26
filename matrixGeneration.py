@@ -67,21 +67,6 @@ def matrix_generationAb(root):
 		for [values,rows,columns],b,sign in constraints:
 			
 			columns+=T*rows+index_start
-
-			#null_index = []
-			#i = 0
-			#for value in values: 
-			#	if value == 0.0:
-			#		null_index.append(i)
-			#	i +=1
-					
-			#values = np.delete(values,null_index)
-			#rows = np.delete(rows,null_index)
-			#columns = np.delete(columns,null_index)
-
-			#if values.size ==0:
-			#	continue
-
 			nb_values = len(values)
 			row = np.zeros(nb_values)
 			row.fill(nb_constraints)
