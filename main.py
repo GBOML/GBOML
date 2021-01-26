@@ -4,30 +4,34 @@
 # Writer : MIFTARI B - BERGER M - DJELASSI H
 # ------------
 
+#COMPILER IMPORT
 from compiler.gboml_lexer import tokenize_file
 from compiler.gboml_parser import parse_file
 from compiler.gboml_semantic import semantic
 from compiler.gboml_matrix_generation import matrix_generationAb,matrix_generationC
-import argparse
-import time
+
+#LINPROG IMPORT
 from scipy.optimize import linprog
-import matplotlib.pyplot as plt
-import matplotlib
-import numpy as np
+
+#CYLP IMPORT
 from cylp.cy import CyClpSimplex
 from cylp.py.modeling.CyLPModel import CyLPArray
+
+#GUROBI IMPORT
+import gurobipy as grbp
+from gurobipy import GRB
+
+#CLPEX IMPORT
+import cplex
+
+#GENERAL import
 import sys
-#from julia.api import Julia
-#jpath = "/Applications/Julia-1.5.app/Contents/Resources/julia/bin/julia"
-#jl = Julia(runtime=jpath,compiled_modules=False)
-from julia import Main
 import pandas as pd
 import os
 import json
-import gurobipy as grbp
-from gurobipy import GRB
-import cplex
-
+import argparse
+import time
+import numpy as np
 
 def solver_clp(A,b,C):
     # Initialize return values
@@ -138,35 +142,6 @@ def solver_scipy(A,b,C):
     solver_info["name"] = "linprog"
     return solution.x, solution.fun, solution.success, solver_info
 
-def solver_julia_2(A,b,C):
-    #number_elements = len(A.row)
-    #print(number_elements)
-    constraint_matrix = np.array([A.row+1,A.col+1,A.data])
-    #constraint_matrix[:,0] = A.row
-    #constraint_matrix[:,1] = A.col
-    #constraint_matrix[:,2] = A.data
-
-    b = b.reshape((-1,1))
-    C = C.reshape((-1,1))
-    A = A.astype(float)
-    optimal = None
-    status = False
-    x = None
-
-    Main.include("linear_solver.jl") # load the MyFuncs module
-    try :
-        x, optimal ,status= Main.lin_solve_sparse(C.astype(float),constraint_matrix.astype(float),b.astype(float))
-    except RuntimeError as e:
-        print(e)
-
-    solver_info = {}
-    solver_info["name"] = "gurobi jump"
-    solver_info["algorithm"] = None
-
-    return x, optimal ,status, solver_info
-
-    #print(constraint_matrix)
-
 def convert_dictionary(x,T,name_tuples,objective,status,program_dict):
     dictionary = program_dict
     dictionary["version"] = "0.0.0"
@@ -212,7 +187,7 @@ def compile_file(directory,file,log=False):
     A,b,name_tuples = matrix_generationAb(program)
     C = matrix_generationC(program)
     C_sum = C.sum(axis=0)
-    x,_,_,_ = solver_julia_2(A,b,C_sum)
+    x,_,_,_ = solver_gurobi(A,b,C_sum)
     T = program.get_time().get_value()
     panda_datastruct = convert_pandas(x,T,name_tuples)
 
@@ -237,8 +212,6 @@ if __name__ == '__main__':
     parser.add_argument("--csv", help="Convert results to CSV format",action='store_const',const=True)
 
     parser.add_argument("--linprog",help = "Scipy linprog solver",action='store_const',const=True)
-
-    parser.add_argument("--jump",help = "JuMP + Gurobi solver",action='store_const',const=True)
     parser.add_argument("--gurobi",help = "Gurobi solver",action='store_const',const=True)
     parser.add_argument("--cplex",help = "Cplex solver",action='store_const',const=True)
     parser.add_argument("--clp",help = "CLP solver",action='store_const',const=True)
@@ -304,10 +277,6 @@ if __name__ == '__main__':
 
         if args.linprog:
             x, objective, status,solver_info = solver_scipy(A,b,C_sum)
-        elif args.jump:
-            #x,flag_solved = solver_julia(A.toarray(),b,C_sum)
-            #print(A.toarray())
-            x, objective ,status, solver_info = solver_julia_2(A,b,C_sum)
         elif args.clp:
             x, objective, status, solver_info = solver_clp(A,b,C_sum)
         elif args.cplex:
