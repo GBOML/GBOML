@@ -1,4 +1,4 @@
-from .parent import Type
+from compiler.classes.parent import Type
 
 class Constraint(Type): 
     def __init__(self,c_type,rhs,lhs,time_interval = None,condition = None,line=0):

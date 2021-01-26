@@ -6,11 +6,11 @@
 # Writer : MIFTARI B
 # ------------
 
-from classes import Time, Expression,Variable,Parameter,Link,\
+from .classes import Time, Expression,Variable,Parameter,Link,\
     Attribute,Program,Objective,Node,Identifier,Constraint
 import copy
 import numpy as np
-from utils import error_
+from .utils import error_
 import time as t
 
 def semantic(program):

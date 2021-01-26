@@ -1,5 +1,5 @@
-from .parent import Type
-from .expression import Expression
+from compiler.classes.parent import Type
+from compiler.classes.expression import Expression
 
 class Condition:
     def __init__(self,type_id,children,line=0):

@@ -1,4 +1,4 @@
-from utils import error_
+from compiler.utils import error_
 import numpy as np
 import sys
 

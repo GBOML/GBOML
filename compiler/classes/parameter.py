@@ -1,6 +1,6 @@
-from .parent import Symbol
-from .expression import Expression
-from utils import error_,list_to_string
+from compiler.classes.parent import Symbol
+from compiler.classes.expression import Expression
+from compiler.utils import error_,list_to_string
 import os
 
 class Parameter(Symbol): 

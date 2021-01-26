@@ -1,4 +1,4 @@
-from .parent import Symbol
+from compiler.classes.parent import Symbol
 
 class Variable(Symbol): 
     def __init__(self,name,v_type, line = 0):

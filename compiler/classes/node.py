@@ -1,4 +1,4 @@
-from utils import error_
+from compiler.utils import error_
 
 class Node: 
     def __init__(self,name,line = 0):

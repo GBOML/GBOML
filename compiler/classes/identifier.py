@@ -1,4 +1,4 @@
-from .parent import Symbol
+from compiler.classes.parent import Symbol
 
 class Identifier(Symbol):
     def __init__(self,type_id,name_id,expression=None,line=0):

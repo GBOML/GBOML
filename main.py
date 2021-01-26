@@ -4,10 +4,10 @@
 # Writer : MIFTARI B - BERGER M - DJELASSI H
 # ------------
 
-from gboml_lexer import tokenize_file
-from gboml_parser import parse_file
-from gboml_semantic import semantic
-from matrixGeneration import matrix_generationAb,matrix_generationC
+from compiler.gboml_lexer import tokenize_file
+from compiler.gboml_parser import parse_file
+from compiler.gboml_semantic import semantic
+from compiler.gboml_matrix_generation import matrix_generationAb,matrix_generationC
 import argparse
 import time
 from scipy.optimize import linprog

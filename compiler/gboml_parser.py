@@ -8,8 +8,8 @@
 # ------------
 
 import ply.yacc as yacc
-from gboml_lexer import tokens
-from classes import Time, Expression, Variable, Parameter, Link, \
+from .gboml_lexer import tokens
+from .classes import Time, Expression, Variable, Parameter, Link, \
     Attribute, Program, Objective, Node, Identifier, Constraint, \
     Condition, TimeInterval
 

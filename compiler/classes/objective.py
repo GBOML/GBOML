@@ -1,4 +1,4 @@
-from .parent import Type
+from compiler.classes.parent import Type
 
 class Objective(Type):
     def __init__(self,o_type,expression,line = 0):

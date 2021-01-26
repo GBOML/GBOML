@@ -1,5 +1,5 @@
-from .parent import Symbol
-from utils import error_
+from compiler.classes.parent import Symbol
+from compiler.utils import error_
 
 class Expression(Symbol):
     def __init__(self,node_type,name = None,line = 0):
