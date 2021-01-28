@@ -1,0 +1,11 @@
+#TIMEHORIZON T = 10
+
+#NODE B
+#PARAMETERS
+d = import "inexistant.txt"
+#VARIABLES
+internal : a
+#CONSTRAINTS 
+a >=10
+#OBJECTIVE 
+min: a

@@ -5,24 +5,7 @@
 # ------------
 
 #COMPILER IMPORT
-from compiler.gboml_lexer import tokenize_file
-from compiler.gboml_parser import parse_file
-from compiler.gboml_semantic import semantic
-from compiler.gboml_matrix_generation import matrix_generationAb,matrix_generationC
-
-#LINPROG IMPORT
-from scipy.optimize import linprog
-
-#CYLP IMPORT
-from cylp.cy import CyClpSimplex
-from cylp.py.modeling.CyLPModel import CyLPArray
-
-#GUROBI IMPORT
-import gurobipy as grbp
-from gurobipy import GRB
-
-#CLPEX IMPORT
-import cplex
+from compiler import compile
 
 #GENERAL import
 import sys
@@ -33,114 +16,10 @@ import argparse
 import time
 import numpy as np
 
-def solver_clp(A,b,C):
-    # Initialize return values
-    x = None
+#Solver import
+from solver import solver_scipy, solver_clp,\
+    solver_cplex,solver_gurobi
 
-    # Initialize local time
-    start_time = time.time()
-
-    # Compute model info
-    nvars = np.shape(C)[1]
-    print('\033[93m', "DEBUG: CLP number of variables: %d" % nvars, '\033[0m')
-
-    # Build CLP model
-    solver = CyClpSimplex()
-    variables = solver.addVariable('variables', nvars)
-
-    solver.addConstraint(A * variables <= b)
-    solver.objective = C * variables
-
-    print('\033[93m', "DEBUG: CLP translation time: %s seconds" % (time.time() - start_time), '\033[0m')
-
-    # Solve model
-    solver.primal()
-
-    # Return solution
-    x = solver.primalVariableSolution['variables']
-    obj = solver.objectiveValue
-    if solver.getStatusCode() == 0:
-        solved = True
-    print('\033[93m', "DEBUG: CLP solver status: %s" % solver.getStatusString(), '\033[0m')
-    print('\033[93m', "DEBUG: CLP return x:", '\033[0m')
-    print('\033[93m', x, '\033[0m')
-    print('\033[93m', "DEBUG: CLP return obj: %s" % obj, '\033[0m')
-    print('\033[93m', "DEBUG: CLP return solved: %s" % solved, '\033[0m')
-    print('\033[93m', "DEBUG: CLP total time: %s seconds" % (time.time() - start_time), '\033[0m')
-    print('\033[93m', "DEBUG: CLP iteration: %s" % solver.iteration, '\033[0m')
-
-    solver_info = {}
-    solver_info["name"] = "clp"
-    solver_info["algorithm"] = "primal simplex"
-    return x, obj, solved, solver_info
-
-def solver_gurobi(A, b, c):
-    A = A.astype(float)
-    _, n = np.shape(A)
-    b = b.reshape(-1)
-    c = c.reshape(-1)
-
-    model = grbp.Model()
-    x = model.addMVar(shape=n, lb=-float('inf'), ub=float('inf'), vtype=GRB.CONTINUOUS, name="x")
-    model.addMConstr(A, x, '<', b)
-    model.setObjective(c @ x, GRB.MINIMIZE)
-    model.setParam('Method',2)          # uses a barrier method
-    model.setParam('BarHomogeneous',1)  # uses a barrier variant with better numerical stability
-    model.setParam('Crossover',0)       # disables crossover (returns a nonbasic solution)
-
-    try:
-        model.optimize()
-        if model.getAttr("Status") == 2:
-            flag_solved = True
-        else:
-            flag_solved = False
-    except RuntimeError as e:
-        print(e)
-        flag_solved = False
-
-    solver_info = {}
-    solver_info["name"] = "gurobi"
-    solver_info["algorithm"] = None
-    return x.X,model.getObjective().getValue(),flag_solved,solver_info
-
-def solver_cplex(A, b, c):
-
-    A_zipped = zip(A.row.tolist(), A.col.tolist(), A.data)
-    m, n = np.shape(A)
-    b = list(b.reshape(-1))
-    c = c.tolist()[0]
-
-    model = cplex.Cplex()
-    model.variables.add(obj=c,lb=[-cplex.infinity]*n,ub=[cplex.infinity]*n)
-    model.linear_constraints.add(senses=['L']*m,rhs=b)
-    model.linear_constraints.set_coefficients(A_zipped)
-    model.objective.set_sense(model.objective.sense.minimize)
-    alg = model.parameters.lpmethod.values
-    model.parameters.lpmethod.set(alg.barrier)    # uses a barrier method
-    model.parameters.solutiontype.set(2)
-    #model.parameters.barrier.crossover.set(model.parameters.barrier.crossover.values.none)    # disables crossover (yields a nonbasic solution)
-
-    try:
-        model.solve()
-        if model.solution.get_status()==1 or model.solution.get_status()==101:
-            flag_solved = True
-        else:
-            flag_solved = False
-    except RuntimeError as e:
-        print(e)
-        flag_solved = False
-
-    solver_info = {}
-    solver_info["name"] = "cplex"
-    solver_info["algorithm"] = None
-    return np.array(model.solution.get_values()),model.solution.get_objective_value(),flag_solved,solver_info
-
-def solver_scipy(A,b,C):
-    x0_bounds = (None, None)
-    solution = linprog(C_sum, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
-    solver_info = {}
-    solver_info["name"] = "linprog"
-    return solution.x, solution.fun, solution.success, solver_info
 
 def convert_dictionary(x,T,name_tuples,objective,status,program_dict):
     dictionary = program_dict
@@ -174,31 +53,6 @@ def convert_pandas(x,T,name_tuples):
     return df.T
 
 
-def compile_file(directory,file,log=False):
-    if log == True:
-        filename_split = file.rsplit('.', 1)
-        filename = filename_split[0]
-        f = open(filename+".out", 'w')
-        sys.stdout = f
-
-    path = os.path.join(directory,file)
-    result = parse_file(path)
-    program = semantic(result)
-    A,b,name_tuples = matrix_generationAb(program)
-    C = matrix_generationC(program)
-    C_sum = C.sum(axis=0)
-    x,_,_,_ = solver_gurobi(A,b,C_sum)
-    T = program.get_time().get_value()
-    panda_datastruct = convert_pandas(x,T,name_tuples)
-
-    filename_split = file.split(".")
-    filename = filename_split[0]
-
-
-    panda_datastruct.to_csv(filename+".csv")
-
-
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Compiler and solver for the generic system model language')
@@ -224,56 +78,14 @@ if __name__ == '__main__':
         print("The default solver is GUROBI")
 
     if args.input_file:
-        if args.log == True:
-            filename_split = args.input_file.rsplit('.', 1)
-            filename = filename_split[0]
-            f = open(filename+".out", 'w')
-            sys.stdout = f
-
-        if(os.path.isfile(args.input_file)==False):
-            print("No such file as "+str(args.input_file))
-            exit(-1)
-
-        curr_dir = os.getcwd()
-
-        dir_path = os.path.dirname(args.input_file)
-        filename = os.path.basename(args.input_file)
-        #print(dir_path)
-        os.chdir(dir_path)
-
-        if args.lex:
-            tokenize_file(filename)
-
-
-        result = parse_file(filename)
-
-        if args.parse:
-            print(result.to_string())
         start_time = time.time()
-
-        program = semantic(result)
-
-        T = program.get_time().get_value()
-
-        A,b,name_tuples = matrix_generationAb(program)
-
-        #solver_julia_2(A,b,1)
-        #exit()
-
-        C = matrix_generationC(program)
-
-        C_sum = C.sum(axis=0)
-
-        #gurobi(A,b,C_sum)
+        program,A,b,C_sum,T,name_tuples = compile(args.input_file,args.log,args.lex,args.parse)
         print("All --- %s seconds ---" % (time.time() - start_time))
-        #np.set_printoptions(threshold=sys.maxsize)
 
         if args.matrix:
             print("Matrix A ",A)
             print("Vector b ",b)
             print("Vector C ",C_sum)
-
-        os.chdir(curr_dir)
 
         if args.linprog:
             x, objective, status,solver_info = solver_scipy(A,b,C_sum)
@@ -293,8 +105,6 @@ if __name__ == '__main__':
         elif status == "no solution":
             print("The problem is either unsolvable or possesses too many solutions")
             exit()
-
-        #plot_results(x,T,name_tuples)
 
         filename_split = args.input_file.rsplit('.', 1)
         filename = filename_split[0]

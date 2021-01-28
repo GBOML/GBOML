@@ -1,0 +1,9 @@
+#TIMEHORIZON T = 1
+
+#NODE H
+#VARIABLES 
+internal : x
+#CONSTRAINTS
+x[t]<=-4;
+#OBJECTIVES
+max : x
