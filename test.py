@@ -188,6 +188,7 @@ class TestErrors(unittest.TestCase):
             self.assertIn("objective", contents)
             self.assertEqual(contents["objective"],4.0)
 
+    # Non linearity in constraint
     def test_non_linearity(self):
         process = subprocess.run(['python', 'main.py', 'test/test8.txt'], 
                            stdout=subprocess.PIPE,
@@ -195,6 +196,7 @@ class TestErrors(unittest.TestCase):
         return_code = process.returncode
         self.assertNotEqual(return_code, 0)
 
+    # import towards non existant file 
     def test_non_existant_import(self):
         process = subprocess.run(['python', 'main.py', 'test/test9.txt'], 
                            stdout=subprocess.PIPE,
