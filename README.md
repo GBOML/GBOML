@@ -1,31 +1,37 @@
 # Compiler name
 ## Installing 
+You need to install the requirements : 
+```
+pip install -r requirements.txt
+```
+Now you are able to use Linprog as a solver
+
+## Installing other solvers: 
+### Gurobi:
 To be able to use Gurobi please install : 
 
 >https://www.gurobi.com/
 
->https://julialang.org/downloads/
+Then, 
+```
+python -m pip install -i https://pypi.gurobi.com gurobipy
+```
+### CPLEX: 
+To be able to use CPLEX please install : 
 
-You need to install the requirements : 
+>https://www.ibm.com/support/pages/downloading-ibm-ilog-cplex-optimization-studio-2010
+Then,
 ```
-pip install -r requirements
+pip install cplex
 ```
-Start a julia terminal and execute : 
+
+### CLP
+To be able to use CLP please install : 
+>https://projects.coin-or.org/Clp
+Then, 
 ```
-import Pkg
-Pkg.install("Gurobi") 
+pip install cylp
 ```
-Close the Julia terminal you are done with it.
-Open a python terminal and start a python REPL by writting:
-```
-python 
-```
-Execute the two commands : 
-```
-import julia
-julia.install()
-```
-Normally you are good to go ! 
 
 ## Usage 
 The command line goes as follows,
@@ -52,10 +58,28 @@ List of optional arguments
 --matrix
 ```
 
--**Linprog:** Use Linprog solver instead of Gurobi
+-**Linprog:** Use Linprog solver
 
 ```
 --linprog
+```
+
+-**Gurobi** Use Gurobi solver
+
+```
+--gurobi
+```
+
+-**CPLEX** Use CPLEX solver
+
+```
+--cplex
+```
+
+-**CLP** Use CLP solver
+
+```
+--clp
 ```
 
 -**CSV :** Output format CSV 
