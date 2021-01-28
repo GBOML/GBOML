@@ -4,8 +4,12 @@ import time
 def solver_clp(A,b,C):
 
     #CYLP IMPORT
-    from cylp.cy import CyClpSimplex
-    from cylp.py.modeling.CyLPModel import CyLPArray
+    try:
+        from cylp.cy import CyClpSimplex
+        from cylp.py.modeling.CyLPModel import CyLPArray
+    except:
+        print("Warning: Did not find the CyLP package")
+        exit(0)
 
     # Initialize return values
     x = None
@@ -57,8 +61,12 @@ def solver_clp(A,b,C):
 def solver_gurobi(A, b, c):
     
     #GUROBI IMPORT
-    import gurobipy as grbp
-    from gurobipy import GRB
+    try:
+        import gurobipy as grbp
+        from gurobipy import GRB
+    except:
+        print("Warning: Did not find the gurobipy package")
+        exit(0)
 
     solution = None
     objective = None
@@ -95,7 +103,11 @@ def solver_gurobi(A, b, c):
 
 def solver_cplex(A, b, c):
 
-    import cplex   
+    try: 
+        import cplex   
+    except:
+        print("Warning: Did not find the CPLEX package")
+        exit(0)
 
     A_zipped = zip(A.row.tolist(), A.col.tolist(), A.data)
     solution = None
