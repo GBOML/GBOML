@@ -13,6 +13,7 @@ To be able to use Gurobi please install :
 >https://www.gurobi.com/
 
 Then, 
+
 ```
 python -m pip install -i https://pypi.gurobi.com gurobipy
 ```
@@ -22,6 +23,7 @@ To be able to use CPLEX please install :
 >https://www.ibm.com/support/pages/downloading-ibm-ilog-cplex-optimization-studio-2010
 
 Then,
+
 ```
 pip install cplex
 ```
@@ -31,6 +33,7 @@ To be able to use CLP please install :
 >https://projects.coin-or.org/Clp
 
 Then, 
+
 ```
 pip install cylp
 ```
