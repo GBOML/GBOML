@@ -1,0 +1,10 @@
+#TIMEHORIZON
+T = 10
+
+#NODE A
+#VARIABLES 
+internal : x
+#CONSTRAINTS
+x[t*t]>=0
+#OBJECTIVES
+min: x

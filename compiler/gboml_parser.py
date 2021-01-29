@@ -7,7 +7,7 @@
 # Writer : MIFTARI B
 # ------------
 
-import ply.yacc as yacc
+import ply.yacc as yacc # type: ignore
 from .gboml_lexer import tokens
 from .classes import Time, Expression, Variable, Parameter, Link, \
     Attribute, Program, Objective, Node, Identifier, Constraint, \
@@ -385,7 +385,7 @@ def find_column(input, p):
     return p.lexpos - line_start + 1
 
 
-def parse_file(name):
+def parse_file(name:str)->Program:
 
     # Build the parser
 

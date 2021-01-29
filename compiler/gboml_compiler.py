@@ -4,10 +4,10 @@ from .gboml_semantic import semantic
 from .gboml_matrix_generation import matrix_generationAb,matrix_generationC
 
 import sys,os
-import numpy as np
+import numpy as np # type: ignore
 
 
-def compile(input_file,log = False,lex = False,parse = False):
+def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = False)->tuple:
     if(os.path.isfile(input_file)==False):
         print("No such file as "+str(input_file))
         exit(-1)

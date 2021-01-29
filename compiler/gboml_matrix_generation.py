@@ -1,9 +1,9 @@
 from .classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
-import numpy as np
-from scipy.sparse import coo_matrix
+import numpy as np # type: ignore
+from scipy.sparse import coo_matrix # type: ignore
 from .utils import error_
 
-def matrix_generationC(root):
+def matrix_generationC(root:Program)-> coo_matrix:
 	nodes = root.get_nodes()
 	nb_objectives = 0
 	all_rows = []
@@ -43,7 +43,7 @@ def matrix_generationC(root):
 
 	return coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
 
-def matrix_generationAb(root):
+def matrix_generationAb(root:Program)->tuple:
 	nodes = root.get_nodes()
 	
 	time_root = root.get_time()
@@ -162,7 +162,7 @@ def matrix_generationAb(root):
 
 	return sparse_matrix,b_values,tuples_names
 
-def set_index(variable_matrix,start):
+def set_index(variable_matrix:np.ndarray,start:int)->tuple:
 	n,m = np.shape(variable_matrix)
 	tuple_name = []
 	for j in range(m):

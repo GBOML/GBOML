@@ -203,6 +203,14 @@ class TestErrors(unittest.TestCase):
                            universal_newlines=True)
         return_code = process.returncode
         self.assertNotEqual(return_code, 0)
+    
+    # non linear assignement
+    def test_non_linear_assignment_import(self):
+        process = subprocess.run(['python', 'main.py', 'test/test10.txt'], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertNotEqual(return_code, 0)
 
 if __name__ == '__main__':
     unittest.main()
