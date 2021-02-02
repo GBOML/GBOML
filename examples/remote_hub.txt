@@ -1,5 +1,5 @@
 #TIMEHORIZON
-T=8760
+T=8760;
 
 #NODE SOLAR_PV_PLANTS
 #PARAMETERS
@@ -9,8 +9,8 @@ vom = 0.0;
 capacity_factor_PV = import "pv_capacity_factors.csv"; // Dimensionless
 max_capacity = 1000; // GW
 #VARIABLES
-internal: capacity
-output: electricity
+internal: capacity;
+output: electricity;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 electricity[t] <= capacity_factor_PV[t] * capacity;
@@ -18,7 +18,7 @@ capacity[t] <= max_capacity;
 capacity[t] >= 0;
 electricity[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity[t] / T + vom * electricity[t]
+min: (capex + fom) * capacity[t] / T + vom * electricity[t];
 
 #NODE WIND_PLANTS
 #PARAMETERS
@@ -28,8 +28,8 @@ vom = 0.00135; // MEur/GWh
 capacity_factor_wind = import "wind_capacity_factors.csv"; // Dimensionless
 max_capacity = 1000; // GW
 #VARIABLES
-internal: capacity
-output: electricity
+internal: capacity;
+output: electricity;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 electricity[t] <= capacity_factor_wind[t] * capacity;
@@ -37,7 +37,7 @@ capacity[t] <= max_capacity;
 capacity[t] >= 0;
 electricity[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity / T + vom * electricity[t]
+min: (capex + fom) * capacity / T + vom * electricity[t];
 
 #NODE BATTERY_STORAGE
 #PARAMETERS
@@ -52,11 +52,11 @@ self_discharge = 0.00004;
 efficiency_in = 0.959;
 efficiency_out = 0.959;
 #VARIABLES
-internal: capacity_p
-internal: capacity_e
-internal: electricity_stored
-input: electricity_in
-output: electricity_out
+internal: capacity_p;
+internal: capacity_e;
+internal: electricity_stored;
+input: electricity_in;
+output: electricity_out;
 #CONSTRAINTS
 capacity_e[0] = capacity_e[t];
 capacity_p[0] = capacity_p[t];
@@ -71,15 +71,15 @@ electricity_stored[t] >= 0;
 electricity_in[t] >= 0;
 electricity_out[t] >= 0;
 #OBJECTIVES
-min: (capex_e + fom_e) * capacity_e / T + vom_e * electricity_stored[t] + (capex_p + fom_p) * capacity_p / T + vom_p * electricity_in[t]
+min: (capex_e + fom_e) * capacity_e / T + vom_e * electricity_stored[t] + (capex_p + fom_p) * capacity_p / T + vom_p * electricity_in[t];
 
 #NODE INLAND_POWER_BALANCE
 #VARIABLES
-input: electricity_pv
-input: electricity_wind
-input: electricity_battery_out
-output: electricity_HVDC
-output: electricity_battery_in
+input: electricity_pv;
+input: electricity_wind;
+input: electricity_battery_out;
+output: electricity_HVDC;
+output: electricity_battery_in;
 #CONSTRAINTS
 electricity_pv[t] + electricity_wind[t] + electricity_battery_out[t] = electricity_HVDC[t] + electricity_battery_in[t];
 electricity_pv[t] >= 0;
@@ -93,9 +93,9 @@ fom = 2.5 + 4.6; // MEur/year
 vom = 0.0;
 efficiency_HVDC = 0.949;
 #VARIABLES
-internal: capacity
-input: electricity_in
-output: electricity_out
+internal: capacity;
+input: electricity_in;
+output: electricity_out;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 electricity_in[t] <= capacity;
@@ -104,7 +104,7 @@ capacity[t] >= 0;
 electricity_in[t] >= 0;
 electricity_out[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity / T + vom * electricity_in[t]
+min: (capex + fom) * capacity / T + vom * electricity_in[t];
 
 #NODE ELECTROLYSIS_PLANTS
 #PARAMETERS
@@ -115,10 +115,10 @@ conversion_factor_electricity = 50.6;
 conversion_factor_water = 9.0;
 minimum_level = 0.05;
 #VARIABLES
-internal: capacity // GW - reference flow for sizing is electricity
-input: electricity // GWh/h
-input: water // kt/h
-output: hydrogen // kt/h
+internal: capacity; // GW - reference flow for sizing is electricity
+input: electricity; // GWh/h
+input: water; // kt/h
+output: hydrogen; // kt/h
 #CONSTRAINTS
 capacity[0] = capacity[t];
 electricity[t] <= capacity;
@@ -130,7 +130,7 @@ electricity[t] >= 0;
 hydrogen[t] >= 0;
 water[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity / T + vom * electricity[t]
+min: (capex + fom) * capacity / T + vom * electricity[t];
 
 #NODE DESALINATION_PLANTS
 #PARAMETERS
@@ -142,9 +142,9 @@ minimum_level = 1.0;
 ramp_rate_up = 0.0;
 ramp_rate_down = 0.0;
 #VARIABLES
-internal: capacity // kt/h - freshwater is the reference flow for sizing
-input: electricity
-output: water
+internal: capacity; // kt/h - freshwater is the reference flow for sizing
+input: electricity;
+output: water;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 water[t] <= capacity;
@@ -156,7 +156,7 @@ capacity[t] >= 0;
 electricity[t] >= 0;
 water[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity / T + vom * water[t]
+min: (capex + fom) * capacity / T + vom * water[t];
 
 #NODE DIRECT_AIR_CAPTURE_PLANTS
 #PARAMETERS
@@ -170,11 +170,11 @@ minimum_level = 1.0;
 ramp_rate_up = 0.0;
 ramp_rate_down = 0.0;
 #VARIABLES
-internal: capacity // kt/h - carbon dioxide is the reference flow for sizing
-input: electricity
-input: hydrogen
-input: water
-output: carbon_dioxide
+internal: capacity; // kt/h - carbon dioxide is the reference flow for sizing
+input: electricity;
+input: hydrogen;
+input: water;
+output: carbon_dioxide;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 carbon_dioxide[t] <= capacity;
@@ -190,7 +190,7 @@ water[t] >= 0;
 hydrogen[t] >= 0;
 carbon_dioxide[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity / T + vom * carbon_dioxide[t]
+min: (capex + fom) * capacity / T + vom * carbon_dioxide[t];
 
 #NODE HYDROGEN_STORAGE
 #PARAMETERS
@@ -202,12 +202,12 @@ vom_stock = 0.0;
 vom_flow = 0.0;
 conversion_factor_electricity = 1.3;
 #VARIABLES
-internal: capacity_flow
-internal: capacity_stock
-internal: hydrogen_stored
-input: electricity
-input: hydrogen_in
-output: hydrogen_out
+internal: capacity_flow;
+internal: capacity_stock;
+internal: hydrogen_stored;
+input: electricity;
+input: hydrogen_in;
+output: hydrogen_out;
 #CONSTRAINTS
 capacity_stock[0] = capacity_stock[t];
 capacity_flow[0] = capacity_flow[t];
@@ -224,7 +224,7 @@ hydrogen_in[t] >= 0;
 hydrogen_out[t] >= 0;
 electricity[t] >= 0;
 #OBJECTIVES
-min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * hydrogen_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * hydrogen_in[t]
+min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * hydrogen_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * hydrogen_in[t];
 
 #NODE CARBON_DIOXIDE_STORAGE
 #PARAMETERS
@@ -236,12 +236,12 @@ vom_stock = 0.0;
 vom_flow = 0.0;
 conversion_factor_electricity = 0.105;
 #VARIABLES
-internal: capacity_flow
-internal: capacity_stock
-internal: carbon_dioxide_stored
-input: electricity
-input: carbon_dioxide_in
-output: carbon_dioxide_out
+internal: capacity_flow;
+internal: capacity_stock;
+internal: carbon_dioxide_stored;
+input: electricity;
+input: carbon_dioxide_in;
+output: carbon_dioxide_out;
 #CONSTRAINTS
 capacity_stock[0] = capacity_stock[t];
 capacity_flow[0] = capacity_flow[t];
@@ -258,7 +258,7 @@ carbon_dioxide_in[t] >= 0;
 carbon_dioxide_out[t] >= 0;
 electricity[t] >= 0;
 #OBJECTIVES
-min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * carbon_dioxide_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * carbon_dioxide_in[t]
+min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * carbon_dioxide_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * carbon_dioxide_in[t];
 
 #NODE WATER_STORAGE
 #PARAMETERS
@@ -270,12 +270,12 @@ vom_stock = 0.0;
 vom_flow = 0.0;
 conversion_factor_electricity = 0.00036;
 #VARIABLES
-internal: capacity_flow
-internal: capacity_stock
-internal: water_stored
-input: electricity
-input: water_in
-output: water_out
+internal: capacity_flow;
+internal: capacity_stock;
+internal: water_stored;
+input: electricity;
+input: water_in;
+output: water_out;
 #CONSTRAINTS
 capacity_stock[0] = capacity_stock[t];
 capacity_flow[0] = capacity_flow[t];
@@ -292,7 +292,7 @@ water_in[t] >= 0;
 water_out[t] >= 0;
 electricity[t] >= 0;
 #OBJECTIVES
-min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * water_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * water_in[t]
+min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * water_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * water_in[t];
 
 #NODE METHANATION_PLANTS
 #PARAMETERS
@@ -306,11 +306,11 @@ minimum_level = 1.0;
 ramp_rate_up = 0.0;
 ramp_rate_down = 0.0;
 #VARIABLES
-internal: capacity // kt/h - reference flow for sizing is methane
-input: hydrogen
-input: carbon_dioxide
-output: methane
-output: water
+internal: capacity; // kt/h - reference flow for sizing is methane
+input: hydrogen;
+input: carbon_dioxide;
+output: methane;
+output: water;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 methane[t] <= capacity;
@@ -326,7 +326,7 @@ hydrogen[t] >= 0;
 carbon_dioxide[t] >= 0;
 water[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity / T + vom * methane[t]
+min: (capex + fom) * capacity / T + vom * methane[t];
 
 #NODE METHANE_LIQUEFACTION_PLANTS
 #PARAMETERS
@@ -339,10 +339,10 @@ minimum_level = 1.0;
 ramp_rate_up = 0.0;
 ramp_rate_down = 0.0;
 #VARIABLES
-internal: capacity
-input: electricity
-input: methane
-output: liquefied_methane
+internal: capacity;
+input: electricity;
+input: methane;
+output: liquefied_methane;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 liquefied_methane[t] <= capacity;
@@ -356,7 +356,7 @@ electricity[t] >= 0;
 liquefied_methane[t] >= 0;
 methane[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity / T + vom * liquefied_methane[t]
+min: (capex + fom) * capacity / T + vom * liquefied_methane[t];
 
 #NODE LIQUEFIED_METHANE_STORAGE_HUB
 #PARAMETERS
@@ -367,11 +367,11 @@ fom_flow = 0.0;
 vom_stock = 0.0;
 vom_flow = 0.0;
 #VARIABLES
-internal: capacity_flow
-internal: capacity_stock
-internal: liquefied_methane_stored
-input: liquefied_methane_in
-output: liquefied_methane_out
+internal: capacity_flow;
+internal: capacity_stock;
+internal: liquefied_methane_stored;
+input: liquefied_methane_in;
+output: liquefied_methane_out;
 #CONSTRAINTS
 capacity_stock[0] = capacity_stock[t];
 capacity_flow[0] = capacity_flow[t];
@@ -386,18 +386,18 @@ liquefied_methane_stored[t] >= 0;
 liquefied_methane_in[t] >= 0;
 liquefied_methane_out[t] >= 0;
 #OBJECTIVES
-min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * liquefied_methane_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * liquefied_methane_in[t]
+min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * liquefied_methane_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * liquefied_methane_in[t];
 
 #NODE COASTAL_POWER_BALANCE
 #VARIABLES
-input: electricity_HVDC
-output: electricity_electrolysis
-output: electricity_desalination
-output: electricity_direct_air_capture
-output: electricity_hydrogen_storage
-output: electricity_methane_liquefaction
-output: electricity_carbon_dioxide_storage
-output: electricity_water_storage
+input: electricity_HVDC;
+output: electricity_electrolysis;
+output: electricity_desalination;
+output: electricity_direct_air_capture;
+output: electricity_hydrogen_storage;
+output: electricity_methane_liquefaction;
+output: electricity_carbon_dioxide_storage;
+output: electricity_water_storage;
 #CONSTRAINTS
 electricity_HVDC[t] = electricity_electrolysis[t] + electricity_desalination[t] + electricity_direct_air_capture[t] + electricity_hydrogen_storage[t] + electricity_methane_liquefaction[t] + electricity_carbon_dioxide_storage[t] + electricity_water_storage;
 electricity_HVDC[t] >= 0;
@@ -411,12 +411,12 @@ electricity_water_storage[t] >= 0;
 
 #NODE COASTAL_WATER_BALANCE
 #VARIABLES
-input: water_desalination
-input: water_methanation
-input: water_storage_out
-output: water_storage_in
-output: water_electrolysis
-output: water_direct_air_capture
+input: water_desalination;
+input: water_methanation;
+input: water_storage_out;
+output: water_storage_in;
+output: water_electrolysis;
+output: water_direct_air_capture;
 #CONSTRAINTS
 water_desalination[t] + water_methanation[t] + water_storage_out[t] = water_storage_in[t] + water_electrolysis[t] + water_direct_air_capture[t];
 water_desalination[t] >= 0;
@@ -428,11 +428,11 @@ water_direct_air_capture[t] >= 0;
 
 #NODE COASTAL_HYDROGEN_BALANCE
 #VARIABLES
-input: hydrogen_electrolysis
-input: hydrogen_storage_out
-output: hydrogen_direct_air_capture
-output: hydrogen_methanation
-output: hydrogen_storage_in
+input: hydrogen_electrolysis;
+input: hydrogen_storage_out;
+output: hydrogen_direct_air_capture;
+output: hydrogen_methanation;
+output: hydrogen_storage_in;
 #CONSTRAINTS
 hydrogen_electrolysis[t] + hydrogen_storage_out[t] = hydrogen_direct_air_capture[t] + hydrogen_methanation[t] + hydrogen_storage_in[t];
 hydrogen_electrolysis[t] >= 0;
@@ -443,10 +443,10 @@ hydrogen_storage_in[t] >= 0;
 
 #NODE COASTAL_CARBON_DIOXIDE_BALANCE
 #VARIABLES
-input: carbon_dioxide_direct_air_capture
-input: carbon_dioxide_storage_out
-output: carbon_dioxide_storage_in
-output: carbon_dioxide_methanation
+input: carbon_dioxide_direct_air_capture;
+input: carbon_dioxide_storage_out;
+output: carbon_dioxide_storage_in;
+output: carbon_dioxide_methanation;
 #CONSTRAINTS
 carbon_dioxide_direct_air_capture[t] + carbon_dioxide_storage_out[t] = carbon_dioxide_storage_in[t] + carbon_dioxide_methanation[t];
 carbon_dioxide_direct_air_capture[t] >= 0;
@@ -456,10 +456,10 @@ carbon_dioxide_methanation[t] >= 0;
 
 #NODE COASTAL_LIQUEFIED_METHANE_BALANCE
 #VARIABLES
-input: liquefied_methane_liquefaction
-input: liquefied_methane_storage_out
-output: liquefied_methane_storage_in
-output: liquefied_methane_carriers
+input: liquefied_methane_liquefaction;
+input: liquefied_methane_storage_out;
+output: liquefied_methane_storage_in;
+output: liquefied_methane_carriers;
 #CONSTRAINTS
 liquefied_methane_liquefaction[t] + liquefied_methane_storage_out[t] = liquefied_methane_storage_in[t] + liquefied_methane_carriers[t];
 liquefied_methane_liquefaction[t] >= 0;
@@ -477,9 +477,9 @@ loading_time = 24;
 conversion_factor = 0.994;
 delay = 116;
 #VARIABLES
-internal: capacity
-input: liquefied_methane_hub
-output: liquefied_methane_destination
+internal: capacity;
+input: liquefied_methane_hub;
+output: liquefied_methane_destination;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 liquefied_methane_hub[t] <= schedule[t] * capacity;
@@ -489,14 +489,14 @@ capacity[t] >= 0;
 liquefied_methane_hub[t] >= 0;
 liquefied_methane_destination[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity * loading_time / T + vom * liquefied_methane_hub[t]
+min: (capex + fom) * capacity * loading_time / T + vom * liquefied_methane_hub[t];
 
 #NODE DESTINATION_LIQUEFIED_METHANE_BALANCE
 #VARIABLES
-input: liquefied_methane_carriers
-input: liquefied_methane_storage_out
-output: liquefied_methane_regasification
-output: liquefied_methane_storage_in
+input: liquefied_methane_carriers;
+input: liquefied_methane_storage_out;
+output: liquefied_methane_regasification;
+output: liquefied_methane_storage_in;
 #CONSTRAINTS
 liquefied_methane_carriers[t] + liquefied_methane_storage_out[t] = liquefied_methane_regasification[t] + liquefied_methane_storage_in[t];
 liquefied_methane_carriers[t] >= 0;
@@ -513,11 +513,11 @@ fom_flow = 0.0;
 vom_stock = 0.0;
 vom_flow = 0.0;
 #VARIABLES
-internal: capacity_flow
-internal: capacity_stock
-internal: liquefied_methane_stored
-input: liquefied_methane_in
-output: liquefied_methane_out
+internal: capacity_flow;
+internal: capacity_stock;
+internal: liquefied_methane_stored;
+input: liquefied_methane_in;
+output: liquefied_methane_out;
 #CONSTRAINTS
 capacity_stock[0] = capacity_stock[t];
 capacity_flow[0] = capacity_flow[t];
@@ -532,7 +532,7 @@ liquefied_methane_stored[t] >= 0;
 liquefied_methane_in[t] >= 0;
 liquefied_methane_out[t] >= 0;
 #OBJECTIVES
-min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * liquefied_methane_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * liquefied_methane_in[t]
+min: (capex_stock + fom_stock) * capacity_stock / T + vom_stock * liquefied_methane_stored[t] + (capex_flow + fom_flow) * capacity_flow / T + vom_flow * liquefied_methane_in[t];
 
 #NODE LIQUEFIED_METHANE_REGASIFICATION
 #PARAMETERS
@@ -541,9 +541,9 @@ fom = 24.97; // MEur/year
 vom = 0.0;
 conversion_factor = 0.98;
 #VARIABLES
-internal: capacity
-input: liquefied_methane
-output: methane
+internal: capacity;
+input: liquefied_methane;
+output: methane;
 #CONSTRAINTS
 capacity[0] = capacity[t];
 liquefied_methane[t] <= capacity;
@@ -552,88 +552,88 @@ capacity[t] >= 0;
 methane[t] >= 0;
 liquefied_methane[t] >= 0;
 #OBJECTIVES
-min: (capex + fom) * capacity / T + vom * liquefied_methane[t]
+min: (capex + fom) * capacity / T + vom * liquefied_methane[t];
 
 #NODE DEMAND_DESTINATION
 #PARAMETERS
 cost_unserved_demand = 100.0;
 demand = import "gas_demand.csv";
 #VARIABLES
-internal: unserved_demand
-input: methane
+internal: unserved_demand;
+input: methane;
 #CONSTRAINTS
 methane[t] + unserved_demand[t] = demand[t];
 methane[t] >= 0;
 unserved_demand[t] >= 0;
 #OBJECTIVES
-min: cost_unserved_demand * unserved_demand[t]
+min: cost_unserved_demand * unserved_demand[t];
 
 #LINKS
 // Solar PV
-SOLAR_PV_PLANTS.electricity = INLAND_POWER_BALANCE.electricity_pv
+SOLAR_PV_PLANTS.electricity = INLAND_POWER_BALANCE.electricity_pv;
 
 // Wind Turbines
-WIND_PLANTS.electricity = INLAND_POWER_BALANCE.electricity_wind
+WIND_PLANTS.electricity = INLAND_POWER_BALANCE.electricity_wind;
 
 // Batteries
-INLAND_POWER_BALANCE.electricity_battery_in = BATTERY_STORAGE.electricity_in
-BATTERY_STORAGE.electricity_out = INLAND_POWER_BALANCE.electricity_battery_out
+INLAND_POWER_BALANCE.electricity_battery_in = BATTERY_STORAGE.electricity_in;
+BATTERY_STORAGE.electricity_out = INLAND_POWER_BALANCE.electricity_battery_out;
 
 // HVDC Interconnection
-INLAND_POWER_BALANCE.electricity_HVDC = HVDC.electricity_in
-HVDC.electricity_out = COASTAL_POWER_BALANCE.electricity_HVDC
+INLAND_POWER_BALANCE.electricity_HVDC = HVDC.electricity_in;
+HVDC.electricity_out = COASTAL_POWER_BALANCE.electricity_HVDC;
 
 // Electrolysis Plants
-COASTAL_POWER_BALANCE.electricity_electrolysis = ELECTROLYSIS_PLANTS.electricity
-COASTAL_WATER_BALANCE.water_electrolysis = ELECTROLYSIS_PLANTS.water
-ELECTROLYSIS_PLANTS.hydrogen = COASTAL_HYDROGEN_BALANCE.hydrogen_electrolysis
+COASTAL_POWER_BALANCE.electricity_electrolysis = ELECTROLYSIS_PLANTS.electricity;
+COASTAL_WATER_BALANCE.water_electrolysis = ELECTROLYSIS_PLANTS.water;
+ELECTROLYSIS_PLANTS.hydrogen = COASTAL_HYDROGEN_BALANCE.hydrogen_electrolysis;
 
 // Hydrogen Storage
-COASTAL_POWER_BALANCE.electricity_hydrogen_storage = HYDROGEN_STORAGE.electricity
-COASTAL_HYDROGEN_BALANCE.hydrogen_storage_in = HYDROGEN_STORAGE.hydrogen_in
-HYDROGEN_STORAGE.hydrogen_out = COASTAL_HYDROGEN_BALANCE.hydrogen_storage_out
+COASTAL_POWER_BALANCE.electricity_hydrogen_storage = HYDROGEN_STORAGE.electricity;
+COASTAL_HYDROGEN_BALANCE.hydrogen_storage_in = HYDROGEN_STORAGE.hydrogen_in;
+HYDROGEN_STORAGE.hydrogen_out = COASTAL_HYDROGEN_BALANCE.hydrogen_storage_out;
 
 // Desalination Plants
-COASTAL_POWER_BALANCE.electricity_desalination = DESALINATION_PLANTS.electricity
-DESALINATION_PLANTS.water = COASTAL_WATER_BALANCE.water_desalination
+COASTAL_POWER_BALANCE.electricity_desalination = DESALINATION_PLANTS.electricity;
+DESALINATION_PLANTS.water = COASTAL_WATER_BALANCE.water_desalination;
 
 // Direct Air Capture Plants
-COASTAL_POWER_BALANCE.electricity_direct_air_capture = DIRECT_AIR_CAPTURE_PLANTS.electricity
-COASTAL_HYDROGEN_BALANCE.hydrogen_direct_air_capture = DIRECT_AIR_CAPTURE_PLANTS.hydrogen
-COASTAL_WATER_BALANCE.water_direct_air_capture = DIRECT_AIR_CAPTURE_PLANTS.water
-DIRECT_AIR_CAPTURE_PLANTS.carbon_dioxide = COASTAL_CARBON_DIOXIDE_BALANCE.carbon_dioxide_direct_air_capture
+COASTAL_POWER_BALANCE.electricity_direct_air_capture = DIRECT_AIR_CAPTURE_PLANTS.electricity;
+COASTAL_HYDROGEN_BALANCE.hydrogen_direct_air_capture = DIRECT_AIR_CAPTURE_PLANTS.hydrogen;
+COASTAL_WATER_BALANCE.water_direct_air_capture = DIRECT_AIR_CAPTURE_PLANTS.water;
+DIRECT_AIR_CAPTURE_PLANTS.carbon_dioxide = COASTAL_CARBON_DIOXIDE_BALANCE.carbon_dioxide_direct_air_capture;
 
 // Water Storage
-COASTAL_WATER_BALANCE.water_storage_in = WATER_STORAGE.water_in
-WATER_STORAGE.water_out = COASTAL_WATER_BALANCE.water_storage_out
+COASTAL_WATER_BALANCE.water_storage_in = WATER_STORAGE.water_in;
+WATER_STORAGE.water_out = COASTAL_WATER_BALANCE.water_storage_out;
 
 // CO2 Storage
-COASTAL_POWER_BALANCE.electricity_carbon_dioxide_storage = CARBON_DIOXIDE_STORAGE.electricity
-COASTAL_CARBON_DIOXIDE_BALANCE.carbon_dioxide_storage_in = CARBON_DIOXIDE_STORAGE.carbon_dioxide_in
-CARBON_DIOXIDE_STORAGE.carbon_dioxide_out = COASTAL_CARBON_DIOXIDE_BALANCE.carbon_dioxide_storage_out
+COASTAL_POWER_BALANCE.electricity_carbon_dioxide_storage = CARBON_DIOXIDE_STORAGE.electricity;
+COASTAL_CARBON_DIOXIDE_BALANCE.carbon_dioxide_storage_in = CARBON_DIOXIDE_STORAGE.carbon_dioxide_in;
+CARBON_DIOXIDE_STORAGE.carbon_dioxide_out = COASTAL_CARBON_DIOXIDE_BALANCE.carbon_dioxide_storage_out;
 
 // Methanation Plants
-COASTAL_HYDROGEN_BALANCE.hydrogen_methanation = METHANATION_PLANTS.hydrogen
-COASTAL_CARBON_DIOXIDE_BALANCE.carbon_dioxide_methanation = METHANATION_PLANTS.carbon_dioxide
-METHANATION_PLANTS.methane = METHANE_LIQUEFACTION_PLANTS.methane
-METHANATION_PLANTS.water = COASTAL_WATER_BALANCE.water_methanation
+COASTAL_HYDROGEN_BALANCE.hydrogen_methanation = METHANATION_PLANTS.hydrogen;
+COASTAL_CARBON_DIOXIDE_BALANCE.carbon_dioxide_methanation = METHANATION_PLANTS.carbon_dioxide;
+METHANATION_PLANTS.methane = METHANE_LIQUEFACTION_PLANTS.methane;
+METHANATION_PLANTS.water = COASTAL_WATER_BALANCE.water_methanation;
 
 // Liquefaction Plants
-COASTAL_POWER_BALANCE.electricity_methane_liquefaction = METHANE_LIQUEFACTION_PLANTS.electricity
-METHANE_LIQUEFACTION_PLANTS.liquefied_methane = COASTAL_LIQUEFIED_METHANE_BALANCE.liquefied_methane_liquefaction
+COASTAL_POWER_BALANCE.electricity_methane_liquefaction = METHANE_LIQUEFACTION_PLANTS.electricity;
+METHANE_LIQUEFACTION_PLANTS.liquefied_methane = COASTAL_LIQUEFIED_METHANE_BALANCE.liquefied_methane_liquefaction;
 
 // Liquefied Methane Storage Hub
-COASTAL_LIQUEFIED_METHANE_BALANCE.liquefied_methane_storage_in = LIQUEFIED_METHANE_STORAGE_HUB.liquefied_methane_in
-LIQUEFIED_METHANE_STORAGE_HUB.liquefied_methane_out = COASTAL_LIQUEFIED_METHANE_BALANCE.liquefied_methane_storage_out
+COASTAL_LIQUEFIED_METHANE_BALANCE.liquefied_methane_storage_in = LIQUEFIED_METHANE_STORAGE_HUB.liquefied_methane_in;
+LIQUEFIED_METHANE_STORAGE_HUB.liquefied_methane_out = COASTAL_LIQUEFIED_METHANE_BALANCE.liquefied_methane_storage_out;
 
 // Liquefied Methane Carriers
-COASTAL_LIQUEFIED_METHANE_BALANCE.liquefied_methane_carriers = LIQUEFIED_METHANE_CARRIERS.liquefied_methane_hub
-LIQUEFIED_METHANE_CARRIERS.liquefied_methane_destination = DESTINATION_LIQUEFIED_METHANE_BALANCE.liquefied_methane_carriers
+COASTAL_LIQUEFIED_METHANE_BALANCE.liquefied_methane_carriers = LIQUEFIED_METHANE_CARRIERS.liquefied_methane_hub;
+LIQUEFIED_METHANE_CARRIERS.liquefied_methane_destination = DESTINATION_LIQUEFIED_METHANE_BALANCE.liquefied_methane_carriers;
 
 // Liquefied Methane Storage Destination
-DESTINATION_LIQUEFIED_METHANE_BALANCE.liquefied_methane_storage_in = LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_in
-LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_out = DESTINATION_LIQUEFIED_METHANE_BALANCE.liquefied_methane_storage_out
+DESTINATION_LIQUEFIED_METHANE_BALANCE.liquefied_methane_storage_in = LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_in;
+LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_out = DESTINATION_LIQUEFIED_METHANE_BALANCE.liquefied_methane_storage_out;
 
 // Re-gasification Plants
-DESTINATION_LIQUEFIED_METHANE_BALANCE.liquefied_methane_regasification = LIQUEFIED_METHANE_REGASIFICATION.liquefied_methane
-LIQUEFIED_METHANE_REGASIFICATION.methane = DEMAND_DESTINATION.methane
+DESTINATION_LIQUEFIED_METHANE_BALANCE.liquefied_methane_regasification = LIQUEFIED_METHANE_REGASIFICATION.liquefied_methane;
+LIQUEFIED_METHANE_REGASIFICATION.methane = DEMAND_DESTINATION.methane;
