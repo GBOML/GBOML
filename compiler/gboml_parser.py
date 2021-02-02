@@ -287,12 +287,12 @@ def p_objectives(p):
 
 
 def p_define_objectives(p):
-    '''define_objectives : MIN COLON expr obj_aux SEMICOLON
-                         | MAX COLON expr obj_aux SEMICOLON'''
+    '''define_objectives : MIN COLON expr SEMICOLON obj_aux 
+                         | MAX COLON expr SEMICOLON obj_aux'''
 
     obj = Objective(p[1], p[3], line=p.lineno(1))
-    p[4].append(obj)
-    p[0] = p[4]
+    p[5].append(obj)
+    p[0] = p[5]
 
 
 def p_obj_aux(p):
