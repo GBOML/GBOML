@@ -40,9 +40,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.linprog==False:
-        print("The default solver is GUROBI")
-
     if args.input_file:
         start_time = time.time()
         program,A,b,C_sum,T,name_tuples = compile_gboml(args.input_file,args.log,args.lex,args.parse)

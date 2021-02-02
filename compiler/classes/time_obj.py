@@ -1,29 +1,42 @@
 from compiler.utils import error_
-import numpy as np
+from compiler.classes.expression import Expression
+import numpy as np 
 import sys
 
 class Time:
-    def __init__(self,time_var,expr,line=None):
+    """
+    Time object is a structure composed of 
+    - a variable name 
+    - a right handside expression
+    - a value (evaluation of the right handside)
+    """
+
+
+    def __init__(self,time_var:str,expr:Expression,line:int=None):
+
+        assert type(time_var) == str, "Internal error: expected string for Time identifier" 
+        assert type(expr) == Expression, "Internal error: unknown type for expression in Time object"
+
         if time_var != "T":
             error_("Semantic error:"+str(line)+": Use \"T\""+\
                 " as a symbol for the time horizon. \""+ str(time_var)+\
                 "\" is not allowed")
         self.time = time_var
         self.expr = expr
-        self.value = expr.evaluate_expression([]) 
+        self.value = expr.evaluate_expression({}) 
         self.line = line
 
-    def __str__(self):
+    def __str__(self)->str:
         string = 'time: '+str(self.time)+' expr: '+str(self.expr)
         return string
 
-    def get_value(self):
+    def get_value(self)->float:
         return self.value
 
-    def get_expression(self):
+    def get_expression(self)->Expression:
         return self.expr
 
-    def check(self):
+    def check(self)->None:
         time_value = self.value
 
         if type(time_value) == float and time_value.is_integer()==False:
@@ -43,8 +56,25 @@ class Time:
         
         self.value = time_value
 
+
+
 class TimeInterval:
-    def __init__(self,time_var,begin,end,step,line):
+    """
+    Time Interval object is a structure composed of 
+    - a variable name 
+    - a begin expression
+    - an end expression 
+    - a step expression or int if not defined
+    """
+
+
+    def __init__(self,time_var:str,begin:Expression,end:Expression,step,line:int):
+
+        assert type(time_var) == str, "Internal error: expected string for TimeInterval identifier" 
+        assert type(begin) == Expression, "Internal error: unknown type for begin in TimeInterval object"
+        assert type(end) == Expression, "Internal error: unknown type for end in TimeInterval object"
+        assert type(step) == Expression or type(step) == int, "Internal error: unknown type for step in TimeInterval object"
+
         if time_var != "t":
             error_("Semantic error:"+str(line)+": only \"t\""+\
                 " can be looped on. Looping \""+ str(time_var)+\
@@ -60,7 +90,8 @@ class TimeInterval:
         self.line = line
 
     
-    def get_range(self,definitions):
+    def get_range(self,definitions:dict)->range:
+
         begin_value = self.begin.evaluate_expression(definitions)
         end_value = self.end.evaluate_expression(definitions)
         if type(self.step) == int:
@@ -73,13 +104,16 @@ class TimeInterval:
         time_horizon = definitions["T"][0]
 
         begin_value, end_value,step_value = self.check(begin_value,end_value,step_value,time_horizon)
+
         return range(begin_value,end_value,step_value)
         
 
-    def get_interval(self):
+    def get_interval(self)->list:
+
         return [self.begin,self.step,self.end]
     
-    def check(self,begin_value,end_value,step_value,clip=sys.maxsize):
+    def check(self,begin_value:int,end_value:int,step_value:int,clip:int=sys.maxsize)->tuple:
+
         begin_value = self.convert_type(begin_value,message='begin')
         end_value = self.convert_type(end_value,message="end")
         step_value = self.convert_type(step_value,message="step")
@@ -108,7 +142,8 @@ class TimeInterval:
 
         return begin_value, end_value,step_value
         
-    def convert_type(self,value,message = ""):
+    def convert_type(self,value,message:str = "")->int:
+        
         if type(value) == float and value.is_integer()==False:
             value = int(round(value))
             print("WARNING: in for loop, "+message+" value "+\
@@ -118,7 +153,3 @@ class TimeInterval:
             value = int(value)
         
         return value 
-
-
-    
-

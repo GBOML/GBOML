@@ -1,14 +1,42 @@
 from compiler.classes.parent import Type
+from compiler.classes.expression import Expression
+from compiler.classes.time_obj import TimeInterval
+from compiler.classes.condition import Condition
 
 class Constraint(Type): 
-    def __init__(self,c_type,rhs,lhs,time_interval = None,condition = None,line=0):
+    """
+    Constraint object is a structure composed of 
+    - an operator 
+    - a left handside expression 
+    - a right handside expression 
+    - a TimeInterval object 
+    - a condition object
+    """
+
+
+    def __init__(self,c_type:str,rhs:Expression,lhs:Expression,time_interval:TimeInterval = None,\
+        condition:Condition = None,line:int=0):
+
+        assert type(c_type) == str, "Internal error: expected string for Constraint type" 
+        assert c_type in ["=","<=",">="], \
+            "Internal error: unknown type for constraint"
+        assert type(rhs)==Expression, "Internal error: expected Expression type \
+            for right hand side in Constraint"
+        assert type(rhs)==Expression, "Internal error: expected Expression type \
+            for left hand side in Constraint"
+        assert time_interval == None or type(time_interval)==TimeInterval,\
+            "Internal error: expected TimeInterval object in Constraint"
+        assert condition == None or type(condition)==Condition,\
+            "Internal error: expected Condition object in Constraint"
+        
         Type.__init__(self,c_type,line)
         self.rhs = rhs
         self.lhs = lhs
         self.time_interval=time_interval
         self.condition = condition
 
-    def __str__(self):
+    def __str__(self)->str:
+
         string = "["+str(self.type)+' , '+str(self.rhs)
         string += " , "+str(self.lhs)
         if self.condition != None:
@@ -16,29 +44,37 @@ class Constraint(Type):
         if self.time_interval != None:
             string += "][ time : "+str(self.time_interval)
         string+=']'
+        
         return string
 
-    def get_sign(self):
+    def get_sign(self)->str:
+
         return self.get_type()
 
-    def get_rhs(self):
+    def get_rhs(self)->Expression:
+        
         return self.rhs
 
-    def get_lhs(self):
+    def get_lhs(self)->Expression:
+        
         return self.lhs
     
-    def get_leafs(self):
+    def get_leafs(self)->list:
+        
         return self.rhs.get_leafs()+self.lhs.get_leafs()
 
     def get_time_range(self,definitions):
+        
         range_time = None
         if self.time_interval != None:
             range_time =  self.time_interval.get_range(definitions)
+        
         return range_time
 
     def check_time(self,definitions):
-        cond_predicate = True
-        if self.condition != None:
-            cond_predicate = self.condition.check(definitions)
         
-        return cond_predicate
+        predicate = True
+        if self.condition != None:
+            predicate = self.condition.check(definitions)
+        
+        return predicate

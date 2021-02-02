@@ -1,7 +1,17 @@
-import pandas as pd
+from pandas import DataFrame
 import numpy as np
 
-def convert_dictionary(x,T,name_tuples,objective,status,program_dict):
+def convert_dictionary(x:np.ndarray,T:int,name_tuples:list,objective:float,status:dict,program_dict:dict)->dict:
+    """
+	convert_dictionary function: converts all the gathered information in one big dictionary
+    INPUT : x -> Vector of the solved problem
+            T -> Time horizon
+            name_tuples -> mapping to convert the flat x vector to the original structure
+            objective -> value of objective function
+            status -> dictionary containing the solution status
+            program_dict -> general dictionary of all infos related to the program
+    OUTPUT : dictionary -> dictionary of all the gathered info
+    """
     dictionary = program_dict
     dictionary["version"] = "0.0.0"
     dictionary["objective"] = objective
@@ -18,7 +28,15 @@ def convert_dictionary(x,T,name_tuples,objective,status,program_dict):
     dictionary["nodes"]= dictionary_nodes
     return dictionary
 
-def convert_pandas(x,T,name_tuples):
+def convert_pandas(x:np.ndarray,T:int,name_tuples:list)->DataFrame:
+    """
+	convert_pandas function: converts the flat X vector to a pandas object containing the
+    initial graph strucure
+    INPUT : x -> Vector of the solved problem
+            T -> Time horizon
+            name_tuples -> mapping to convert the flat x vector to the original structure
+    OUTPUT : df.T -> pandas object of the solution with the graph strucuture
+    """
     ordered_values = []
     columns = []
 
@@ -29,5 +47,5 @@ def convert_pandas(x,T,name_tuples):
             columns.append(full_name)
             ordered_values.append(values)
 
-    df = pd.DataFrame(ordered_values,index=columns)
+    df = DataFrame(ordered_values,index=columns)
     return df.T

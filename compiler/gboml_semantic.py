@@ -39,7 +39,7 @@ def semantic(program:Program)->Program:
         parameter_dictionary["T"]=[time_value]
 
         #Retrieve all the parameters'names in set
-        all_parameters = node.get_all_parameters_name()
+        all_parameters = node.get_dictionary_parameters()
 
         #Retrieve a dictionary of [name,identifier object] tuple
         all_variables = node.get_dictionary_variables()

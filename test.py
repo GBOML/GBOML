@@ -212,5 +212,22 @@ class TestErrors(unittest.TestCase):
         return_code = process.returncode
         self.assertNotEqual(return_code, 0)
 
+    def test_normal_file(self):
+        process = subprocess.run(['python', 'main.py', 'test/test11.txt'], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+        if process.stdout.count("\n")!=3:
+            print("Please remove the additional prints before you push")
+            
+    def test_assignment_T(self):
+        process = subprocess.run(['python', 'main.py', 'test/test12.txt'], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+
+
 if __name__ == '__main__':
     unittest.main()

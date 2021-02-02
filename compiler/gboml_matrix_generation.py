@@ -1,9 +1,18 @@
-from .classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,Objective,Node,Identifier,Constraint
+from .classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,\
+	Objective,Node,Identifier,Constraint
 import numpy as np # type: ignore
 from scipy.sparse import coo_matrix # type: ignore
 from .utils import error_
 
 def matrix_generationC(root:Program)-> coo_matrix:
+	"""
+	matrix_generationC function: takes as input a program object and returns a coo_matrix 
+	of the different objectives flatten. In other words, returns the different objectives
+	as a matrix : min C*x where each line of C corresponds to one objective.
+    INPUT:  Program object
+    OUTPUT: C -> Sparse coo matrix of the objective function
+    """
+
 	nodes = root.get_nodes()
 	nb_objectives = 0
 	all_rows = []
@@ -44,6 +53,16 @@ def matrix_generationC(root:Program)-> coo_matrix:
 	return coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
 
 def matrix_generationAb(root:Program)->tuple:
+	"""
+	matrix_generationAb function: takes as input a program object and returns a tuple 
+	composed of a sparse matrix of constraints A, a vector of independant terms b and
+	a mapping from the flat x vector to the original structure in name_tuples.
+    INPUT:  Program object
+    OUTPUT: A -> Sparse coo matrix of the constraints
+			b -> Np.ndarray of the independant term of each constraint
+			name_tuples -> mapping from flat x to graph structure
+    """
+
 	nodes = root.get_nodes()
 	
 	time_root = root.get_time()
@@ -163,6 +182,17 @@ def matrix_generationAb(root:Program)->tuple:
 	return sparse_matrix,b_values,tuples_names
 
 def set_index(variable_matrix:np.ndarray,start:int)->tuple:
+	"""
+	set_index function: takes as input a matrix of variables with the first element
+	of each column being the timestep [0] of a new variable. It sets the index of that
+	variable to its place in the flat X vector and returns a tuple of the next starting value
+	and pairs starting index and variable name.
+    INPUT: variable_matrix -> np.ndarray of identifier objects 
+		   start -> the first starting index of a node in the flat vector X
+	OUTPUT: start -> Next starting index of next node
+			tuple_name -> list of starting index and variable name pairs
+    """
+
 	n,m = np.shape(variable_matrix)
 	tuple_name = []
 	for j in range(m):
