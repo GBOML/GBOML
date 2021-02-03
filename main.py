@@ -11,8 +11,8 @@ from compiler import compile
 from solver import solver_scipy, solver_clp,\
     solver_cplex,solver_gurobi
 
-#SAVING import
-from tools import convert_dictionary, convert_pandas
+#OUTPUT import
+from output import generate_json, generate_pandas
 
 #GENERAL import
 import json
@@ -76,12 +76,12 @@ if __name__ == '__main__':
         filename = filename_split[0]
 
         if args.json:
-            dictionary = convert_dictionary(x,T,name_tuples,objective,status,program.to_dict())
-            dictionary["solver_info"] = solver_info
+            dictionary = generate_json(program, name_tuples, solver_info, status, x, objective)
             with open(filename+".json", 'w') as outfile:
                 json.dump(dictionary, outfile,indent=4)
+
         if args.csv:
-            panda_datastruct = convert_pandas(x,T,name_tuples)
+            panda_datastruct = generate_pandas(x,T,name_tuples)
             panda_datastruct.to_csv(filename+".csv")
 
     else:

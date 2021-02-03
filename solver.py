@@ -56,6 +56,7 @@ def solver_clp(A,b,C):
     solver_info = {}
     solver_info["name"] = "clp"
     solver_info["algorithm"] = "primal simplex"
+    solver_info["status"] = solver.getStatusString()
     return x, obj, solved, solver_info
 
 def solver_gurobi(A, b, c):

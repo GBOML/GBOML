@@ -20,23 +20,6 @@ class Program:
 
         return string
 
-    def to_dict(self):
-        dictionary = {}
-        dictionary["horizon"]=self.time.get_value()
-        dictionary["number_of_nodes"]=len(self.vector_nodes)
-        node_dict = {}
-
-        for node in self.vector_nodes:
-            node_dict[node.get_name()] = node.to_dict()
-
-        vector_links = []
-        for link in self.links:
-            vector_links += link.to_vector()
-        dictionary["links"] = vector_links
-
-        dictionary["nodes"] = node_dict
-        return dictionary
-
     def to_string(self):
         string = "Full program\n"
         if self.time != None:
@@ -54,11 +37,14 @@ class Program:
         string += '\nLinks predefined are : '+ str(self.links)
         return string
 
+    def get_time(self):
+        return self.time
+
     def get_nodes(self):
         return self.vector_nodes
 
-    def get_time(self):
-        return self.time
+    def get_number_nodes(self):
+        return len(self.vector_nodes)
 
     def get_links(self):
         return self.links
