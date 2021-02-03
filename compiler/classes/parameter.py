@@ -4,7 +4,14 @@ from compiler.utils import error_,list_to_string
 import os
 
 class Parameter(Symbol): 
-    def __init__(self,name,expression,line = 0):
+    """
+    Parameter object is composed of: 
+    - a name 
+    - a right handside expression or several expression
+    """
+
+    def __init__(self,name:str,expression,line = 0):
+
         self.vector = None
         if expression == None:
             type_para = "table"
@@ -19,6 +26,7 @@ class Parameter(Symbol):
         self.expression = expression
 
     def __str__(self):
+        
         string = "["+str(self.name)+' , '
         if self.expression == None:
             string+= list_to_string(self.vector)
@@ -29,6 +37,7 @@ class Parameter(Symbol):
         return string
 
     def get_values_from_file(self,expression):
+        
         self.vector = []
         if type(expression)==str:
 
@@ -51,10 +60,13 @@ class Parameter(Symbol):
                     self.vector.append(expr)
 
     def get_expression(self):
+        
         return self.expression
 
     def set_vector(self,v):
+        
         self.vector = v
 
     def get_vector(self):
+        
         return self.vector

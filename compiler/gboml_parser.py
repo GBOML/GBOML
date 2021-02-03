@@ -7,7 +7,7 @@
 # Writer : MIFTARI B
 # ------------
 
-import ply.yacc as yacc
+import ply.yacc as yacc # type: ignore
 from .gboml_lexer import tokens
 from .classes import Time, Expression, Variable, Parameter, Link, \
     Attribute, Program, Objective, Node, Identifier, Constraint, \
@@ -36,10 +36,10 @@ def p_start(p):
 
 
 def p_time(p):
-    '''time : TIME ID EQUAL expr
+    '''time : TIME ID EQUAL expr SEMICOLON
             | empty'''
 
-    if len(p) == 5:
+    if len(p) == 6:
         p[0] = Time(p[2], p[4], line=p.lineno(2))
     else : 
         expr = Expression('literal', 1, line=p.lineno(1))
@@ -59,10 +59,10 @@ def p_links(p):
 
 
 def p_link_def(p):
-    '''link_def : ID EQUAL ID more_id
-                | ID DOT ID EQUAL ID DOT ID more_id_aux'''
+    '''link_def : ID EQUAL ID more_id SEMICOLON
+                | ID DOT ID EQUAL ID DOT ID more_id_aux SEMICOLON'''
 
-    if len(p) == 5:
+    if len(p) == 6:
         rhs = Attribute(p[1])
         a = Attribute(p[3])
         p[4].append(a)
@@ -185,13 +185,13 @@ def p_variables(p):
 
 
 def p_define_variables(p):
-    '''define_variables : INTERNAL COLON id var_aux
-                        | OUTPUT COLON id var_aux
-                        | INPUT COLON id var_aux'''
+    '''define_variables : INTERNAL COLON id SEMICOLON var_aux 
+                        | OUTPUT COLON id SEMICOLON var_aux 
+                        | INPUT COLON id SEMICOLON var_aux '''
 
     var = Variable(p[3], p[1], line=p.lineno(1))
-    p[4].insert(0, var)
-    p[0] = p[4]
+    p[5].insert(0, var)
+    p[0] = p[5]
 
 
 def p_var_aux(p):
@@ -216,10 +216,9 @@ def p_constraints(p):
 
 def p_constraints_aux(p):
     '''constraints_aux : define_constraints SEMICOLON constraints_aux
-                       | define_constraints SEMICOLON
-                       | define_constraints'''
+                       | define_constraints SEMICOLON'''
 
-    if len(p) == 2 or len(p) == 3:
+    if len(p) == 3:
         p[0] = []
         p[0].append(p[1])
     else:
@@ -288,12 +287,12 @@ def p_objectives(p):
 
 
 def p_define_objectives(p):
-    '''define_objectives : MIN COLON expr obj_aux
-                         | MAX COLON expr obj_aux'''
+    '''define_objectives : MIN COLON expr SEMICOLON obj_aux 
+                         | MAX COLON expr SEMICOLON obj_aux'''
 
     obj = Objective(p[1], p[3], line=p.lineno(1))
-    p[4].append(obj)
-    p[0] = p[4]
+    p[5].append(obj)
+    p[0] = p[5]
 
 
 def p_obj_aux(p):
@@ -385,7 +384,7 @@ def find_column(input, p):
     return p.lexpos - line_start + 1
 
 
-def parse_file(name):
+def parse_file(name:str)->Program:
 
     # Build the parser
 

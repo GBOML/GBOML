@@ -1,9 +1,9 @@
-#TIMEHORIZON t = 1
+#TIMEHORIZON t = 1;
 
 #NODE H
 #VARIABLES 
-internal : x
+internal : x;
 #CONSTRAINTS
-x[0]>0
+x[0]>0;
 #OBJECTIVES
-min : x[0]
+min : x[0];

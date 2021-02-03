@@ -1,9 +1,10 @@
-#TIMEHORIZON T = 1;
+#TIMEHORIZON
+T = 10;
 
-#NODE H
+#NODE A
 #VARIABLES 
 internal : x;
 #CONSTRAINTS
-x[t]<=-4;
+x[t*t]>=0;
 #OBJECTIVES
-max : x;
+min: x;

@@ -2,12 +2,29 @@ from compiler.classes.parent import Symbol
 from compiler.utils import error_
 
 class Expression(Symbol):
-    def __init__(self,node_type,name = None,line = 0):
+    """
+    Expression object is a tree like structure : 
+    Its internal nodes are made up of 
+    - an operator as type 
+    - Children nodes of type Expression
+    Its leafs are made up of 
+    - a fixed type -> "literal"
+    - no children nodes
+    - a name field -> containing an evaluable unit 
+    (number, identifier, etc)
+    """
+
+
+    def __init__(self,node_type:str,name = None,line:int = 0):
+        assert type(node_type) == str, "Internal error: expected string for Expression type" 
+        assert node_type in ["+","-","/","*","**","u-","mod","literal"], "Internal error: unknown type for Expression"
+
         Symbol.__init__(self,name,node_type,line)
-        self.children = []
+        self.children:list = []
         self.leafs = None
 
-    def __str__(self):
+    def __str__(self)->str:
+        
         if self.type != "literal":
             string = '['+str(self.type)
             if self.name !="":
@@ -18,23 +35,30 @@ class Expression(Symbol):
                 string +=  ' , '+str(self.children)+']'
         else:
             string = str(self.name)
+
         return string
 
     def get_children(self):
+
         return self.children
 
     def get_nb_children(self):
+        
         return len(self.children)
 
     def add_child(self,child):
+        
         self.children.append(child)
     
     def get_leafs(self):
+        
         if self.leafs == None:
             self.leafs = self.find_leafs()
+        
         return self.leafs
     
     def find_leafs(self):
+
         all_children = []
 
         if self.type == "literal":
@@ -43,9 +67,11 @@ class Expression(Symbol):
             children = self.get_children()
             for child in children:
                 all_children += child.find_leafs()
+        
         return all_children
 
-    def evaluate_expression(self,definitions):
+    def evaluate_expression(self,definitions:dict):
+        
         # Get type, children and nb_children
         e_type = self.get_type()
         nb_child = self.get_nb_children()

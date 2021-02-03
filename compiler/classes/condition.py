@@ -1,26 +1,39 @@
 from compiler.classes.parent import Type
 from compiler.classes.expression import Expression
 
-class Condition:
-    def __init__(self,type_id,children,line=0):
+class Condition(Type):
+    """
+    Condition object is a tree like structure where:
+    - each node is defined by an operator 
+    - internal nodes have children of Condition objects
+    - leaf nodes have children of Expressions type
+    """
+
+    def __init__(self,type_id:str,children:list,line:int=0)->None:
+    
+        assert type(type_id) == str, "Internal error: expected string for condition type" 
+        assert type_id in ["and","not","or","==","!=","<",">","<=",">="], \
+            "Internal error: unknown type for condition"
+        
         Type.__init__(self,type_id,line)
         self.type = type_id
         self.children = children
 
-    def __str__(self):
+    def __str__(self)->str:
+    
         string = "["+str(self.type)
         for child in self.children:
             string += ','+str(child)
         string +=']'
+    
         return string
 
-    def add_child(self,c):
-        self.children.append(c)
+    def get_children(self)->list:
     
-    def get_children(self):
         return self.children
     
-    def check(self,definitions):
+    def check(self,definitions:dict)->bool:
+    
         predicate = False
 
         if type(self.children[0])==Condition:

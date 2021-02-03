@@ -1,9 +1,9 @@
-#TIMEHORIZON T = 2
+#TIMEHORIZON T = 2;
 
 #NODE A
 #VARIABLES
-internal : x 
+internal : x ;
 #CONSTRAINTS
-x*x=10
+x*x=10;
 #OBJECTIVES
-min: x
+min: x;

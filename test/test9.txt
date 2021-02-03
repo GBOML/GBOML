@@ -1,11 +1,11 @@
-#TIMEHORIZON T = 10
+#TIMEHORIZON T = 10;
 
 #NODE B
 #PARAMETERS
-d = import "inexistant.txt"
+d = import "inexistant.txt";
 #VARIABLES
-internal : a
+internal : a;
 #CONSTRAINTS 
-a >=10
+a >=10;
 #OBJECTIVE 
-min: a
+min: a;

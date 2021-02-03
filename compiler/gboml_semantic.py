@@ -7,13 +7,13 @@
 # ------------
 
 from .classes import Time, Expression,Variable,Parameter,Link,\
-    Attribute,Program,Objective,Node,Identifier,Constraint
-import copy
-import numpy as np
-from .utils import error_
-import time as t
+    Attribute,Program,Objective,Node,Identifier,Constraint 
+import copy 
+import numpy as np # type: ignore
+from .utils import error_ 
+import time as t 
 
-def semantic(program):
+def semantic(program:Program)->Program:
     """
     Semantic check function : Augments the inputed Program object and checks several errors     
     INPUT:  initialized Program object
@@ -39,7 +39,7 @@ def semantic(program):
         parameter_dictionary["T"]=[time_value]
 
         #Retrieve all the parameters'names in set
-        all_parameters = node.get_all_parameters_name()
+        all_parameters = node.get_dictionary_parameters()
 
         #Retrieve a dictionary of [name,identifier object] tuple
         all_variables = node.get_dictionary_variables()
@@ -85,7 +85,14 @@ def semantic(program):
 
 ### -------------------------
 ### NAME RELATED FUNCTIONS
-def match_dictionaries(dict1,dict2):
+def match_dictionaries(dict1:dict,dict2:dict)->None:
+    """
+    Match dictionaries find the intersection between the keys of two dictionnaries 
+    returns nothing if set is empty and outputs an error otherwise
+    INPUT:  dict1 -> dictionary
+            dict2 -> dictionary
+    OUTPUT: None, or error if fails
+    """
     dict1_set = set(dict1)
     dict2_set = set(dict2)
 
@@ -94,9 +101,13 @@ def match_dictionaries(dict1,dict2):
     if len(inter_set)!=0:
         error_("ERROR : some variables and parameters share the same name: "+str(inter_set))
 
-def check_names_repetitions(elements_list,add_type = False):
-    
-    all_names = []
+def check_names_repetitions(elements_list:list)->None:
+    """
+    Checks if a node name is present twice in a list of nodes
+    INPUT:  elements_list -> list of node objects
+    OUTPUT: None, or error if fails
+    """
+
     n = len(elements_list)
     i = 0
 
@@ -109,21 +120,20 @@ def check_names_repetitions(elements_list,add_type = False):
         for k in range(i+1,n):
             if name == elements_list[k].get_name():
                 error_('ERROR: Redefinition error: "'+str(name)+'" at line '+str(elements_list[k].get_line()))
-        
-        if add_type == True:
-            all_names.append(name,e.get_type())
-        else:
-            all_names.append(name)
-
         i = i+1
-    return all_names
 
 ### END NAME RELATED FUNCTIONS
 ### -------------------------
 
 ### -------------------------
 ### LINKS RELATED FUNCTIONS
-def convert_links_to_matrix(input_output_pairs):
+def convert_links_to_matrix(input_output_pairs:list)->list:
+    """
+    convert_links_to_matrix function : converts input output pairs in the matrix formalization
+                                       Node1 * A = Node2 * B
+    INPUT : input_output_pairs -> list of attribute pairs
+    OUTPUT : list of tuples Node1 - A - Node2 - B
+    """
     input_output_matrix = []
 
     for i in range(len(input_output_pairs)):
@@ -142,8 +152,14 @@ def convert_links_to_matrix(input_output_pairs):
         input_output_matrix.append(quadruple)
     return input_output_matrix
 
-def regroup_by_name(input_output_pairs):
-    triplet = []
+def regroup_by_name(input_output_pairs:list)->list:
+    """
+    regroup_by_name function : takes a list of input output pairs and regroups 
+                               the links per node pair
+    INPUT : input_output_pairs -> list of attribute pairs
+    OUTPUT : list of tuples Node1_name - Node2.name and links
+    """
+    triplet: list = []
 
     for i in range(len(input_output_pairs)):
         link = input_output_pairs[i]
@@ -168,13 +184,19 @@ def regroup_by_name(input_output_pairs):
 
     return triplet
 
-def check_link(program):
+def check_link(program:Program)->list:
+    """
+    check_link function : Takes program object and checks its links
+    INPUT:  program -> Program object
+    OUTPUT: list of input output pairs 
+    """
+
     links = program.get_links()
     link_size = len(links)
 
     nodes = program.get_nodes()
     node_size = len(nodes)
-    input_output_pairs = []
+    input_output_pairs:list = []
 
     for i in range(link_size):
         link_i = links[i]
@@ -317,7 +339,16 @@ def check_link(program):
     
     return input_output_pairs
 
-def get_index_link(link):
+def get_index_link(link:list)->tuple:
+    """
+    get_index_link function : transforms attribute equality 
+                              Node1.x = Node2.y
+                              in numpy array equality
+                              A*Node1_variables = B*Node2_variables
+                              returns the vectors A and B
+    INPUT:  link -> list of two attributes
+    OUTPUT: tuple of two numpy arrays
+    """
     input_attr = link[0]
     output_attr = link[1]
 
@@ -342,10 +373,20 @@ def get_index_link(link):
 
     return input_vector,output_vector
 
-def find_variable_and_type(node,attribute_name,output_v = True,internal_v = True, input_v=True):
+def find_variable_and_type(node:Node,attribute_name:str,output_v:bool = True,internal_v:bool = True, input_v:bool=True)->bool:
+    """
+    find_variable_and_type function : returns true if the variable name is defined for node
+    INPUT:  node -> Node object
+            attribute_name -> variable name
+            output_v -> look for output variables
+            internal_v -> look for internal variables
+            input_v -> look for input variables 
+    OUTPUT: found -> boolean either true if variable in found with the given type 
+                     or false otherwise
+    """
     variables= node.get_variables()
     variable_size = len(variables)
-    found = False
+    found:bool = False
 
     for i in range(variable_size):
         variable_i = variables[i]
@@ -366,7 +407,14 @@ def find_variable_and_type(node,attribute_name,output_v = True,internal_v = True
 ### -------------------------
 ### Expression FUNCTIONS
 
-def check_expressions_dependancy(node,variables,parameters):
+def check_expressions_dependancy(node:Node,variables:dict,parameters:dict)->None:
+    """
+    check_expressions_dependancy function : checks the expressions inside a node
+    INPUT:  node -> Node object
+            variables -> dictionary of <name,identifier> objects
+            parameters -> dictionary of <name,array> objects 
+    OUTPUT: None
+    """
     constraints = node.get_constraints()
     
     for cons in constraints:
@@ -392,9 +440,18 @@ def check_expressions_dependancy(node,variables,parameters):
         check_linear(expr,variables,parameters)
     
 
-def variables_in_expression(expression,variables,parameters,check_in = True):
+def variables_in_expression(expression:Expression,variables:dict,parameters:dict,check_in:bool = True)->bool:
+    """
+    variables_in_expression function : returns true if expression contains variables and false otherwise
+    INPUT:  expression -> expression object
+            variables -> dictionary of <name,identifier> objects
+            parameters -> dictionary of <name,array> objects 
+            check_in -> check for errors in identifier 's assigned expression
+    OUTPUT: bool -> boolean value if expression contains variable
+    """
+
     leafs = expression.get_leafs()
-    is_variable = False
+    is_variable:bool = False
     defined = False
 
     for expr_id in leafs:
@@ -426,7 +483,16 @@ def variables_in_expression(expression,variables,parameters,check_in = True):
             
     return is_variable
 
-def check_linear(expression,variables,parameters):
+def check_linear(expression:Expression,variables:dict,parameters:dict)->bool:
+    """
+    check_linear function : checks if an expression is linear with respect
+                            with respect to the variables
+    INPUT:  expression -> expression object to check
+            variables -> dictionary of <name,identifier> objects
+            parameters -> dictionary of <name,array> objects 
+    OUTPUT: bool -> boolean value if it depends on a variable
+    """
+
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     children = expression.get_children()
@@ -487,8 +553,13 @@ def check_linear(expression,variables,parameters):
 
     return True
 
-def parameter_evaluation(n_parameters,definitions):
-    
+def parameter_evaluation(n_parameters:list,definitions:dict)->dict:
+    """
+    parameter_evaluation function : evaluates a list of parameter objects
+    INPUT:  n_parameters -> list of parameters objects
+            definitions -> dictionary of definitions <name,array>
+    OUTPUT: definitions -> dictionary of definitions <name,array>
+    """
     for parameter in n_parameters:
         e = parameter.get_expression()
         name = parameter.get_name()
@@ -501,8 +572,15 @@ def parameter_evaluation(n_parameters,definitions):
 
     return definitions
 
-def evaluate_table(list_values,definitions):
-    all_values = []
+def evaluate_table(list_values:list,definitions:dict)->list:
+    """
+    evaluate_table function : evaluates a list of expression objects
+    INPUT:  list_values -> list of expression objects
+            definitions -> dictionary of definitions <name,value>
+    OUTPUT: list <float>
+    """
+
+    all_values:list = []
     for value in list_values:
         value_i = value.get_name()
 
@@ -538,7 +616,14 @@ def evaluate_table(list_values,definitions):
 
     return all_values
 
-def check_in_brackets(identifier,variables,parameters):
+def check_in_brackets(identifier:Identifier,variables:dict,parameters:dict)->None:
+    """
+    check_in_brackets function : checks identifier's expression inside brackets
+    INPUT:  identifier -> Identifier object
+            variables -> dictionary of variables
+            parameters -> dictionary of parameters
+    OUTPUT: None
+    """
     id_type = identifier.get_type()
     if id_type == 'assign':
         expr = identifier.get_expression()
@@ -546,11 +631,19 @@ def check_in_brackets(identifier,variables,parameters):
             error_("INTERNAL ERROR : expected expression for "+str(id_type)+" check internal parser")
         check_expr_in_brackets(expr,variables,parameters)
 
-def check_expr_in_brackets(expression,variables,parameters):
+def check_expr_in_brackets(expression:Expression,variables:dict,parameters:dict)->bool:
+    """
+    check_expr_in_brackets function : checks if the in-bracket expression of an identifier is correctly defined
+    INPUT:  expression -> expression in bracket
+            variables -> dictionary of variables
+            parameters -> dictionary of parameters
+    OUTPUT: is_time_var -> True if it depends on t, False otherwise and an error if check goes wrong
+    """
+
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     found = False
-    is_time_var = False
+    is_time_var:bool = False
 
     if e_type =='literal':
         if nb_child != 0:
@@ -616,7 +709,7 @@ def check_expr_in_brackets(expression,variables,parameters):
 
     return is_time_var
 
-def convert_constraints_matrix(node,variables,definitions):
+def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
     """
     convert_constraints_matrix function : converts a node's constraints and variables 
     into constraint and variables matrices of the respective form [value,lign,column]
@@ -679,7 +772,7 @@ def convert_constraints_matrix(node,variables,definitions):
         if(not is_time_dependant_constraint(constr,variables,definitions)):
             unique_constraint = True
 
-        add_t = 0
+        add_t:float = 0.0
         for k in constr_range:
             definitions['t']=[k]
 
@@ -690,8 +783,8 @@ def convert_constraints_matrix(node,variables,definitions):
             rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
             
-            dict_used_var = {}
-
+            dict_used_var:dict = {}
+            j:float = 0.0
             l = 0
             for n,identifier in variables_used:
                 
@@ -751,7 +844,7 @@ def convert_constraints_matrix(node,variables,definitions):
 
 
     
-def constant_in_constraint(constr,variables,constants):
+def constant_in_constraint(constr:Constraint,variables:dict,constants:dict)->float:
     """
     constant_in_constraint function : computes the constant factor 
     in an constraint
@@ -762,6 +855,7 @@ def constant_in_constraint(constr,variables,constants):
     """
     rhs = constr.get_rhs()
     lhs = constr.get_lhs()
+    value:float = 0.0
 
     value1 = constant_factor_in_expression(rhs,variables,constants)
     
@@ -770,7 +864,7 @@ def constant_in_constraint(constr,variables,constants):
     value = value2 - value1
     return value
 
-def constant_factor_in_expression(expression,variables,constants):
+def constant_factor_in_expression(expression:Expression,variables:dict,constants:dict)->float:
     """
     constant_factor_in_expression function : computes the constant factor 
     in an expression
@@ -781,7 +875,7 @@ def constant_factor_in_expression(expression,variables,constants):
     """
     e_type = expression.get_type()
     children = expression.get_children()
-    value = 0
+    value:float = 0.0
 
     if variables_in_expression(expression,variables,constants,check_in = False)==False:
         value = expression.evaluate_expression(constants)
@@ -863,7 +957,7 @@ def constant_factor_in_expression(expression,variables,constants):
                 value = value1**value2
     return value
 
-def convert_objectives_matrix(node,variables,definitions):
+def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
     """
     convert_objectives_matrix function : converts a node's objectives 
     into objective matrices of the form [value,lign,column]
@@ -916,8 +1010,9 @@ def convert_objectives_matrix(node,variables,definitions):
             rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
 
-            dict_used_var = {}
+            dict_used_var:dict = {}
             l = 0
+            j:float = 0.0
             for n,identifier in variables_used:
                 id_type = identifier.get_type()
 
@@ -963,7 +1058,7 @@ def convert_objectives_matrix(node,variables,definitions):
 
 
 
-def variable_in_constraint(constr,variable,constants):
+def variable_in_constraint(constr:Constraint,variable:Identifier,constants:dict)->tuple:
     """
     variable_in_constraint function : computes the constant term
     multiplying a variable in a constraint
@@ -984,7 +1079,7 @@ def variable_in_constraint(constr,variable,constants):
         flag_out_of_bounds = True
     return value,flag_out_of_bounds
 
-def variable_factor_in_expression(expression,variable,definitions):
+def variable_factor_in_expression(expression:Expression,variable:Identifier,definitions:dict)->tuple:
     """
     variable_factor_in_expression function : computes the constant term
     multiplying a variable in an expression
@@ -997,7 +1092,7 @@ def variable_factor_in_expression(expression,variable,definitions):
     """
     e_type = expression.get_type()
     found = False
-    value = 0
+    value:float = 0.0
     flag_out_of_bounds = False
 
     if e_type == 'literal':
@@ -1086,7 +1181,7 @@ def variable_factor_in_expression(expression,variable,definitions):
                     
     return found,value,flag_out_of_bounds
 
-def is_time_dependant_constraint(constraint,variables_dictionary,parameter_dictionary):
+def is_time_dependant_constraint(constraint:Constraint,variables_dictionary:dict,parameter_dictionary:dict)->bool:
     """
     is_time_dependant_constraint predicate : checks if constraint is time dependant
     A constraint is time dependant if its right hand side or left depend on "t"
@@ -1096,13 +1191,13 @@ def is_time_dependant_constraint(constraint,variables_dictionary,parameter_dicti
     OUTPUT: predicate, the boolean corresponding to the predicate
     """
     rhs = constraint.get_rhs()
-    time_dep = is_time_dependant_expression(rhs,variables_dictionary,parameter_dictionary)
+    time_dep:bool = is_time_dependant_expression(rhs,variables_dictionary,parameter_dictionary)
     lhs = constraint.get_lhs()
     if time_dep == False:
         time_dep = is_time_dependant_expression(lhs,variables_dictionary,parameter_dictionary)
     return time_dep
 
-def is_time_dependant_expression(expression,variables_dictionary,parameter_dictionary):
+def is_time_dependant_expression(expression:Expression,variables_dictionary:dict,parameter_dictionary:dict)->bool:
     """
     is_time_dependant_expression predicate : checks if expression is time dependant
     An expression is time dependant if it depends on "t"
@@ -1114,7 +1209,7 @@ def is_time_dependant_expression(expression,variables_dictionary,parameter_dicti
     e_type = expression.get_type()
     nb_child = expression.get_nb_children()
     children = expression.get_children()
-    predicate = False
+    predicate:bool = False
 
     if e_type == 'literal':
         identifier = expression.get_name()

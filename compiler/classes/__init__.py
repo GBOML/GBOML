@@ -1,4 +1,4 @@
-from compiler.classes.time import Time,TimeInterval
+from compiler.classes.time_obj import Time,TimeInterval
 from compiler.classes.constraint import Constraint
 from compiler.classes.expression import Expression
 from compiler.classes.identifier import Identifier
@@ -11,4 +11,4 @@ from compiler.classes.node import Node
 from compiler.classes.condition import Condition
 
 __all__ = ["parent", "constraint", "expression","identifier","link","node",\
-    "parameter","program","time","variable","objective","condition"]
+    "parameter","program","time_obj","variable","objective","condition"]

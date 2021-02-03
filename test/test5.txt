@@ -1,10 +1,10 @@
-#TIMEHORIZON T = 10
+#TIMEHORIZON T = 10;
 
 #NODE H
 #VARIABLES 
-internal : y
-internal : x
+internal : y;
+internal : x;
 #CONSTRAINTS
 x[t]=0;
 #OBJECTIVES
-min : y
+min : y;

@@ -4,10 +4,24 @@ from .gboml_semantic import semantic
 from .gboml_matrix_generation import matrix_generationAb,matrix_generationC
 
 import sys,os
-import numpy as np
+import numpy as np # type: ignore
 
 
-def compile(input_file,log = False,lex = False,parse = False):
+def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = False)->tuple:
+    """
+	compile_gboml function: takes as input a gboml file and converts it in a program object and 
+    three matrices, min : C^T * X s.t. A*x <= b
+    INPUT : input file -> str of the path towards the input file
+            log -> boolean to retrieve terminal log in a .log file
+            lex -> boolean to print the file's token
+            parse -> print the program object
+    OUTPUT : program -> program object
+             A -> Constraint sparse matrix 
+             b -> Vector of independant terms for each constraint
+             C_sum -> objective vector
+             T -> Timehorizon
+             name_tuples -> Mapping to convert the flat x solution to a graph strucure
+    """
     if(os.path.isfile(input_file)==False):
         print("No such file as "+str(input_file))
         exit(-1)

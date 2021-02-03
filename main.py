@@ -5,7 +5,7 @@
 # ------------
 
 #COMPILER import
-from compiler import compile
+from compiler import compile_gboml
 
 #SOLVER import
 from solver import solver_scipy, solver_clp,\
@@ -40,12 +40,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    if args.linprog==False:
-        print("The default solver is GUROBI")
-
     if args.input_file:
         start_time = time.time()
-        program,A,b,C_sum,T,name_tuples = compile(args.input_file,args.log,args.lex,args.parse)
+        program,A,b,C_sum,T,name_tuples = compile_gboml(args.input_file,args.log,args.lex,args.parse)
         print("All --- %s seconds ---" % (time.time() - start_time))
 
         if args.matrix:

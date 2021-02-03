@@ -94,8 +94,8 @@ class TestErrors(unittest.TestCase):
 
         with open("test/test6.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("objective", contents)
-            self.assertEqual(contents["objective"],40.0)
+            self.assertIn("objective", contents["solution"])
+            self.assertEqual(contents["solution"]["objective"],40.0)
 
     # Cplex positive problem resolution
     def test_positive_solution_cplex(self):
@@ -107,8 +107,8 @@ class TestErrors(unittest.TestCase):
 
         with open("test/test6.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("objective", contents)
-            self.assertEqual(contents["objective"],40.0)
+            self.assertIn("objective", contents["solution"])
+            self.assertEqual(contents["solution"]["objective"],40.0)
 
     # CLP positive problem resolution
     def test_positive_solution_clp(self):
@@ -120,8 +120,8 @@ class TestErrors(unittest.TestCase):
 
         with open("test/test6.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("objective", contents)
-            self.assertEqual(contents["objective"],40.0)
+            self.assertIn("objective", contents["solution"])
+            self.assertEqual(contents["solution"]["objective"],40.0)
 
     # Linprog positive problem resolution
     def test_positive_solution_linprog(self):
@@ -133,8 +133,8 @@ class TestErrors(unittest.TestCase):
 
         with open("test/test6.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("objective", contents)
-            self.assertEqual(contents["objective"],40.0)
+            self.assertIn("objective", contents["solution"])
+            self.assertEqual(contents["solution"]["objective"],40.0)
 
     # Gurobi negative problem resolution
     def test_negative_solution_gurobi(self):
@@ -146,8 +146,8 @@ class TestErrors(unittest.TestCase):
 
         with open("test/test7.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("objective", contents)
-            self.assertEqual(contents["objective"],4.0)
+            self.assertIn("objective", contents["solution"])
+            self.assertEqual(contents["solution"]["objective"],4.0)
 
     # Cplex negative problem resolution
     def test_negative_solution_cplex(self):
@@ -159,8 +159,8 @@ class TestErrors(unittest.TestCase):
 
         with open("test/test7.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("objective", contents)
-            self.assertEqual(contents["objective"],4.0)
+            self.assertIn("objective", contents["solution"])
+            self.assertEqual(contents["solution"]["objective"],4.0)
 
     # CLP negative problem resolution
     def test_negative_solution_clp(self):
@@ -172,8 +172,8 @@ class TestErrors(unittest.TestCase):
 
         with open("test/test7.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("objective", contents)
-            self.assertEqual(contents["objective"],4.0)
+            self.assertIn("objective", contents["solution"])
+            self.assertEqual(contents["solution"]["objective"],4.0)
 
     # Linprog negative problem resolution
     def test_negative_solution_linprog(self):
@@ -185,8 +185,8 @@ class TestErrors(unittest.TestCase):
 
         with open("test/test7.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("objective", contents)
-            self.assertEqual(contents["objective"],4.0)
+            self.assertIn("objective", contents["solution"])
+            self.assertEqual(contents["solution"]["objective"],4.0)
 
     # Non linearity in constraint
     def test_non_linearity(self):
@@ -203,6 +203,31 @@ class TestErrors(unittest.TestCase):
                            universal_newlines=True)
         return_code = process.returncode
         self.assertNotEqual(return_code, 0)
+    
+    # non linear assignement
+    def test_non_linear_assignment_import(self):
+        process = subprocess.run(['python', 'main.py', 'test/test10.txt'], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertNotEqual(return_code, 0)
+
+    def test_normal_file(self):
+        process = subprocess.run(['python', 'main.py', 'test/test11.txt'], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+        if process.stdout.count("\n")!=3:
+            print("Please remove the additional prints before you push")
+            
+    def test_assignment_T(self):
+        process = subprocess.run(['python', 'main.py', 'test/test12.txt'], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+
 
 if __name__ == '__main__':
     unittest.main()

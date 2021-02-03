@@ -6,11 +6,11 @@
 # Writer : MIFTARI B
 # ------------
 
-import ply.lex as lex
+import ply.lex as lex # type: ignore
 import re
 
 
-def tokenize(data):
+def tokenize(data:str)->None:
     """
     tokenize : Input a string
                Prints the tokens in the string
@@ -26,7 +26,7 @@ def tokenize(data):
     lexer = lex.lex()
 
 
-def tokenize_file(filepath):
+def tokenize_file(filepath:str)->None:
     """
     tokenize_file : Input a file
                     Prints the tokens in the file

@@ -1,8 +1,16 @@
 import numpy as np
 import time 
+from scipy.sparse import coo_matrix
 
-def solver_clp(A,b,C):
-
+def solver_clp(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
+    """
+	solver_clp function: takes as input the matrix A, the vectors b and C. It returns the solution
+    of the problem : min C^T x s.t. A x <= b
+    found by the clp solver
+    INPUT : A -> coo_matrix of constraints
+            b -> np.ndarray of independant terms of each constraint
+            C -> np.ndarray of objective vector
+    """
     #CYLP IMPORT
     try:
         from cylp.cy import CyClpSimplex
@@ -59,8 +67,16 @@ def solver_clp(A,b,C):
     solver_info["status"] = solver.getStatusString()
     return x, obj, solved, solver_info
 
-def solver_gurobi(A, b, c):
-    
+def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
+    """
+	solver_gurobi function: takes as input the matrix A, the vectors b and C. It returns the solution
+    of the problem : min C^T x s.t. A x <= b
+    found by the gurobi solver
+    INPUT : A -> coo_matrix of constraints
+            b -> np.ndarray of independant terms of each constraint
+            C -> np.ndarray of objective vector
+    """
+
     #GUROBI IMPORT
     try:
         import gurobipy as grbp
@@ -75,12 +91,12 @@ def solver_gurobi(A, b, c):
     A = A.astype(float)
     _, n = np.shape(A)
     b = b.reshape(-1)
-    c = c.reshape(-1)
+    C = C.reshape(-1)
 
     model = grbp.Model()
     x = model.addMVar(shape=n, lb=-float('inf'), ub=float('inf'), vtype=GRB.CONTINUOUS, name="x")
     model.addMConstr(A, x, '<', b)
-    model.setObjective(c @ x, GRB.MINIMIZE)
+    model.setObjective(C @ x, GRB.MINIMIZE)
     model.setParam('Method',2)          # uses a barrier method
     model.setParam('BarHomogeneous',1)  # uses a barrier variant with better numerical stability
     model.setParam('Crossover',0)       # disables crossover (returns a nonbasic solution)
@@ -99,11 +115,18 @@ def solver_gurobi(A, b, c):
 
     solver_info = {}
     solver_info["name"] = "gurobi"
-    solver_info["algorithm"] = None
+    solver_info["algorithm"] = "unknown"
     return solution,objective,flag_solved,solver_info
 
-def solver_cplex(A, b, c):
-
+def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
+    """
+	solver_cplex function: takes as input the matrix A, the vectors b and C. It returns the solution
+    of the problem : min C^T x s.t. A x <= b
+    found by the cplex solver
+    INPUT : A -> coo_matrix of constraints
+            b -> np.ndarray of independant terms of each constraint
+            C -> np.ndarray of objective vector
+    """
     try: 
         import cplex   
     except:
@@ -115,11 +138,11 @@ def solver_cplex(A, b, c):
     objective = None
     m, n = np.shape(A)
     b = list(b.reshape(-1))
-    c = c.tolist()[0]
+    C = C.tolist()[0]
 
     model = cplex.Cplex()
 
-    model.variables.add(obj=c,lb=[-cplex.infinity]*n,ub=[cplex.infinity]*n)
+    model.variables.add(obj=C,lb=[-cplex.infinity]*n,ub=[cplex.infinity]*n)
     model.linear_constraints.add(senses=['L']*m,rhs=b)
     model.linear_constraints.set_coefficients(A_zipped)
     model.objective.set_sense(model.objective.sense.minimize)
@@ -142,11 +165,18 @@ def solver_cplex(A, b, c):
 
     solver_info = {}
     solver_info["name"] = "cplex"
-    solver_info["algorithm"] = None
+    solver_info["algorithm"] = "unknown"
     return solution, objective, flag_solved,solver_info
 
-def solver_scipy(A,b,C):
-
+def solver_scipy(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
+    """
+	solver_scipy function: takes as input the matrix A, the vectors b and C. It returns the solution
+    of the problem : min C^T x s.t. A x <= b
+    found by the scipy linprog solver
+    INPUT : A -> coo_matrix of constraints
+            b -> np.ndarray of independant terms of each constraint
+            C -> np.ndarray of objective vector
+    """
     #LINPROG IMPORT
     from scipy.optimize import linprog
     
@@ -154,4 +184,5 @@ def solver_scipy(A,b,C):
     solution = linprog(C, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
     solver_info = {}
     solver_info["name"] = "linprog"
+    solver_info["algorithm"] = "unknown"
     return solution.x, solution.fun, solution.success, solver_info
