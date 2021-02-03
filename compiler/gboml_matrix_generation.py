@@ -120,19 +120,33 @@ def matrix_generationAb(root:Program)->tuple:
 	nb_link_constr = 0
 
 	for nodeIn, matrixIn,nodeOut,matrixOut in links:
+		#print(nodeIn.get_name())
 		matrixVarIn = nodeIn.get_variable_matrix()
+		#print(matrixIn)
 		matrixVarOut = nodeOut.get_variable_matrix()
 
 		nonzero_rowIn,nonzero_columnIn = np.nonzero(matrixIn)
+		#print(nonzero_rowIn,nonzero_columnIn)
 		nonzero_rowOut,nonzero_columnOut = np.nonzero(matrixOut)
+
+		#print(nodeOut.get_name())
+		#print(matrixOut)
+		#print(nonzero_rowOut,nonzero_columnOut)
+		#print("\n\n")
 
 		if len(nonzero_columnIn) != len(nonzero_columnOut):
 			error_("Internal error : Non matching column size for matrices")
 
 		for i in range(len(nonzero_columnIn)):
-			k = nonzero_rowIn[i]
-			j = nonzero_rowOut[i]
+			m = 0
+			for l in range(len(nonzero_columnOut)):
+				if nonzero_columnOut[l]==i:
+					m = l
 
+			k = nonzero_rowIn[i]
+			#print(k)
+			j = nonzero_rowOut[m]
+			#print(j)
 			indexIn = matrixVarIn[0][k].get_index()
 			indexOut = matrixVarOut[0][j].get_index()
 			
