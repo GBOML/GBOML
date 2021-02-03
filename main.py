@@ -51,7 +51,7 @@ if __name__ == '__main__':
             print("Vector C ",C_sum)
 
         if args.linprog:
-            x, objective, status,solver_info = solver_scipy(A,b,C_sum)
+            x, objective, status, solver_info = solver_scipy(A,b,C_sum)
         elif args.clp:
             x, objective, status, solver_info = solver_clp(A,b,C_sum)
         elif args.cplex:
@@ -62,12 +62,21 @@ if __name__ == '__main__':
             print("No solver was chosen")
             exit()
 
-        if status == False :
-            print("An error occured !")
+        assert status in {"unbounded", "optimal", "feasible", "infeasible", "error", "unknown"}
+
+        if status == "unbounded":
+            print("Problem is unbounded")
+        elif status == "optimal":
+            print("Optimal solution found")
+        elif status == "feasible":
+            print("Feasible solution found")
+        elif status == "infeasible":
+            print("Problem is infeasible")
+        elif status == "error":
+            print("An error occurred")
             exit()
-        elif status == "no solution":
-            print("The problem is either unsolvable or possesses too many solutions")
-            exit()
+        elif status == "unknown":
+            print("Solver returned with unknown status")
 
         filename_split = args.input_file.rsplit('.', 1)
         filename = filename_split[0]

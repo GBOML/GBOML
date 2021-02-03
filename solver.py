@@ -19,22 +19,16 @@ def solver_clp(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
         print("Warning: Did not find the CyLP package")
         exit(0)
 
-    # Initialize return values
-    x = None
-    solved = False
     # Initialize local time
     start_time = time.time()
 
     # Compute model info
     nvars = np.shape(C)[1]
-    print(np.shape(C))
-    print('\033[93m', "DEBUG: CLP number of variables: %d" % nvars, '\033[0m')
 
     # Build CLP model
     c = CyLPArray(C)
     solver = CyClpSimplex()
     variables = solver.addVariable('variables', nvars)
-    print(type(variables))
     solver.addConstraint(A * variables <= b)
 
     if nvars == 1:
@@ -42,30 +36,40 @@ def solver_clp(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     else:
         solver.objective = c * variables
 
-    print('\033[93m', "DEBUG: CLP translation time: %s seconds" % (time.time() - start_time), '\033[0m')
-
     # Solve model
     solver.primal()
 
     # Return solution
-    x = solver.primalVariableSolution['variables']
-    obj = solver.objectiveValue
-
-    if solver.getStatusCode() == 0:
-        solved = True
-    print('\033[93m', "DEBUG: CLP solver status: %s" % solver.getStatusString(), '\033[0m')
-    print('\033[93m', "DEBUG: CLP return x:", '\033[0m')
-    print('\033[93m', x, '\033[0m')
-    print('\033[93m', "DEBUG: CLP return obj: %s" % obj, '\033[0m')
-    print('\033[93m', "DEBUG: CLP return solved: %s" % solved, '\033[0m')
-    print('\033[93m', "DEBUG: CLP total time: %s seconds" % (time.time() - start_time), '\033[0m')
-    print('\033[93m', "DEBUG: CLP iteration: %s" % solver.iteration, '\033[0m')
-
     solver_info = {}
     solver_info["name"] = "clp"
     solver_info["algorithm"] = "primal simplex"
     solver_info["status"] = solver.getStatusString()
-    return x, obj, solved, solver_info
+
+    solution = None
+    objective = None
+    status_code = solver.getStatusCode()
+    if status_code == -1:
+        status = "unknown"
+    elif status_code == 0:
+        status = "optimal"
+        solution = solver.primalVariableSolution['variables']
+        objective = solver.objectiveValue
+    elif status_code == 1:
+        status = "infeasible"
+        objective = float('inf')
+    elif status_code == 2:
+        status = "unbounded"
+        objective = float('-inf')
+    elif status_code == 3:
+        status = "unknown"
+    elif status_code == 4:
+        status = "error"
+    elif status_code == 5:
+        status = "unknown"
+    else:
+        status = "unknown"
+
+    return solution, objective, status, solver_info
 
 def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     """
@@ -88,6 +92,7 @@ def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     solution = None
     objective = None
 
+    # Build Gurobi model
     A = A.astype(float)
     _, n = np.shape(A)
     b = b.reshape(-1)
@@ -101,22 +106,39 @@ def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     model.setParam('BarHomogeneous',1)  # uses a barrier variant with better numerical stability
     model.setParam('Crossover',0)       # disables crossover (returns a nonbasic solution)
 
+    # Solve model and return solution
     try:
         model.optimize()
-        if model.getAttr("Status") == 2:
-            flag_solved = True
+
+        solver_info = {}
+        solver_info["name"] = "gurobi"
+        solver_info["algorithm"] = "barrier"
+        status_code = model.getAttr("Status")
+        solver_info["status"] = status_code
+
+        solution = None
+        objective = None
+        if status_code == 2:
+            status = "optimal"
+            solution = x.X
+            objective = model.getObjective().getValue()
+        elif status_code == 3:
+            status = "infeasible"
+            objective = float('inf')
+        elif status_code == 5:
+            status = "unbounded"
+            objective = float('-inf')
+        elif status_code == 13:
+            status = "feasible"
             solution = x.X
             objective = model.getObjective().getValue()
         else:
-            flag_solved = False
+            status = "unknown"
     except RuntimeError as e:
         print(e)
-        flag_solved = False
+        status = "error"
 
-    solver_info = {}
-    solver_info["name"] = "gurobi"
-    solver_info["algorithm"] = "unknown"
-    return solution,objective,flag_solved,solver_info
+    return solution, objective, status, solver_info
 
 def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     """
@@ -134,8 +156,6 @@ def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
         exit(0)
 
     A_zipped = zip(A.row.tolist(), A.col.tolist(), A.data)
-    solution = None
-    objective = None
     m, n = np.shape(A)
     b = list(b.reshape(-1))
     C = C.tolist()[0]
@@ -153,20 +173,26 @@ def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
 
     try:
         model.solve()
-        if model.solution.get_status()==1 or model.solution.get_status()==101:
-            flag_solved = True
+
+        solver_info = {}
+        solver_info["name"] = "cplex"
+        solver_info["algorithm"] = "barrier"
+        status_code = model.solution.get_status()
+        solver_info["status"] = status_code
+
+        solution = None
+        objective = None
+        if status_code == 1 or status_code == 101:
+            status = "optimal"
             solution = np.array(model.solution.get_values())
             objective = model.solution.get_objective_value()
         else:
-            flag_solved = False
+            status = "unknown"
     except RuntimeError as e:
         print(e)
-        flag_solved = False
+        status = "error"
 
-    solver_info = {}
-    solver_info["name"] = "cplex"
-    solver_info["algorithm"] = "unknown"
-    return solution, objective, flag_solved,solver_info
+    return solution, objective, status, solver_info
 
 def solver_scipy(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     """
@@ -179,10 +205,23 @@ def solver_scipy(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     """
     #LINPROG IMPORT
     from scipy.optimize import linprog
-    
+
     x0_bounds = (None, None)
-    solution = linprog(C, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
+    result = linprog(C, A_ub=A.toarray(), b_ub=b,bounds = x0_bounds,options={"lstsq":True,"disp": True,"cholesky":False,"sym_pos":False,})
+
     solver_info = {}
     solver_info["name"] = "linprog"
     solver_info["algorithm"] = "unknown"
-    return solution.x, solution.fun, solution.success, solver_info
+    status_flag = result.success
+    solver_info["status"] = status_flag
+
+    solution = None
+    objective = None
+    if status_flag:
+        status = "optimal"
+        solution = result.x
+        objective = result.fun
+    else:
+        status = "unknown"
+
+    return solution, objective, status, solver_info

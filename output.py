@@ -43,16 +43,17 @@ def generate_json(program, variable_names, solver_data, status, solution, object
     solution_data["status"] = status
     solution_data["objective"] = objective
  
-    nodes = {}
-    for node_name, variable_indexes in variable_names:
-        node_data = {}
-        variables = {}
-        for index, var_name in variable_indexes:
-            variables[var_name] = solution[index:(index+horizon)].flatten().tolist()
-        node_data["variables"] = variables
-        nodes[node_name] = node_data
+    if solution is not None:
+        nodes = {}
+        for node_name, variable_indexes in variable_names:
+            node_data = {}
+            variables = {}
+            for index, var_name in variable_indexes:
+                variables[var_name] = solution[index:(index+horizon)].flatten().tolist()
+            node_data["variables"] = variables
+            nodes[node_name] = node_data
 
-    solution_data["nodes"] = nodes
+        solution_data["nodes"] = nodes
 
     data["solution"] = solution_data
 
