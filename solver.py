@@ -186,6 +186,16 @@ def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
             status = "optimal"
             solution = np.array(model.solution.get_values())
             objective = model.solution.get_objective_value()
+        elif status_code == 2 or status_code == 118:
+            status = "unbounded"
+            objective = float('-inf')
+        elif status_code == 3 or status_code == 103:
+            status = "infeasible"
+            objective = float('inf')
+        elif status_code == 23 or status_code == 127:
+            status = "feasible"
+            solution = np.array(model.solution.get_values())
+            objective = model.solution.get_objective_value()
         else:
             status = "unknown"
     except RuntimeError as e:
