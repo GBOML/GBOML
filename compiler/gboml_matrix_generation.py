@@ -140,7 +140,7 @@ def matrix_generationAb(root:Program)->tuple:
 		for i in range(len(nonzero_columnIn)):
 			m = 0
 			for l in range(len(nonzero_columnOut)):
-				if nonzero_columnOut[l]==i:
+				if nonzero_columnOut[l]==nonzero_columnIn[i]:
 					m = l
 
 			k = nonzero_rowIn[i]
