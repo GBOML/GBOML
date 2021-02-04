@@ -102,17 +102,48 @@ def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     x = model.addMVar(shape=n, lb=-float('inf'), ub=float('inf'), vtype=GRB.CONTINUOUS, name="x")
     model.addMConstr(A, x, '<', b)
     model.setObjective(C @ x, GRB.MINIMIZE)
-    model.setParam('Method',2)          # uses a barrier method
-    model.setParam('BarHomogeneous',1)  # uses a barrier variant with better numerical stability
-    model.setParam('Crossover',0)       # disables crossover (returns a nonbasic solution)
+
+    solver_info = {}
+    solver_info["name"] = "gurobi"
+
+    print("\nReading Gurobi options from file gurobi.opt")
+
+    option_info = {}
+    try:
+        with open('gurobi.opt', 'r') as optfile:
+            lines = optfile.readlines()
+    except IOError:
+        print("Options file not found")
+    else:
+        for line in lines:
+            line = line.strip()
+            option = line.split(" ", 1)
+            if len(option) == 2:
+                parinfo = model.getParamInfo(option[0])
+                if parinfo:
+                    key = option[0]
+                    try:
+                        value = parinfo[1](option[1])
+                    except ValueError as e:
+                        print("Skipping option \'%s\' with invalid given value \'%s\' (expected %s)"
+                            % (option[0], option[1], parinfo[1]))
+                    else:
+                        model.setParam(key, value)
+                        option_info[key] = value
+                else:
+                    print("Skipping unknown option \'%s\'" % option[0])
+            else:
+                if option[0] != "":
+                    print("Skipping option \'%s\' with no given value" % option[0])
+
+    solver_info["options"] = option_info
+
+    print("")
 
     # Solve model and return solution
     try:
         model.optimize()
 
-        solver_info = {}
-        solver_info["name"] = "gurobi"
-        solver_info["algorithm"] = "barrier"
         status_code = model.getAttr("Status")
         solver_info["status"] = status_code
 
