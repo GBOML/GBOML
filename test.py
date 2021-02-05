@@ -212,6 +212,7 @@ class TestErrors(unittest.TestCase):
         return_code = process.returncode
         self.assertNotEqual(return_code, 0)
 
+    # normal test file just to check if any print is in there
     def test_normal_file(self):
         process = subprocess.run(['python', 'main.py', 'test/test11.txt'], 
                            stdout=subprocess.PIPE,
@@ -221,10 +222,89 @@ class TestErrors(unittest.TestCase):
         if process.stdout.count("\n")!=3:
             print("Please remove the additional prints before you push")
             
+    # test a file with T as assignment of a variable
     def test_assignment_T(self):
-        process = subprocess.run(['python', 'main.py', 'test/test12.txt'], 
+        process = subprocess.run(['python', 'main.py', 'test/test12.txt',"--gurobi","--json"], 
                            stdout=subprocess.PIPE,
                            universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+    
+    # nb of constraint and objective derived checked
+    def test_single_obj_constr(self):
+        with open("test/test12.json", 'r') as j:
+            contents = json.loads(j.read())
+            self.assertIn("nodes", contents)
+            nodes = contents["nodes"]
+            self.assertIn("A", nodes)
+            nodeA = nodes["A"]
+            self.assertIn("number_of_constraints_derived", nodeA)
+            nb_constr_derived = nodeA["number_of_constraints_derived"]
+            self.assertIn("number_of_objectives_derived", nodeA)
+            nb_obj_derived = nodeA["number_of_objectives_derived"]
+            self.assertEqual(nb_constr_derived, 1)
+            self.assertEqual(nb_obj_derived,1)
+
+    # where test t == 9
+    def test_precise_where(self):
+        process = subprocess.run(['python', 'main.py', 'test/test13.txt',"--matrix"], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        output_split = process.stdout.split("\n")
+        self.assertEqual(output_split[2],'Matrix A    (0, 9)\t-1.0')
+        self.assertEqual(output_split[3],'Vector b  [-0.]')
+        self.assertEqual(output_split[4],"Vector C  [[0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]]")
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+
+    # for t in [9:10]
+    def test_precise_for(self):
+        process = subprocess.run(['python', 'main.py', 'test/test14.txt',"--matrix"], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        output_split = process.stdout.split("\n")
+        self.assertEqual(output_split[2],'Matrix A    (0, 9)\t-1.0')
+        self.assertEqual(output_split[3],'Vector b  [-0.]')
+        self.assertEqual(output_split[4],"Vector C  [[0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]]")
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+    
+    def test_links(self):
+        process = subprocess.run(['python', 'main.py', 'test/test15.txt',"--gurobi","--json"], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+        with open("test/test15.json", 'r') as j:
+            contents = json.loads(j.read())
+            links = contents["links"]
+            for l in links:
+                l=l.replace("["," ")
+                l=l.replace(']'," ")
+                l=l.replace('.'," ")
+                l=l.replace(","," ")
+                l=l.split()
+                all_nodes = contents["nodes"]
+                node_name1 = l[0]
+                variable_name1 = l[1]
+                node_name2 = l[4]
+                variable_name2 = l[5]
+                self.assertIn(node_name1,all_nodes)
+                self.assertIn(node_name2,all_nodes)
+                node1 = all_nodes[node_name1]
+                node2 = all_nodes[node_name2]
+                variables1 = node1["variables"]
+                variables2 = node2["variables"]
+                self.assertIn(variable_name1,variables1)
+                self.assertIn(variable_name2,variables2)
+                self.assertTrue(variables1[variable_name1]==variables2[variable_name2])
+    
+    def test_time_dependency_in_obj(self):
+        process = subprocess.run(['python', 'main.py', 'test/test16.txt',"--matrix"], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        output_split = process.stdout.split("\n")
+        self.assertEqual(output_split[9],"Vector C  [[6. 0. 0. 1. 0. 0.]]")
         return_code = process.returncode
         self.assertEqual(return_code, 0)
 

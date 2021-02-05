@@ -1,0 +1,15 @@
+#TIMEHORIZON T = 3;
+
+#NODE A
+#PARAMETERS 
+w = {1,2,3};
+one = 1;
+#VARIABLES
+internal : x;
+input : y;
+#CONSTRAINTS 
+x>=0;
+y>=0;
+#OBJECTIVES 
+min: w*x[0];
+min: one*y[0];

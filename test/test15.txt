@@ -1,0 +1,28 @@
+#TIMEHORIZON T = 1;
+
+#NODE A 
+#VARIABLES 
+output : b ;
+input : a ;
+output : c;
+
+#CONSTRAINTS 
+a >=0;
+b >=1;
+c >=2;
+#OBJECTIVES
+min : a ;
+
+#NODE R
+#VARIABLES
+input : f;
+input : d;
+output: h;
+input : ff;
+
+#LINKS
+A.b = R.f;
+A.b = R.ff;
+R.h = A.a;
+A.c = R.d;
+

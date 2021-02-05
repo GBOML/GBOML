@@ -29,7 +29,8 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
     curr_dir = os.getcwd()
     dir_path = os.path.dirname(input_file)
     filename = os.path.basename(input_file)
-    os.chdir(dir_path)
+    if dir_path != "":
+        os.chdir(dir_path)
 
     if log == True:
         filename_split = filename.rsplit('.', 1)

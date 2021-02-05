@@ -5,6 +5,6 @@ T = 10;
 #VARIABLES 
 internal : x;
 #CONSTRAINTS
-x[T-1]>=0;
+x[t]>=0 where t == 9;
 #OBJECTIVES
 min: x[T-1];
