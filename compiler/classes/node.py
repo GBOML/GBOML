@@ -40,20 +40,6 @@ class Node:
         
         return string
 
-    def to_dict(self):
-        
-        dictionary = {}
-        dictionary["number_of_constraints_declared"] = len(self.constraints)
-        dictionary["number_of_constraints_derived"] = len(self.c_triplet_list)
-        dictionary["number_of_variables_declared"] = len(self.variables)
-        dictionary["number_of_parameters_declared"] = len(self.parameters)
-        dictionary["number_of_objectives_declared"] = len(self.objectives)
-        dictionary["number_of_objectives_derived"] = len(self.objective_list)
-        dictionary["parameters"] = self.param_dict
-        dictionary["variables"] = {}
-        
-        return dictionary
-
     def set_line(self,line):
         
         self.line = line
@@ -98,17 +84,52 @@ class Node:
         
         return self.constraints
 
+    def get_number_constraints(self):
+
+        return len(self.constraints)
+
+    def get_number_expanded_constraints(self):
+
+        return len(self.c_triplet_list)
+
+    def get_parameter_dict(self):
+
+        return self.param_dict
+
     def get_variables(self):
         
         return self.variables
+
+    def get_number_variables(self):
+
+        return len(self.variables)
+
+    def get_variable_names(self):
+
+        names = []
+        for var in self.variables:
+            names.append(var.get_name().get_name())
+        return names
 
     def get_parameters(self):
         
         return self.parameters
 
+    def get_number_parameters(self):
+
+        return len(self.parameters)
+
     def get_objectives(self):
         
         return self.objectives
+
+    def get_number_objectives(self):
+
+        return len(self.objectives)
+
+    def get_number_expanded_objectives(self):
+
+        return len(self.objective_list)
 
     def set_variable_matrix(self,X):
         
