@@ -118,23 +118,23 @@ def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
         for line in lines:
             line = line.strip()
             option = line.split(" ", 1)
-            if len(option) == 2:
+            if option[0] != "":
                 parinfo = model.getParamInfo(option[0])
                 if parinfo:
-                    key = option[0]
-                    try:
-                        value = parinfo[1](option[1])
-                    except ValueError as e:
-                        print("Skipping option \'%s\' with invalid given value \'%s\' (expected %s)"
-                            % (option[0], option[1], parinfo[1]))
+                    if len(option) == 2:
+                        key = option[0]
+                        try:
+                            value = parinfo[1](option[1])
+                        except ValueError as e:
+                            print("Skipping option \'%s\' with invalid given value \'%s\' (expected %s)"
+                                % (option[0], option[1], parinfo[1]))
+                        else:
+                            model.setParam(key, value)
+                            option_info[key] = value
                     else:
-                        model.setParam(key, value)
-                        option_info[key] = value
+                        print("Skipping option \'%s\' with no given value" % option[0])
                 else:
                     print("Skipping unknown option \'%s\'" % option[0])
-            else:
-                if option[0] != "":
-                    print("Skipping option \'%s\' with no given value" % option[0])
 
     solver_info["options"] = option_info
 
@@ -197,17 +197,54 @@ def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     model.linear_constraints.add(senses=['L']*m,rhs=b)
     model.linear_constraints.set_coefficients(A_zipped)
     model.objective.set_sense(model.objective.sense.minimize)
-    alg = model.parameters.lpmethod.values
-    model.parameters.lpmethod.set(alg.barrier)    # uses a barrier method
-    model.parameters.solutiontype.set(2)
-    #model.parameters.barrier.crossover.set(model.parameters.barrier.crossover.values.none)    # disables crossover (yields a nonbasic solution)
+
+    solver_info = {}
+    solver_info["name"] = "cplex"
+
+    print("\nReading CPLEX options from file cplex.opt")
+
+    option_info = {}
+    try:
+        with open('cplex.opt', 'r') as optfile:
+            lines = optfile.readlines()
+    except IOError:
+        print("Options file not found")
+    else:
+        for line in lines:
+            line = line.strip()
+            option = line.split(" ", 1)
+            if option[0] != "":
+                try:
+                    key = getattr(model.parameters, option[0])
+                    assert(isinstance(key, cplex._internal._parameter_classes.Parameter))
+                except AttributeError as e:
+                    print("Skipping unknown option \'%s\'" % option[0])
+                except AssertionError as e:
+                    print("Skipping unknown option \'%s\'" % option[0])
+                else:
+                    if len(option) == 2:
+                        try:
+                            value = key.type()(option[1])
+                        except ValueError as e:
+                            print("Skipping option \'%s\' with invalid given value \'%s\' (expected %s)"
+                                % (option[0], option[1], key.type()))
+                        else:
+                            name = key.__repr__().split(".", 1)[1]
+                            print("Setting option \'%s\' to value \'%s\'"
+                                % (name, value))
+                            key.set(value)
+                            option_info[name] = value
+                    else:
+                        print("Skipping option \'%s\' with no given value" % option[0])
+
+
+    solver_info["options"] = option_info
+
+    print("")
 
     try:
         model.solve()
 
-        solver_info = {}
-        solver_info["name"] = "cplex"
-        solver_info["algorithm"] = "barrier"
         status_code = model.solution.get_status()
         solver_info["status"] = status_code
 
@@ -252,7 +289,6 @@ def solver_scipy(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
 
     solver_info = {}
     solver_info["name"] = "linprog"
-    solver_info["algorithm"] = "unknown"
     status_flag = result.success
     solver_info["status"] = status_flag
 
