@@ -18,6 +18,7 @@ from output import generate_json, generate_pandas
 import json
 import argparse
 import time
+import numpy as np
 
 if __name__ == '__main__':
 
@@ -42,8 +43,10 @@ if __name__ == '__main__':
 
     if args.input_file:
         start_time = time.time()
-        program,A,b,C_sum,T,name_tuples = compile_gboml(args.input_file,args.log,args.lex,args.parse)
+        program, A, b, C, T, name_tuples, objective_map = compile_gboml(args.input_file,args.log,args.lex,args.parse)
         print("All --- %s seconds ---" % (time.time() - start_time))
+
+        C_sum = np.asarray(C.sum(axis=0))
 
         if args.matrix:
             print("Matrix A ",A)
@@ -82,7 +85,7 @@ if __name__ == '__main__':
         filename = filename_split[0]
 
         if args.json:
-            dictionary = generate_json(program, name_tuples, solver_info, status, x, objective)
+            dictionary = generate_json(program, name_tuples, solver_info, status, x, objective, C, objective_map)
             with open(filename+".json", 'w') as outfile:
                 json.dump(dictionary, outfile,indent=4)
 

@@ -59,7 +59,7 @@ def p_links(p):
 
 
 def p_link_def(p):
-    '''link_def : ID DOT ID EQUAL ID DOT ID more_id_aux SEMICOLON'''
+    '''link_def : ID DOT ID DOUBLE_EQ ID DOT ID more_id_aux SEMICOLON'''
 
     rhs = Attribute(p[1], p[3])
     a = Attribute(p[5], p[7])
@@ -208,7 +208,7 @@ def p_constraints_aux(p):
 
 
 def p_define_constraints(p):
-    '''define_constraints : expr EQUAL expr time_loop condition
+    '''define_constraints : expr DOUBLE_EQ expr time_loop condition
                           | expr LEQ expr time_loop condition
                           | expr BEQ expr time_loop condition'''
 

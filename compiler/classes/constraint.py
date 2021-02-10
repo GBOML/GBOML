@@ -18,7 +18,7 @@ class Constraint(Type):
         condition:Condition = None,line:int=0):
 
         assert type(c_type) == str, "Internal error: expected string for Constraint type" 
-        assert c_type in ["=","<=",">="], \
+        assert c_type in ["==","<=",">="], \
             "Internal error: unknown type for constraint"
         assert type(rhs)==Expression, "Internal error: expected Expression type \
             for right hand side in Constraint"

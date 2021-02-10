@@ -120,7 +120,7 @@ def matrix_generationAb(root:Program)->tuple:
 			row = np.zeros(nb_values)
 			row.fill(nb_constraints)
 
-			if sign =="=":
+			if sign =="==":
 				#Do c<=b and -c<=-b
 				all_values.append(values)
 				all_columns.append(columns)
