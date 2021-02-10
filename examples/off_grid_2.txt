@@ -1,5 +1,5 @@
 #TIMEHORIZON
-T = 24*365;// hours 
+T = 24*3;// hours 
 
 
 #NODE INVEST_PV
@@ -14,10 +14,10 @@ output : ppv_max; //max capacity of PV panels installed in Watt
 output : c_p; //investment cost in currency 
 #CONSTRAINTS
 ppv_max >= 0;
-ppv_max[0] = ppv_max;
-ipv = c_pv * ppv_max;
-p = ipv * rate * ((1+rate)**n) / (((1+rate)**n) - 1);
-c_p = p / 8760;
+ppv_max[0] == ppv_max;
+ipv == c_pv * ppv_max;
+p == ipv * rate * ((1+rate)**n) / (((1+rate)**n) - 1);
+c_p == p / 8760;
 
 
 #NODE PV
@@ -29,8 +29,8 @@ input : ppv_max; // max production in watt
 internal: var; 
 output : ppv; //the expected value of the PV power generation in watt
 #CONSTRAINTS
-var = avg_prod[mod(t,24)];
-ppv[t] = avg_prod[mod(t,24)] * ppv_max[t];
+var == avg_prod[mod(t,24)];
+ppv[t] == avg_prod[mod(t,24)] * ppv_max[t];
 
 
 #NODE INVEST_BAT
@@ -45,10 +45,10 @@ output: soCmax; //max installed capacity in watt
 output: c_b; //investment cost in currency
 #CONSTRAINTS
 soCmax >= 0;
-soCmax[0] = soCmax;
-ib = c_unit * soCmax;
-p = ib * rate * ((1+rate)**n) / (((1+rate)**n) - 1);
-c_b = p / 8760;
+soCmax[0] == soCmax;
+ib == c_unit * soCmax;
+p == ib * rate * ((1+rate)**n) / (((1+rate)**n) - 1);
+c_b == p / 8760;
 
 
 #NODE BATTERY
@@ -59,10 +59,10 @@ input: soCmax; // max installed capacity in watt
 internal: soC; //state of charge of the battery in watt hour
 output: pbt;  //actual charging power in watt
 #CONSTRAINTS
-soC[0] = soCmax / 2;
+soC[0] == soCmax / 2;
 soC[t] >= 0;
 soC[t] <= soCmax;
-soC[t+1] = soC[t] + pbt[t];
+soC[t+1] == soC[t] + pbt[t];
 
 
 #NODE DEMAND
@@ -72,7 +72,7 @@ demand = {6.9,6.4,6.1,5.9,5.7,5.4,4.8, 4.5, 4.6,
 #VARIABLES
 output: pc; //consumption in watt 
 #CONSTRAINTS
-pc[t] = demand[mod(t,24)];
+pc[t] == demand[mod(t,24)];
 
 
 #NODE OPERATION_COST
@@ -89,19 +89,19 @@ internal: cshed; //variable cost in curr
 internal: shed; //power curtailed in watt
 output: r; //reward
 #CONSTRAINTS
-pv_production[t] - battery[t] + shed[t] = consumption[t];
-cshed[t] = shed[t]*pi_shed;
+pv_production[t] - battery[t] + shed[t] == consumption[t];
+cshed[t] == shed[t]*pi_shed;
 shed[t] >= 0;
-cfix = c_p + c_b;
-r[t]= 8760 * cfix / 120 +cshed[t];
+cfix == c_p + c_b;
+r[t] == 8760 * cfix / 120 +cshed[t];
 #OBJECTIVES
 min: r;
 
 #LINKS //take the form of output = input
-INVEST_PV.ppv_max = PV.ppv_max;
-INVEST_BAT.soCmax = BATTERY.soCmax;
-PV.ppv = OPERATION_COST.pv_production;
-DEMAND.pc = OPERATION_COST.consumption;
-BATTERY.pbt = OPERATION_COST.battery;
-INVEST_PV.c_p = OPERATION_COST.c_p;
-INVEST_BAT.c_b = OPERATION_COST.c_b;
+INVEST_PV.ppv_max == PV.ppv_max;
+INVEST_BAT.soCmax == BATTERY.soCmax;
+PV.ppv == OPERATION_COST.pv_production;
+DEMAND.pc == OPERATION_COST.consumption;
+BATTERY.pbt == OPERATION_COST.battery;
+INVEST_PV.c_p == OPERATION_COST.c_p;
+INVEST_BAT.c_b == OPERATION_COST.c_b;
