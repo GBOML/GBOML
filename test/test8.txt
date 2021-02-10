@@ -4,6 +4,6 @@
 #VARIABLES
 internal : x ;
 #CONSTRAINTS
-x*x=10;
+x*x==10;
 #OBJECTIVES
 min: x;

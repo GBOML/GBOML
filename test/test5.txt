@@ -5,6 +5,6 @@
 internal : y;
 internal : x;
 #CONSTRAINTS
-x[t]=0;
+x[t]==0;
 #OBJECTIVES
 min : y;

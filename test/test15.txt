@@ -21,8 +21,8 @@ output: h;
 input : ff;
 
 #LINKS
-A.b = R.f;
-A.b = R.ff;
-R.h = A.a;
-A.c = R.d;
+A.b == R.f;
+A.b == R.ff;
+R.h == A.a;
+A.c == R.d;
 
