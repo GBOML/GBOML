@@ -35,8 +35,7 @@ class Program:
         
         string = "Full program\n"
         if self.time != None:
-            string += "Time horizon : "+str(self.time.time)+"\n"
-            string += "Time step : "+str(self.time.expr)+"\n"
+            string += str(self.time)+"\n"
         string += 'All the defined nodes : \n'
         elements = self.vector_nodes
         for i in range(len(self.vector_nodes)):

@@ -18,10 +18,12 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
     OUTPUT : program -> program object
              A -> Constraint sparse matrix 
              b -> Vector of independant terms for each constraint
-             C_sum -> objective vector
+             C -> objective sparse matrix
              T -> Timehorizon
              name_tuples -> Mapping to convert the flat x solution to a graph strucure
+             objective_belonging -> Mapping to check which objectif relates to which node
     """
+
     if(os.path.isfile(input_file)==False):
         print("No such file as "+str(input_file))
         exit(-1)
@@ -48,9 +50,9 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
 
     program = semantic(ast)
     A,b,name_tuples = matrix_generationAb(program)
-    C = matrix_generationC(program)
-    C_sum = np.asarray(C.sum(axis=0))
+    C, objective_map = matrix_generationC(program)
+    
     T = program.get_time().get_value()
     os.chdir(curr_dir)
 
-    return program,A,b,C_sum,T,name_tuples
+    return program,A,b,C,T,name_tuples,objective_map

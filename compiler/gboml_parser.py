@@ -59,19 +59,12 @@ def p_links(p):
 
 
 def p_link_def(p):
-    '''link_def : ID EQUAL ID more_id SEMICOLON
-                | ID DOT ID EQUAL ID DOT ID more_id_aux SEMICOLON'''
+    '''link_def : ID DOT ID EQUAL ID DOT ID more_id_aux SEMICOLON'''
 
-    if len(p) == 6:
-        rhs = Attribute(p[1])
-        a = Attribute(p[3])
-        p[4].append(a)
-        p[0] = Link(rhs, p[4])
-    else:
-        rhs = Attribute(p[1], p[3])
-        a = Attribute(p[5], p[7])
-        p[8].append(a)
-        p[0] = Link(rhs, p[8])
+    rhs = Attribute(p[1], p[3])
+    a = Attribute(p[5], p[7])
+    p[8].append(a)
+    p[0] = Link(rhs, p[8])
 
 
 def p_more_id_aux(p):
@@ -84,18 +77,6 @@ def p_more_id_aux(p):
         a = Attribute(p[2], p[4])
         p[5].append(a)
         p[0] = p[5]
-
-
-def p_more_id(p):
-    '''more_id : COMMA ID more_id
-               | empty'''
-
-    if len(p) == 2:
-        p[0] = []
-    else:
-        a = Attribute(p[2])
-        p[3].append(a)
-        p[0] = p[3]
 
 
 def p_link_aux(p):

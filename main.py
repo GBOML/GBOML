@@ -33,8 +33,8 @@ if __name__ == '__main__':
 
     parser.add_argument("--linprog",help = "Scipy linprog solver",action='store_const',const=True)
     parser.add_argument("--gurobi",help = "Gurobi solver",action='store_const',const=True)
-    parser.add_argument("--cplex",help = "Cplex solver",action='store_const',const=True)
     parser.add_argument("--clp",help = "CLP solver",action='store_const',const=True)
+    parser.add_argument("--cplex",help = "Cplex solver",action='store_const',const=True)
 
     parser.add_argument("--log",help="Get log in a file",action="store_const",const=True)
 

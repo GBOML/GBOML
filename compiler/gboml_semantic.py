@@ -10,7 +10,7 @@ from .classes import Time, Expression,Variable,Parameter,Link,\
     Attribute,Program,Objective,Node,Identifier,Constraint 
 import copy 
 import numpy as np # type: ignore
-from .utils import error_ 
+from .utils import error_,list_to_string
 import time as t 
 
 def semantic(program:Program)->Program:
@@ -222,121 +222,49 @@ def check_link(program:Program)->list:
         rhs = link_i.vector
         rhs_size = len(rhs)
 
-        if lhs_attribute != None :
-            if find_variable_and_type(nodes[j],lhs_attribute,internal_v = False,input_v=False)==False:
-                error_("The left hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or input")
+        if find_variable_and_type(nodes[j],lhs_attribute,internal_v = False,input_v=False)==False:
+            error_("The left hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or input")
 
-            for k in range(rhs_size):
-                rhs_k = rhs[k]
-                rhs_name = rhs_k.node
-                rhs_attribute = rhs_k.attribute
+        for k in range(rhs_size):
+            rhs_k = rhs[k]
+            rhs_name = rhs_k.node
+            rhs_attribute = rhs_k.attribute
 
-                if rhs_name == lhs_name:
-                    error_("Using a link inside the same node is not allowed")
-                found = False
-                position = 0
-
-                for j in range(node_size):
-                    node_j = nodes[j]
-                    node_j_name = node_j.get_name()
-                    if rhs_name == node_j_name:
-                        found = True
-                        rhs_k.set_node_object(node_j)
-                        position = j
-                        break
-
-                if found == False: 
-                    error_("No Node is named : "+str(rhs_name)+ " in the link "+ str(link_i))
-
-                if find_variable_and_type(nodes[position],rhs_attribute,internal_v = False,output_v=False)==False:
-                    error_("The right hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or output")
-                
-                already_defined = False
-
-                for j in range(len(input_output_pairs)):
-                    if rhs_k.compare(input_output_pairs[j][0]):
-                        if (not lhs.compare(input_output_pairs[j][1])):
-                            error_("An input is assigned twice: first with value "+str(input_output_pairs[j][1])+ " then with value "+str(lhs))
-                        else:
-                            already_defined = True
-
-                pair_input_output = [rhs_k,lhs]
-
-                if not already_defined:
-                    nodes[position].add_link(pair_input_output)
-                    input_output_pairs.append(pair_input_output)
-
-        else:
-            variables= nodes[position].get_variables()
-            variable_size = len(variables)
+            if rhs_name == lhs_name:
+                error_("Using a link inside the same node is not allowed")
             found = False
-            name = ""
+            position = 0
 
-            for j in range(variable_size):
-                type_var = variables[j].get_type()
-                if type_var == "output":
-                    if found == False:
-                        found = True 
-                        identifier = variables[j].get_identifier()
-                        name = identifier.get_name()
-                    else : 
-                        error_("Can not use linking with only node names if the left-hand side contains more than one outputted variable")
-            if found == False:
-                error_("The left-hand side node in linking must have an output variable")
+            for j in range(node_size):
+                node_j = nodes[j]
+                node_j_name = node_j.get_name()
+                if rhs_name == node_j_name:
+                    found = True
+                    rhs_k.set_node_object(node_j)
+                    position = j
+                    break
 
-            lhs.attribute = name
+            if found == False: 
+                error_("No Node is named : "+str(rhs_name)+ " in the link "+ str(link_i))
 
-            for k in range(rhs_size):
-                rhs_k = rhs[k]
-                rhs_name = rhs_k.node
-                
-                if rhs_name == lhs_name:
-                    error_("Using a link inside the same node is not allowed")
-                found = False
-                position = 0
-                for j in range(node_size):
-                    node_j = nodes[j]
-                    node_j_name = node_j.get_name()
-                    if rhs_name == node_j_name:
-                        found = True
-                        rhs_k.set_node_object(node_j)
-                        position = j
-                        break
+            if find_variable_and_type(nodes[position],rhs_attribute,internal_v = False,output_v=False)==False:
+                error_("The right hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or output")
+            
+            already_defined = False
 
-                if found == False: 
-                    error_("No Node is named : "+str(rhs_name)+ " in the link")
+            for j in range(len(input_output_pairs)):
+                if rhs_k.compare(input_output_pairs[j][0]):
+                    if (not lhs.compare(input_output_pairs[j][1])):
+                        error_("An input is assigned twice: first with value "+str(input_output_pairs[j][1])+ " then with value "+str(lhs))
+                    else:
+                        already_defined = True
 
-                variables = nodes[position].get_variables()
-                variable_size = len(variables)
-                found = False
-                name = ""
-                for j in range(variable_size):
-                    type_var = variables[j].get_type()
-                    if type_var == "input":
-                        if found == False:
-                            found = True 
-                            identifier = variables[j].get_identifier()
-                            name = identifier.get_name()
-                        else : 
-                            error_("Can not use linking with only node names if the right-hand side node contains more than one input variable")
-                if found == False:
-                    error_("The left-hand side node in linking must have an output variable")
+            pair_input_output = [rhs_k,lhs]
 
-                rhs_k.attribute = name
-                already_defined = False
-
-                for j in range(len(input_output_pairs)):
-                    if rhs_k.compare(input_output_pairs[j][0]):
-                        if (not lhs.compare(input_output_pairs[j][1])):
-                            error_("An input is assigned twice: first with value "+str(input_output_pairs[j][1])+ " then with value "+str(lhs))
-                        else:
-                            already_defined = True
-
-                pair_input_output = [rhs_k,lhs]
-                if not already_defined:
-                    nodes[position].add_link(pair_input_output)
-                    input_output_pairs.append(pair_input_output)
-    
+            if not already_defined:
+                nodes[position].add_link(pair_input_output)
+                input_output_pairs.append(pair_input_output)
+            
     return input_output_pairs
 
 def get_index_link(link:list)->tuple:
@@ -977,6 +905,8 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
 
     T = definitions["T"][0]
 
+    objective_index = 0
+
     for i in range(obj_size):
         obj = objectives[i]
         obj_type = obj.get_type()
@@ -1053,8 +983,10 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
                 l += 1
             
             if flag_out_of_bounds == False:
-                matrix = [values,rows,columns]
+                matrix = [values,rows,columns,objective_index]
                 node.add_objective_matrix([matrix,obj_type])
+        
+        objective_index +=1
 
 
 

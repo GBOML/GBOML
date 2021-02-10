@@ -1,5 +1,5 @@
 from compiler.classes.parent import Symbol
-from compiler.utils import error_
+from compiler.utils import error_,list_to_string
 
 class Expression(Symbol):
     """
@@ -32,7 +32,7 @@ class Expression(Symbol):
             if len(self.children)==0:
                 string += ']'
             else:
-                string +=  ' , '+str(self.children)+']'
+                string += "[" + list_to_string(self.children)+ "]]"
         else:
             string = str(self.name)
 

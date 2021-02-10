@@ -27,7 +27,7 @@ class Time:
         self.line = line
 
     def __str__(self)->str:
-        string = 'time: '+str(self.time)+' expr: '+str(self.expr)
+        string = 'Time Horizon: '+str(self.time)+'\texpr: '+str(self.expr)
         return string
 
     def get_value(self)->float:

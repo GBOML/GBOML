@@ -234,14 +234,15 @@ class TestErrors(unittest.TestCase):
     def test_single_obj_constr(self):
         with open("test/test12.json", 'r') as j:
             contents = json.loads(j.read())
-            self.assertIn("nodes", contents)
-            nodes = contents["nodes"]
+            solution = contents['model']
+            self.assertIn("nodes",solution)
+            nodes = solution["nodes"]
             self.assertIn("A", nodes)
             nodeA = nodes["A"]
-            self.assertIn("number_of_constraints_derived", nodeA)
-            nb_constr_derived = nodeA["number_of_constraints_derived"]
-            self.assertIn("number_of_objectives_derived", nodeA)
-            nb_obj_derived = nodeA["number_of_objectives_derived"]
+            self.assertIn("number_expanded_constraints", nodeA)
+            nb_constr_derived = nodeA["number_expanded_constraints"]
+            self.assertIn("number_expanded_objectives", nodeA)
+            nb_obj_derived = nodeA["number_expanded_objectives"]
             self.assertEqual(nb_constr_derived, 1)
             self.assertEqual(nb_obj_derived,1)
 
@@ -277,28 +278,25 @@ class TestErrors(unittest.TestCase):
         self.assertEqual(return_code, 0)
         with open("test/test15.json", 'r') as j:
             contents = json.loads(j.read())
-            links = contents["links"]
-            for l in links:
-                l=l.replace("["," ")
-                l=l.replace(']'," ")
-                l=l.replace('.'," ")
-                l=l.replace(","," ")
-                l=l.split()
-                all_nodes = contents["nodes"]
-                node_name1 = l[0]
-                variable_name1 = l[1]
-                node_name2 = l[4]
-                variable_name2 = l[5]
-                self.assertIn(node_name1,all_nodes)
-                self.assertIn(node_name2,all_nodes)
-                node1 = all_nodes[node_name1]
-                node2 = all_nodes[node_name2]
-                variables1 = node1["variables"]
-                variables2 = node2["variables"]
-                self.assertIn(variable_name1,variables1)
-                self.assertIn(variable_name2,variables2)
-                self.assertTrue(variables1[variable_name1]==variables2[variable_name2])
-    
+            model = contents["model"]
+            links = model["links"]
+            solution = contents["solution"]
+            for [lhs_node, lhs_var],[rhs_node, rhs_var] in links:
+                all_nodes = solution["nodes"]
+                self.assertIn(lhs_node,all_nodes)
+                self.assertIn(rhs_node,all_nodes)
+
+                lhs_node_dict = all_nodes[lhs_node]
+                rhs_node_dict = all_nodes[rhs_node]
+
+                lhs_node_variables = lhs_node_dict["variables"]
+                rhs_node_variables = rhs_node_dict["variables"]
+
+                self.assertIn(lhs_var,lhs_node_variables)
+                self.assertIn(rhs_var,rhs_node_variables)
+
+                self.assertTrue(lhs_node_variables[lhs_var]==rhs_node_variables[rhs_var])
+
     def test_time_dependency_in_obj(self):
         process = subprocess.run(['python', 'main.py', 'test/test16.txt',"--matrix"], 
                            stdout=subprocess.PIPE,
@@ -308,6 +306,12 @@ class TestErrors(unittest.TestCase):
         return_code = process.returncode
         self.assertEqual(return_code, 0)
 
+    def test_wrong_variable_def(self):
+        process = subprocess.run(['python', 'main.py', 'test/test17.txt'], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertNotEqual(return_code, 0)
 
 if __name__ == '__main__':
     unittest.main()

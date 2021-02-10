@@ -11,6 +11,7 @@ def matrix_generationC(root:Program)-> coo_matrix:
 	as a matrix : min C*x where each line of C corresponds to one objective.
     INPUT:  Program object
     OUTPUT: C -> Sparse coo matrix of the objective function
+			objective_map -> Mapping to check which objectif relates to which node
     """
 
 	nodes = root.get_nodes()
@@ -24,12 +25,20 @@ def matrix_generationC(root:Program)-> coo_matrix:
 	time_root = root.get_time()
 	T = time_root.get_value()
 
+	objective_map = {}
+
 	for node in nodes:
+		node_objectives = {}
+		same_objective_index = []
+
 		objectives = node.get_objective_list()
 		var_matrix = node.get_variable_matrix()
 		index_start = var_matrix[0][0].get_index()
 
-		for [values,rows,columns],obj_type in objectives:
+		old_obj = 0
+
+		for [values,rows,columns,objective_index],obj_type in objectives:
+			#print(node.get_name())
 			columns+=T*rows+index_start
 			
 			nb_values = len(values)
@@ -39,10 +48,31 @@ def matrix_generationC(root:Program)-> coo_matrix:
 			if obj_type == "max":
 				values = - values
 
+			if old_obj == objective_index:
+				same_objective_index.append(nb_objectives)
+
+			else: 
+				objective_dict = {}
+				objective_dict["indexes"] = same_objective_index
+				objective_dict["type"] = obj_type
+				node_objectives[str(old_obj)] = objective_dict
+				old_obj = objective_index
+				same_objective_index = [nb_objectives]
+
 			all_values.append(values)
 			all_columns.append(columns)
 			all_rows.append(row)
+			
 			nb_objectives = nb_objectives+1
+		
+		if same_objective_index != []:
+			objective_dict = {}
+			objective_dict["indexes"] = same_objective_index
+			objective_dict["type"] = obj_type
+			node_objectives[str(old_obj)] = objective_dict
+
+			objective_map[node.get_name()] = node_objectives
+
 
 	rows = np.concatenate(all_rows)
 
@@ -50,7 +80,7 @@ def matrix_generationC(root:Program)-> coo_matrix:
 
 	values = np.concatenate(all_values)
 
-	return coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
+	return coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables)), objective_map
 
 def matrix_generationAb(root:Program)->tuple:
 	"""

@@ -68,10 +68,16 @@ class Link:
 
     def to_vector(self):
 
-        lhs = str(self.attribute)
+        lhs_attribute = self.attribute
+        lhs_node = lhs_attribute.node
+        lhs_variables = lhs_attribute.attribute
+
+        lhs = [str(lhs_node),str(lhs_variables)]
         vector = []
         for attr in self.vector:
-            rhs = str(attr)
-            vector.append(lhs+" = "+rhs)
+            rhs_node = attr.node
+            rhs_var = attr.attribute
+            rhs = [str(rhs_node),str(rhs_var)]
+            vector.append([lhs,rhs])
         
         return vector
