@@ -105,7 +105,7 @@ class TimeInterval:
 
         begin_value, end_value,step_value = self.check(begin_value,end_value,step_value,time_horizon)
 
-        return range(begin_value,end_value,step_value)
+        return range(begin_value,end_value+1,step_value)
         
 
     def get_interval(self)->list:
