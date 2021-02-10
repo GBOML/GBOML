@@ -135,7 +135,7 @@ class TimeInterval:
             error_("ERROR: in for loop, the step value: "+str(self.step)+\
                 " is negative or null at line "+str(self.line))
         
-        if end_value > clip:
+        if end_value+1 > clip:
             print("WARNING: in for loop, end exceeds horizon value "+\
                  " end put back to horizon value T at line "+str(self.line))
             end_value = clip
