@@ -1,4 +1,4 @@
-# Compiler name
+# GBOML Compiler
 ## Installing 
 You need to install the requirements : 
 ```
