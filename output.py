@@ -1,10 +1,11 @@
 import pandas as pd
 import numpy as np
+from version import __version__
 
 def generate_json(program, variable_names, solver_data, status, solution, objective, C, objective_map):
     data = {}
     # Add global data
-    data["version"] = "0.0.0"
+    data["version"] = __version__
 
     # Build and add model data dictionary
     model_data = {}
