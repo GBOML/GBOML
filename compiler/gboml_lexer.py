@@ -71,6 +71,7 @@ reserved = {
     '#OBJECTIVES': 'OBJ',
     '#TIMEHORIZON': 'TIME',
     '#LINKS': 'LINKS',
+    "#GLOBAL": "GLOBAL"
     }
 
 # List of token names.   This is always required
@@ -172,16 +173,15 @@ def t_COMMENT(t):
 
 
 def t_number(t):
-    r'''[0-9]+[\.][0-9]*|[0-9]+'''
+    r'''[0-9]+[\.][0-9]*[e]-[0-9]+|[0-9]+[\.][0-9]*[e][0-9]+|[0-9]+[e][0-9]+|[0-9]+[\.][0-9]*|[0-9]+|[\.][0-9]+'''
 
-    if "." in t.value:
+    if "." in t.value or 'e' in t.value:
         t.value = float(t.value)
         t.type = "FLOAT"
     else:
         t.value = int(t.value)
         t.type = "INT"
     return t
-
 
 # track line number
 

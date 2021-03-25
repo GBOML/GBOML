@@ -30,10 +30,20 @@ precedence = (  # Unary minus operator
 # Start symbol
 
 def p_start(p):
-    '''start : time program links'''
+    '''start : time global program links'''
 
-    p[0] = Program(p[2], p[1], p[3])
+    p[0] = Program(p[3], p[1], p[4])
 
+
+def p_global(p):
+    '''global : GLOBAL define_parameters
+              | empty'''
+
+    if len(p)==3:
+        p[0]=p[2]
+    else : 
+
+        p[0]=[]
 
 def p_time(p):
     '''time : TIME ID EQUAL expr SEMICOLON
@@ -48,46 +58,13 @@ def p_time(p):
 
 
 def p_links(p):
-    '''links : LINKS link_def link_aux
+    '''links : LINKS constraints_aux 
              | empty'''
 
     if len(p) > 2:
-        p[3].append(p[2])
-        p[0] = p[3]
-    else:
-        p[0] = []
-
-
-def p_link_def(p):
-    '''link_def : ID DOT ID DOUBLE_EQ ID DOT ID more_id_aux SEMICOLON'''
-
-    rhs = Attribute(p[1], p[3])
-    a = Attribute(p[5], p[7])
-    p[8].append(a)
-    p[0] = Link(rhs, p[8])
-
-
-def p_more_id_aux(p):
-    '''more_id_aux : COMMA ID DOT ID more_id_aux
-                   | empty'''
-
-    if len(p) == 2:
-        p[0] = []
-    else:
-        a = Attribute(p[2], p[4])
-        p[5].append(a)
-        p[0] = p[5]
-
-
-def p_link_aux(p):
-    '''link_aux : link_def link_aux
-                | empty'''
-
-    if len(p) == 2:
-        p[0] = []
-    else:
-        p[2].append(p[1])
         p[0] = p[2]
+    else:
+        p[0] = []
 
 
 def p_program(p):
@@ -332,11 +309,18 @@ def p_expr(p):
 def p_term(p):
     '''term : INT
             | FLOAT
-            | id'''
+            | id
+            | attribute'''
 
     p[0] = Expression('literal', p[1], line=p.lineno(1))
-    if type(p[1]) == Identifier:
+    if type(p[1]) == Identifier or type(p[1]) == Attribute:
         p[0].set_line(p[1].get_line())
+
+
+def p_attribute(p):
+    '''attribute : ID DOT id '''
+
+    p[0] = Attribute(p[1], p[3],line = p.lineno(1))
 
 
 def p_empty(p):

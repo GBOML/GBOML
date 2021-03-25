@@ -1,4 +1,5 @@
 from compiler.classes.node import Node
+from compiler.classes.identifier import Identifier
 
 
 class Attribute:
@@ -9,14 +10,18 @@ class Attribute:
     - a variable name 
     """
 
-    def __init__(self,name_node:str,name_attribute:str=None):
+    def __init__(self,name_node:str,name_attribute:str=None,line:int = 0):
 
         assert type(name_node)==str, "Internal error: Attribute node name of unknown type"
-        assert type(name_attribute)==str, "Internal error: Attribute name attribute of unknown type"
+        assert type(name_attribute)==Identifier, "Internal error: Attribute name attribute of unknown type"
 
         self.node = name_node
         self.attribute = name_attribute
         self.node_object = None
+        self.line = line
+
+    def get_line(self):
+        return self.line
 
     def __str__(self):
         
