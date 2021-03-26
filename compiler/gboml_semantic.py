@@ -42,7 +42,7 @@ def semantic(program:Program)->Program:
     definitions["global"]= global_dict
     definitions["GLOBAL"]= global_dict
 
-    accc = {}
+    all_variables = {}
 
     #Inside each node 
     for node in node_list:
@@ -51,15 +51,15 @@ def semantic(program:Program)->Program:
         parameter_dictionary = definitions.copy()
 
         #Retrieve all the parameters'names in set
-        all_parameters = node.get_dictionary_parameters() 
+        node_parameters = node.get_dictionary_parameters() 
 
         name = node.get_name()
         #Retrieve a dictionary of [name,identifier object] tuple
-        all_variables = node.get_dictionary_variables()
-        accc[name]=all_variables
+        node_variables = node.get_dictionary_variables()
+        all_variables[name] = node_variables
 
         #Check if variables and parameters share names
-        match_dictionaries(all_parameters,all_variables)
+        match_dictionaries(node_parameters,node_variables)
 
         #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
@@ -68,25 +68,34 @@ def semantic(program:Program)->Program:
         node.set_parameter_dict(parameter_dictionary)
 
         #Check constraints and objectives expressions
-        check_expressions_dependancy(node,all_variables,parameter_dictionary)
+        check_expressions_dependancy(node,node_variables,parameter_dictionary)
 
         #Augment node with constraintes written in matrix format
-        convert_constraints_matrix(node,all_variables,parameter_dictionary)
+        convert_constraints_matrix(node,node_variables,parameter_dictionary)
 
         #Augment node with objectives written in matrix format
-        convert_objectives_matrix(node,all_variables,parameter_dictionary)
+        convert_objectives_matrix(node,node_variables,parameter_dictionary)
 
 
     #if the model does not have a proper constraint defined
     if program.get_number_constraints()==0:
         error_("ERROR: no valid constraint was defined making the problem unsolvable")
 
-    exit()
-
     #LINKS conversion
-    all_input_output_pairs = check_link(program)
+    # TODO: is there a reason that we have the node loop above but the link loops in separate functions?
+    # TODO: should we use a copy of definitions (as above)?
+    # TODO: could refactor check_expressions_dependancy to
+    """
+    check_expressions_dependancy function : the dependency of given expression
+    INPUT:  expr -> expression
+            variables -> dictionary of <name,identifier> objects
+            parameters -> dictionary of <name,array> objects 
+    OUTPUT: dep (constant, linear, nonlinear, undefined[unknown identifier found])
+    """
+    # this would encapsulate the common code in check_expressions_dependancy and check_link
+    check_link(program,all_variables,definitions)
 
-    all_input_output_pairs = regroup_by_name(all_input_output_pairs)
+    exit()
 
     input_output_matrix = convert_links_to_matrix(all_input_output_pairs)
 
@@ -195,7 +204,7 @@ def regroup_by_name(input_output_pairs:list)->list:
 
     return triplet
 
-def check_link(program:Program)->list:
+def check_link(program:Program,variables:dict,parameters:dict)->None:
     """
     check_link function : Takes program object and checks its links
     INPUT:  program -> Program object
@@ -203,81 +212,19 @@ def check_link(program:Program)->list:
     """
 
     links = program.get_links()
-    link_size = len(links)
 
-    nodes = program.get_nodes()
-    node_size = len(nodes)
-    input_output_pairs:list = []
+    for link in links:
+        rhs = link.get_rhs()
+        lhs = link.get_lhs()
 
-    for i in range(link_size):
-        link_i = links[i]
-        lhs = link_i.attribute
-        lhs_name = lhs.node
-        lhs_attribute = lhs.attribute
+        var_in_right = variables_in_expression(rhs,variables,parameters)
+        var_in_left = variables_in_expression(lhs,variables,parameters)
 
-        found = False
-        position = 0
+        if var_in_right == False and var_in_left == False:
+            error_('No variable in linking constraint at line '+str(link.get_line()))
 
-        for j in range(node_size):
-            node_j = nodes[j]
-            node_j_name = node_j.get_name()
-            if lhs_name == node_j_name:
-                found = True
-                lhs.set_node_object(node_j)
-                position = j
-                break
-
-        if found == False: 
-            error_("No Node is named : "+str(lhs_name)+ " in the link")
-
-        rhs = link_i.vector
-        rhs_size = len(rhs)
-
-
-        if find_variable_and_type(nodes[j],lhs_attribute,internal_v = False,input_v=False)==False:
-            error_("The left hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or input")
-
-        for k in range(rhs_size):
-            rhs_k = rhs[k]
-            rhs_name = rhs_k.node
-            rhs_attribute = rhs_k.attribute
-
-            if rhs_name == lhs_name:
-                error_("Using a link inside the same node is not allowed")
-            found = False
-            position = 0
-
-            for j in range(node_size):
-                node_j = nodes[j]
-                node_j_name = node_j.get_name()
-                if rhs_name == node_j_name:
-                    found = True
-                    rhs_k.set_node_object(node_j)
-                    position = j
-                    break
-
-            if found == False: 
-                error_("No Node is named : "+str(rhs_name)+ " in the link "+ str(link_i))
-
-            if find_variable_and_type(nodes[position],rhs_attribute,internal_v = False,output_v=False)==False:
-                error_("The right hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or output")
-            
-            already_defined = False
-
-            for j in range(len(input_output_pairs)):
-                if rhs_k.compare(input_output_pairs[j][0]):
-                    if (not lhs.compare(input_output_pairs[j][1])):
-                        error_("An input is assigned twice: first with value "+str(input_output_pairs[j][1])+ " then with value "+str(lhs))
-                    else:
-                        already_defined = True
-
-            pair_input_output = [rhs_k,lhs]
-
-            if not already_defined:
-                nodes[position].add_link(pair_input_output)
-                input_output_pairs.append(pair_input_output)
-            
-    return input_output_pairs
+        check_linear(rhs,variables,parameters)
+        check_linear(lhs,variables,parameters)
 
 def get_index_link(link:list)->tuple:
     """
@@ -437,24 +384,24 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
             if id_name in variables:
                 is_variable = True
                 defined = True
-            
+
             elif id_name in parameters:
                 defined = True
-            
+
             elif id_name in reserved_names:
                 defined = True 
                 id_type = identifier.get_type()
                 if id_type == "assign":
                     error_("Error: can not assign time variables : "+str(expression.get_name())+\
                         " at line "+str(expression.get_line()))
-            
+
             if defined == False:
                 error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
-            
+
             if check_in == True:
                 check_in_brackets(identifier,variables,parameters)
-        
-            
+
+
     return is_variable
 
 def check_linear(expression:Expression,variables:dict,parameters:dict)->bool:
