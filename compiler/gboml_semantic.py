@@ -42,6 +42,8 @@ def semantic(program:Program)->Program:
     definitions["global"]= global_dict
     definitions["GLOBAL"]= global_dict
 
+    accc = {}
+
     #Inside each node 
     for node in node_list:
         #Initialize dictionary of defined parameters
@@ -51,8 +53,10 @@ def semantic(program:Program)->Program:
         #Retrieve all the parameters'names in set
         all_parameters = node.get_dictionary_parameters() 
 
+        name = node.get_name()
         #Retrieve a dictionary of [name,identifier object] tuple
         all_variables = node.get_dictionary_variables()
+        accc[name]=all_variables
 
         #Check if variables and parameters share names
         match_dictionaries(all_parameters,all_variables)
@@ -64,7 +68,7 @@ def semantic(program:Program)->Program:
         node.set_parameter_dict(parameter_dictionary)
 
         #Check constraints and objectives expressions
-        check_expressions_dependancy(node,all_variables,all_parameters)
+        check_expressions_dependancy(node,all_variables,parameter_dictionary)
 
         #Augment node with constraintes written in matrix format
         convert_constraints_matrix(node,all_variables,parameter_dictionary)
@@ -394,7 +398,40 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
         
         identifier = expr_id.get_name()
 
-        if type(identifier)!=int and type(identifier)!=float:
+        if type(identifier)==Attribute:
+            node_name = identifier.get_node_field()
+            attr = identifier.get_attribute()
+
+            print(parameters)
+
+            if node_name in parameters :
+                #PARAM EXIST
+                attr_name = attr.get_name()
+                attr_type = attr.get_type()
+
+                inside_dict = parameters[node_name]
+                if attr_name in inside_dict:
+                    values_vect = inside_dict[attr_name]
+                    if attr_type == "basic" and len(values_vect)!=1:
+                            error_("Wrong indexing in Identifier '"+ str(identifier)+ "' at line, "+str(self.get_line()))
+                    
+                    defined = True
+                    is_variable = False
+
+            elif node_name in variables: 
+                attr_name = attr.get_name()
+                inside_dict = variables[node_name]
+                if attr_name in inside_dict:
+                    defined = True
+                    is_variable = True
+            
+            if defined == False:
+                error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
+            
+            if check_in == True:
+                check_in_brackets(attr,variables,parameters)
+
+        if type(identifier)==Identifier:
             id_name = identifier.get_name() 
             reserved_names = ["T","t"]
             if id_name in variables:
@@ -416,6 +453,7 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
             
             if check_in == True:
                 check_in_brackets(identifier,variables,parameters)
+        
             
     return is_variable
 
@@ -588,7 +626,7 @@ def check_expr_in_brackets(expression:Expression,variables:dict,parameters:dict)
             error_("INTERNAL ERROR : literal must have zero child, got "+str(nb_child)+" check internal parser")
         identifier = expression.get_name()
 
-        if type(identifier)!=float and type(identifier)!=int:
+        if type(identifier)==Identifier:
             id_name = identifier.get_name()
             id_type = identifier.get_type()
             
@@ -608,6 +646,20 @@ def check_expr_in_brackets(expression:Expression,variables:dict,parameters:dict)
             
             if id_type == "assign":
                 is_time_var = check_expr_in_brackets(identifier.get_expression(),variables,parameters)
+
+        elif type(identifier)==Attribute:
+            attr = identifier.get_attribute()
+            attr_name = attr.get_name()
+            node_n = identifier.get_node_field()
+            if node_n not in parameters and attr_name not in parameters[node_n]:
+                error_('Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
+            if node_n in variables:
+                error_('Variable in brackets for assignement ')
+
+            type_attr = attr.get_type()
+            if type_attr=="assign":
+                is_time_var = check_expr_in_brackets(attr.get_expression(),variables,parameters)
+
 
     elif e_type == 'u-':
         if nb_child != 1:

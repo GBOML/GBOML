@@ -7,6 +7,7 @@ class Identifier(Symbol):
     - a type id
     - a name
     - an expression 
+    - size ! NOT DONE
     - an unitialized index field for knowing its position 
       if it is a variable
     """
