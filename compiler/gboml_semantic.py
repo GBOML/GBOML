@@ -42,8 +42,6 @@ def semantic(program:Program)->Program:
     definitions["global"]= global_dict
     definitions["GLOBAL"]= global_dict
 
-    print(definitions)
-
     #Inside each node 
     for node in node_list:
         #Initialize dictionary of defined parameters
@@ -61,6 +59,7 @@ def semantic(program:Program)->Program:
 
         #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
+        print(parameter_dictionary)
 
         #Keep parameter dictionary
         node.set_parameter_dict(parameter_dictionary)

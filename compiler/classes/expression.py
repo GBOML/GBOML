@@ -1,5 +1,6 @@
 from compiler.classes.parent import Symbol
 from compiler.utils import error_,list_to_string
+from compiler.classes.link import Attribute
 
 class Expression(Symbol):
     """
@@ -98,6 +99,34 @@ class Expression(Symbol):
             if type(identifier)==float or type(identifier)==int:
                 value = identifier
             
+            elif type(identifier)==Attribute:
+                key = identifier.get_node_field()
+                if key not in definitions:
+                    error_("Unknown Identifier "+str(identifier)+"at line "+str(self.get_line()))
+                
+                inner_dict = definitions[key]
+                inner_identifier = identifier.get_attribute()
+
+                id_type = inner_identifier.get_type()
+                id_name = inner_identifier.get_name()
+                id_expr = inner_identifier.get_expression()
+
+                if id_name not in inner_dict:
+                    error_("Unknown Identifier "+str(identifier)+"at line "+str(self.get_line()))
+
+                if id_type == "basic" :
+                    value_vect = inner_dict[id_name]
+                    if len(value_vect)!=1:
+                        error_("INTERNAL error basic type should have one value : "+str(identifier)+"at line "+str(self.get_line()))
+                    value = value_vect[0]
+
+                elif id_type == "assign" : 
+                    value_vect = inner_dict[id_name]
+                    index = id_expr.evaluate_expression(definitions)
+                    if len(value_vect)<=index:
+                        error_("Wrong indexing in Identifier '"+ str(identifier)+ "' at line, "+str(self.get_line()))
+                    value = value_vect[index]
+
             # else it is either ID or ID[expr]
             else:
                 # get id type and set found to false
@@ -114,19 +143,6 @@ class Expression(Symbol):
                 if id_type == "basic" and nb_values==1:
                     value = vector_value[0]
 
-                elif id_type =="basic" and ("t" in definitions):
-                    index = definitions["t"][0]
-                    if type(index) == float:
-                        if index.is_integer()==False:
-                            error_("Error: an index is a float: "+ str(identifier)+\
-                                'at line '+str(identifier.get_line()))
-                        index = int(round(index))
-
-                    if index >= nb_values or index < 0:
-                        error_("Wrong indexing in Identifier '"+ str(identifier)+ "' at line, "+str(self.get_line()))
-                    
-                    value = vector_value[index]
-                
                 elif id_type == "assign":
                     index = id_expr.evaluate_expression(definitions)
                     
