@@ -59,7 +59,6 @@ def semantic(program:Program)->Program:
 
         #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
-        print(parameter_dictionary)
 
         #Keep parameter dictionary
         node.set_parameter_dict(parameter_dictionary)
