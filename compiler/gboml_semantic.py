@@ -32,20 +32,23 @@ def semantic(program:Program)->Program:
     #Check if an objective function is defined
     program.check_objective_existence()
 
-    global_dict = {}
-    global_dict["T"]=[time_value]
+    definitions = {}
+    definitions["T"]=[time_value]
 
     #GLOBAL 
     global_param = program.get_global_parameters()
-    global_dict = parameter_evaluation(global_param,global_dict)
-    defined_global_param = global_parameter_conversion(global_dict)
+    global_dict = parameter_evaluation(global_param,definitions.copy())
+    global_dict.pop("T")
+    definitions["global"]= global_dict
+    definitions["GLOBAL"]= global_dict
 
+    print(definitions)
 
     #Inside each node 
     for node in node_list:
         #Initialize dictionary of defined parameters
 
-        parameter_dictionary = defined_global_param.copy()
+        parameter_dictionary = definitions.copy()
 
         #Retrieve all the parameters'names in set
         all_parameters = node.get_dictionary_parameters() 
@@ -487,21 +490,6 @@ def check_linear(expression:Expression,variables:dict,parameters:dict)->bool:
             error_("INTERNAL ERROR : unknown type '"+str(e_type)+"' check internal parser")
 
     return True
-
-
-def global_parameter_conversion(dictionary:dict)->dict:
-    
-    global_dict = {}
-    for k in dictionary.keys():
-        if k != 'T':
-            global_name1 = "global"+"."+str(k)
-            global_dict[global_name1]=dictionary[k]
-            global_name2 = "GLOBAL"+"."+str(k)
-            global_dict[global_name2]=dictionary[k]
-        else :
-            global_dict["T"]=dictionary["T"]
-    
-    return global_dict
 
 
 def parameter_evaluation(n_parameters:list,definitions:dict)->dict:
