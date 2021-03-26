@@ -19,7 +19,7 @@ class Identifier(Symbol):
 
         Symbol.__init__(self,name_id,type_id,line)
         self.expression = expression
-        self.index = 0
+        self.index = 0 #GLOBAL INDEX inside the Ax <= b matrix
 
     def __str__(self):
         
@@ -35,6 +35,8 @@ class Identifier(Symbol):
 
     def name_compare(self,identifier_i)->bool:
         
+        # a == a[t] ! NO ANYMORE
+
         equal = False
         if type(identifier_i)== type(self):
             if self.name == identifier_i.name:

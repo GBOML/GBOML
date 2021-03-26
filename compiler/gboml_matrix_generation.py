@@ -1,4 +1,4 @@
-from .classes import Time, Expression,Variable,Parameter,Link,Attribute,Program,\
+from .classes import Time, Expression,Variable,Parameter,Attribute,Program,\
 	Objective,Node,Identifier,Constraint
 import numpy as np # type: ignore
 from scipy.sparse import coo_matrix # type: ignore

@@ -6,7 +6,7 @@
 # Writer : MIFTARI B
 # ------------
 
-from .classes import Time, Expression,Variable,Parameter,Link,\
+from .classes import Time, Expression,Variable,Parameter,\
     Attribute,Program,Objective,Node,Identifier,Constraint 
 import copy 
 import numpy as np # type: ignore
@@ -32,14 +32,23 @@ def semantic(program:Program)->Program:
     #Check if an objective function is defined
     program.check_objective_existence()
 
+    global_dict = {}
+    global_dict["T"]=[time_value]
+
+    #GLOBAL 
+    global_param = program.get_global_parameters()
+    global_dict = parameter_evaluation(global_param,global_dict)
+    defined_global_param = global_parameter_conversion(global_dict)
+
+
     #Inside each node 
     for node in node_list:
         #Initialize dictionary of defined parameters
-        parameter_dictionary = {}
-        parameter_dictionary["T"]=[time_value]
+
+        parameter_dictionary = defined_global_param.copy()
 
         #Retrieve all the parameters'names in set
-        all_parameters = node.get_dictionary_parameters()
+        all_parameters = node.get_dictionary_parameters() 
 
         #Retrieve a dictionary of [name,identifier object] tuple
         all_variables = node.get_dictionary_variables()
@@ -62,15 +71,12 @@ def semantic(program:Program)->Program:
         #Augment node with objectives written in matrix format
         convert_objectives_matrix(node,all_variables,parameter_dictionary)
 
-        if "T" in parameter_dictionary:
-            parameter_dictionary.pop("T")
-        if 't' in parameter_dictionary:
-            parameter_dictionary.pop("t")
 
     #if the model does not have a proper constraint defined
     if program.get_number_constraints()==0:
         error_("ERROR: no valid constraint was defined making the problem unsolvable")
 
+    exit()
 
     #LINKS conversion
     all_input_output_pairs = check_link(program)
@@ -221,6 +227,7 @@ def check_link(program:Program)->list:
 
         rhs = link_i.vector
         rhs_size = len(rhs)
+
 
         if find_variable_and_type(nodes[j],lhs_attribute,internal_v = False,input_v=False)==False:
             error_("The left hand side attribute of the link "+str(link_i)+ " was not found or is of type internal or input")
@@ -481,6 +488,22 @@ def check_linear(expression:Expression,variables:dict,parameters:dict)->bool:
 
     return True
 
+
+def global_parameter_conversion(dictionary:dict)->dict:
+    
+    global_dict = {}
+    for k in dictionary.keys():
+        if k != 'T':
+            global_name1 = "global"+"."+str(k)
+            global_dict[global_name1]=dictionary[k]
+            global_name2 = "GLOBAL"+"."+str(k)
+            global_dict[global_name2]=dictionary[k]
+        else :
+            global_dict["T"]=dictionary["T"]
+    
+    return global_dict
+
+
 def parameter_evaluation(n_parameters:list,definitions:dict)->dict:
     """
     parameter_evaluation function : evaluates a list of parameter objects
@@ -488,6 +511,7 @@ def parameter_evaluation(n_parameters:list,definitions:dict)->dict:
             definitions -> dictionary of definitions <name,array>
     OUTPUT: definitions -> dictionary of definitions <name,array>
     """
+
     for parameter in n_parameters:
         e = parameter.get_expression()
         name = parameter.get_name()

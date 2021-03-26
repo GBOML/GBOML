@@ -9,7 +9,7 @@
 
 import ply.yacc as yacc # type: ignore
 from .gboml_lexer import tokens
-from .classes import Time, Expression, Variable, Parameter, Link, \
+from .classes import Time, Expression, Variable, Parameter, \
     Attribute, Program, Objective, Node, Identifier, Constraint, \
     Condition, TimeInterval
 
@@ -32,7 +32,7 @@ precedence = (  # Unary minus operator
 def p_start(p):
     '''start : time global program links'''
 
-    p[0] = Program(p[3], p[1], p[4])
+    p[0] = Program(p[3], global_param=p[2],timescale = p[1], links = p[4])
 
 
 def p_global(p):
@@ -266,6 +266,7 @@ def p_obj_aux(p):
 def p_id(p):
     '''id : ID LBRAC expr RBRAC
           | ID'''
+
 
     if len(p) == 2:
         p[0] = Identifier('basic', p[1], line=p.lineno(1))

@@ -10,11 +10,12 @@ class Program:
     """
 
 
-    def __init__(self,vector_n,timescale = None,links = None):
+    def __init__(self,vector_n,global_param = [],timescale = None,links = None):
         
         self.vector_nodes = vector_n
         self.time = timescale
         self.links = links
+        self.global_param=global_param
         self.link_constraints = []
         self.nb_variables = 0
 
@@ -48,6 +49,9 @@ class Program:
         string += '\nLinks predefined are : '+ str(self.links)
         
         return string
+
+    def get_global_parameters(self):
+        return self.global_param
 
     def get_time(self):
 

@@ -45,12 +45,11 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
 
     ast = parse_file(filename)
 
-    exit()
-
     if parse == True:
         print(ast.to_string())
 
     program = semantic(ast)
+
     A,b,name_tuples = matrix_generationAb(program)
     C, objective_map = matrix_generationC(program)
     
