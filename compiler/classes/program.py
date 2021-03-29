@@ -17,7 +17,7 @@ class Program:
         self.links = links
         self.global_param=global_param
         self.link_constraints = []
-        self.nb_variables = 0
+        self.nb_var_index = 0
 
     def __str__(self):
         
@@ -52,6 +52,17 @@ class Program:
 
     def get_global_parameters(self):
         return self.global_param
+
+    def get_dict_global_parameters(self):
+        dict_param = {}
+        for param in self.global_param:
+            name = param.get_name()
+            if name in dict_param:
+                error_("Global parameter "+str(name)+" already defined")
+            else : 
+                dict_param[name] = param
+        
+        return dict_param
 
     def get_time(self):
 
@@ -107,3 +118,9 @@ class Program:
 
         if found == False:
             error_("ERROR: No objective function was defined")
+
+    def get_nb_var_index(self):
+        return self.nb_var_index
+
+    def set_nb_var_index(self,index):
+        self.nb_var_index = index

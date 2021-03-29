@@ -41,6 +41,8 @@ def semantic(program:Program)->Program:
 
     #GLOBAL 
     global_param = program.get_global_parameters()
+    global_dict_object = program.get_dict_global_parameters()
+
     global_dict = parameter_evaluation(global_param,definitions.copy())
     global_dict.pop("T")
     definitions["global"]= global_dict
@@ -55,6 +57,8 @@ def semantic(program:Program)->Program:
         #Initialize dictionary of defined parameters
 
         parameter_dictionary = definitions.copy()
+        parameter_dictionary["global"] = global_dict_object
+        parameter_dictionary["GLOBAL"] = global_dict_object
 
         #Retrieve all the parameters'names in set
         node_parameters = node.get_dictionary_parameters() 
@@ -77,7 +81,8 @@ def semantic(program:Program)->Program:
         node.set_parameter_dict(parameter_dictionary)
 
         #Check constraints and objectives expressions
-        check_expressions_dependancy(node,node_variables,parameter_dictionary)
+        print(node_parameters)
+        check_expressions_dependancy(node,node_variables,node_parameters)
 
         #Augment node with constraintes written in matrix format
         convert_constraints_matrix(node,node_variables,parameter_dictionary)
@@ -85,6 +90,7 @@ def semantic(program:Program)->Program:
         #Augment node with objectives written in matrix format
         convert_objectives_matrix(node,node_variables,parameter_dictionary)
 
+    program.set_nb_var_index(global_index)
 
     #if the model does not have a proper constraint defined
     if program.get_number_constraints()==0:
@@ -102,7 +108,11 @@ def semantic(program:Program)->Program:
     OUTPUT: dep (constant, linear, nonlinear, undefined[unknown identifier found])
     """
     # this would encapsulate the common code in check_expressions_dependancy and check_link
-    check_link(program,all_variables,definitions)
+    dict_objects = {}
+    dict_objects["global"]= global_dict_object
+    dict_objects["GLOBAL"]= global_dict_object
+
+    check_link(program,all_variables,dict_objects)
 
 
     exit()
@@ -227,8 +237,8 @@ def check_link(program:Program,variables:dict,parameters:dict)->None:
         rhs = link.get_rhs()
         lhs = link.get_lhs()
 
-        var_in_right = variables_in_expression(rhs,variables,parameters)
-        var_in_left = variables_in_expression(lhs,variables,parameters)
+        var_in_right = variables_in_expression(rhs,variables,parameters,check_size = True)
+        var_in_left = variables_in_expression(lhs,variables,parameters,check_size = True)
 
         if var_in_right == False and var_in_left == False:
             error_('No variable in linking constraint at line '+str(link.get_line()))
@@ -332,8 +342,8 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters:dict)->None
         rhs = cons.get_rhs()
         lhs = cons.get_lhs()
 
-        var_in_right = variables_in_expression(rhs,variables,parameters)
-        var_in_left = variables_in_expression(lhs,variables,parameters)
+        var_in_right = variables_in_expression(rhs,variables,parameters, check_size=True)
+        var_in_left = variables_in_expression(lhs,variables,parameters,check_size=True)
 
         if var_in_right == False and var_in_left == False:
             error_('No variable in constraint at line '+str(cons.get_line()))
@@ -352,7 +362,7 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters:dict)->None
         check_linear(expr,variables,parameters)
     
 
-def variables_in_expression(expression:Expression,variables:dict,parameters:dict,check_in:bool = True)->bool:
+def variables_in_expression(expression:Expression,variables:dict,parameters:dict,check_in:bool = True, check_size = False )->bool:
     """
     variables_in_expression function : returns true if expression contains variables and false otherwise
     INPUT:  expression -> expression object
@@ -407,9 +417,18 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
             if id_name in variables:
                 is_variable = True
                 defined = True
+                id_var = variables[id_name]
+                if check_size and id_var.get_type()!= identifier.get_type():
+                    error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
+                        +" for identifier : "+ str(identifier)) 
 
             elif id_name in parameters:
                 defined = True
+                id_param = parameters[id_name]
+                if check_size and ((id_param.get_type()== "expression" and identifier.get_type()=="assign") or \
+                    (id_param.get_type()== "table" and identifier.get_type()=="basic")):
+                    error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
+                        +" for identifier : "+ str(identifier)) 
 
             elif id_name in reserved_names:
                 defined = True 
@@ -957,7 +976,6 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
             definitions[obj_var]=[k]
 
             values = np.zeros(nb_variables)
-            rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
 
             l = 0
@@ -993,16 +1011,14 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
                 _,term,flag_out_of_bounds = variable_factor_in_expression(expr,var,definitions)
 
                 values[l] = term
-                rows[l] = n+offset
-                columns[l] = offset
+                columns[l] = n + offset
 
                 if flag_out_of_bounds:
                     break
                 l += 1
             
             if flag_out_of_bounds == False:
-                matrix = [values,rows,columns,objective_index]
-                print(matrix)
+                matrix = [values,columns,objective_index]
                 node.add_objective_matrix([matrix,obj_type])
         definitions.pop(obj_var)
         
@@ -1071,14 +1087,7 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                         value = 1
                 else:
                     value1 = variable.get_expression().evaluate_expression(definitions)
-                    print(value1)
 
-                    if not('t' in definitions):
-                        error_("INTERNAL ERROR: t not found")
-
-                    values_t = definitions['t']
-                    t = values_t[0]
-                    
                     if 0 == value1:
                         found = True
                         value = 1
