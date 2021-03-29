@@ -51,8 +51,8 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
     program = semantic(ast)
 
     A,b = matrix_generationAb(program)
+    C = matrix_generationC(program)
     exit()
-    C, objective_map = matrix_generationC(program)
 
     T = program.get_time().get_value()
     os.chdir(curr_dir)
