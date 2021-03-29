@@ -727,7 +727,6 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
                 continue
 
             new_values = np.zeros(nb_variables)
-            rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
             
             offset:float = 0.0
@@ -759,8 +758,7 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
                 term,flag_out_of_bounds = variable_in_constraint(constr,var,definitions)
                 new_values[l]=term
 
-                rows[l]=n+offset-1
-                columns[l]=offset
+                columns[l]=n+offset
             
                 if flag_out_of_bounds:
                     break
@@ -775,7 +773,7 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
 
                 add_t += t.time()-starting_t
                 sign = constr.get_sign()
-                matrix = [new_values,rows,columns]
+                matrix = [new_values,columns]
                 node.add_constraints_matrix([matrix,constant,sign])
                 if unique_constraint == True:
                     break
