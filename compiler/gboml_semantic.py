@@ -6,6 +6,10 @@
 # Writer : MIFTARI B
 # ------------
 
+
+# x1 x2 x3
+#A * (0 1 2 3 4 5) <= b
+
 from .classes import Time, Expression,Variable,Parameter,\
     Attribute,Program,Objective,Node,Identifier,Constraint 
 import copy 
@@ -44,6 +48,8 @@ def semantic(program:Program)->Program:
 
     all_variables = {}
 
+    global_index = 0
+
     #Inside each node 
     for node in node_list:
         #Initialize dictionary of defined parameters
@@ -63,6 +69,9 @@ def semantic(program:Program)->Program:
 
         #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
+
+        #Set size of different parameters
+        global_index = set_size_variables(node_variables,parameter_dictionary,global_index)
 
         #Keep parameter dictionary
         node.set_parameter_dict(parameter_dictionary)
@@ -94,6 +103,7 @@ def semantic(program:Program)->Program:
     """
     # this would encapsulate the common code in check_expressions_dependancy and check_link
     check_link(program,all_variables,definitions)
+
 
     exit()
 
@@ -290,6 +300,14 @@ def find_variable_and_type(node:Node,attribute_name:str,output_v:bool = True,int
 ### End LINK FUNCTIONS
 ### -------------------------
 
+def set_size_variables(dictionary_var:dict, dictionary_param:dict, index:int)->int:
+    start_index = index
+    for k in dictionary_var.keys():
+        identifier = dictionary_var[k]
+        identifier.set_size(dictionary_param)
+        start_index = identifier.set_index(start_index)
+    return start_index
+
 
 ### -------------------------
 ### Expression FUNCTIONS
@@ -305,6 +323,12 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters:dict)->None
     constraints = node.get_constraints()
     
     for cons in constraints:
+        index_id = cons.get_index_var()
+        if index_id in variables or index_id in parameters: 
+            error_("Redefinition of "+str(index_id)+" at line : "+str(cons.get_line()))
+        else: 
+            parameters[index_id]=[0]
+
         rhs = cons.get_rhs()
         lhs = cons.get_lhs()
 
@@ -316,6 +340,7 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters:dict)->None
 
         check_linear(rhs,variables,parameters)
         check_linear(lhs,variables,parameters)
+        parameters.pop(index_id)
         
     objectives = node.get_objectives()
 
@@ -349,8 +374,6 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
             node_name = identifier.get_node_field()
             attr = identifier.get_attribute()
 
-            print(parameters)
-
             if node_name in parameters :
                 #PARAM EXIST
                 attr_name = attr.get_name()
@@ -360,7 +383,7 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
                 if attr_name in inside_dict:
                     values_vect = inside_dict[attr_name]
                     if attr_type == "basic" and len(values_vect)!=1:
-                            error_("Wrong indexing in Identifier '"+ str(identifier)+ "' at line, "+str(self.get_line()))
+                            error_("Wrong indexing in Identifier '"+ str(identifier)+ "' at line, "+str(identifier.get_line()))
                     
                     defined = True
                     is_variable = False
@@ -658,30 +681,12 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
     """
     constraints = node.get_constraints()
     
+    variables_dict = variables.copy()
+
     if not("T" in definitions):
         error_("INTERNAL ERROR: T not found in list of parameters")
     T = definitions["T"][0]
 
-    start_time = t.time()
-    all_variables = []
-
-    for k in range(T):
-        variables_for_time = []
-        var_identifiers = list(variables.values())
-
-        for variable in var_identifiers:
-            var = copy.copy(variable)
-            expr = Expression('literal',k)
-            var.set_expression(expr)
-
-            variables_for_time.append(var)
-        all_variables.append(variables_for_time)
-
-
-    X = np.array(all_variables)
-    node.set_variable_matrix(X)
- 
-    n,_ = np.shape(X)
     start_time = t.time()
 
     for constr in constraints:
@@ -690,28 +695,33 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
 
         for leaf in constr_leafs:
             identifier = leaf.get_name()
-            if type(identifier)!=int and type(identifier)!=float:
-                i=0
-                for variable in variables: 
+            if type(identifier)==Identifier:                
+                
+                for variable in variables_dict: 
                     if identifier.name_compare(variable):
-                        variables_used.append([i,identifier])
+                        index = variables_dict[variable].get_index()
+                        size = variables_dict[variable].get_size()
+                        variables_used.append([index,identifier,size])
                         break
-                    i +=1
     
         nb_variables = len(variables_used)
 
         constr_range = constr.get_time_range(definitions)
+        constr_var = constr.get_index_var()
+        if (constr_var in definitions) or (constr_var in variables):
+            error_("Error loop index used for constraint in line : "+str(constr.get_line())+" name already used : "+str(constr_var))
+
         if constr_range == None:
             t_horizon = T
             constr_range = range(t_horizon)
 
         unique_constraint = False
-        if(not is_time_dependant_constraint(constr,variables,definitions)):
+        if(not is_time_dependant_constraint(constr,variables,definitions,constr_var)):
             unique_constraint = True
 
         add_t:float = 0.0
         for k in constr_range:
-            definitions['t']=[k]
+            definitions[constr_var]=[k]
 
             if constr.check_time(definitions)==False:
                 continue
@@ -720,43 +730,37 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
             rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
             
-            dict_used_var:dict = {}
-            j:float = 0.0
+            offset:float = 0.0
             l = 0
-            for n,identifier in variables_used:
+            for n,identifier,id_size in variables_used:
                 
                 id_type = identifier.get_type()
-                
+                id_name = identifier.get_name()
+
                 if id_type == "basic":
-                    j = k
+                    offset = 0
                 else : 
-                    j = identifier.get_expression().evaluate_expression(definitions)
-                    if type(j) == float:
-                        if j.is_integer()==False:
+                    offset = identifier.get_expression().evaluate_expression(definitions)
+                    if type(offset) == float:
+                        if offset.is_integer()==False:
                             error_("Error: an index is a float: "+ str(identifier)+\
                                 'at line '+str(identifier.get_line())+"for t = "+str(k))
-                        j = int(round(j))
+                        offset = int(round(offset))
 
-                    if j >= T or j<0:
+                    if offset >= id_size or offset<0:
                         flag_out_of_bounds = True
                         break
 
-                name = identifier.get_name()
-                if name in dict_used_var:
-                    list_indexes = dict_used_var[name]
-                    if [n,j] in list_indexes:
-                        continue
-                    else:
-                        list_indexes.append([n,j])
-                        dict_used_var[name]=list_indexes
-                else:
-                    dict_used_var[name]=[[n,j]]
+                var = variables_dict[id_name]
+                expr = Expression("literal",offset)
 
-                term,flag_out_of_bounds = variable_in_constraint(constr,X[j][n],definitions)
+                var.set_expression(expr)
+
+                term,flag_out_of_bounds = variable_in_constraint(constr,var,definitions)
                 new_values[l]=term
 
-                rows[l]=n
-                columns[l]=j
+                rows[l]=n+offset-1
+                columns[l]=offset
             
                 if flag_out_of_bounds:
                     break
@@ -772,10 +776,11 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
                 add_t += t.time()-starting_t
                 sign = constr.get_sign()
                 matrix = [new_values,rows,columns]
-
                 node.add_constraints_matrix([matrix,constant,sign])
                 if unique_constraint == True:
                     break
+            
+        definitions.pop(constr_var)
                         
     print("Check_var --- %s seconds ---" % (t.time() - start_time))
 
@@ -903,21 +908,19 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
             definitions, dictionary with all the parameters and constants
     OUTPUT: None, augments the node object with the corresponding matrices
     """
-    matrixVar = node.get_variable_matrix()
-    n,_ = np.shape(matrixVar)
 
     objectives = node.get_objectives()
-    obj_size = len(objectives)
 
     if not("T" in definitions):
         error_("INTERNAL ERROR: T not found in list of definitions")
 
     T = definitions["T"][0]
 
+    variables_dict = variables.copy()
+
     objective_index = 0
 
-    for i in range(obj_size):
-        obj = objectives[i]
+    for obj in objectives:
         obj_type = obj.get_type()
         expr = obj.get_expression()
 
@@ -927,65 +930,73 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
 
         for leaf in expr_leafs:
             identifier = leaf.get_name()
-            if type(identifier)!=int and type(identifier)!=float:
-                i = 0
-                for variable in variables: 
+            if type(identifier)==Identifier:                
+                
+                for variable in variables_dict: 
                     if identifier.name_compare(variable):
-                        variables_used.append([i,identifier])
+                        index = variables_dict[variable].get_index()
+                        size = variables_dict[variable].get_size()
+                        variables_used.append([index,identifier,size])
                         break
-                    i +=1
     
         nb_variables = len(variables_used)
 
-        if(is_time_dependant_expression(expr,variables,definitions)):
+        obj_range = obj.get_time_range(definitions)
+        obj_var = obj.get_index_var()
+        if (obj_var in definitions) or (obj_var in variables):
+            error_("Error loop index used for constraint in line : "+str(obj.get_line())+" name already used : "+str(obj_var))
+
+        if(is_time_dependant_expression(expr,variables,definitions,obj_var)):
             t_horizon = T
         else:
             t_horizon = 1
+            obj_range = range(t_horizon)
 
-        for k in range(t_horizon):
-            definitions["t"]=[k]
+        if obj_range == None : 
+            obj_range = range(t_horizon)
+
+        for k in obj_range:
+            definitions[obj_var]=[k]
 
             values = np.zeros(nb_variables)
             rows = np.zeros(nb_variables)
             columns = np.zeros(nb_variables)
 
-            dict_used_var:dict = {}
             l = 0
-            j:float = 0.0
-            for n,identifier in variables_used:
+            offset:float = 0.0
+            for n,identifier,id_size in variables_used:
+
+                if obj.check_time(definitions)==False:
+                    continue
+
                 id_type = identifier.get_type()
+                id_name = identifier.get_name()
 
                 if id_type == "basic":
-                    j = k
+                    offset = 0
                 else : 
-                    j = identifier.get_expression().evaluate_expression(definitions)
+                    offset = identifier.get_expression().evaluate_expression(definitions)
 
-                    if type(j) == float:
-                        if j.is_integer()==False:
+                    if type(offset) == float:
+                        if offset.is_integer()==False:
                             error_("Error: an index is a float: "+ str(identifier)+\
                                 'at line '+str(identifier.get_line())+"for t = "+str(k))
-                        j = int(round(j))
+                        offset = int(round(offset))
 
-                    if j >= T or j<0:
+                    if offset >= id_size or offset<0:
                         flag_out_of_bounds = True
                         break
                 
-                name = identifier.get_name()
-                if name in dict_used_var:
-                    list_indexes = dict_used_var[name]
-                    if [n,j] in list_indexes:
-                        continue
-                    else:
-                        list_indexes.append([n,j])
-                        dict_used_var[name]=list_indexes
-                else:
-                    dict_used_var[name]=[[n,j]]
+                var = variables_dict[id_name]
+                expr_off = Expression("literal",offset)
 
-                _,term,flag_out_of_bounds = variable_factor_in_expression(expr,matrixVar[j][n],definitions)
+                var.set_expression(expr_off)
+
+                _,term,flag_out_of_bounds = variable_factor_in_expression(expr,var,definitions)
 
                 values[l] = term
-                rows[l] = n
-                columns[l] = j
+                rows[l] = n+offset
+                columns[l] = offset
 
                 if flag_out_of_bounds:
                     break
@@ -993,7 +1004,9 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
             
             if flag_out_of_bounds == False:
                 matrix = [values,rows,columns,objective_index]
+                print(matrix)
                 node.add_objective_matrix([matrix,obj_type])
+        definitions.pop(obj_var)
         
         objective_index +=1
 
@@ -1038,7 +1051,7 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
 
     if e_type == 'literal':
         identifier = expression.get_name()
-        if type(expression.get_name())!=float and type(expression.get_name())!=int:
+        if type(expression.get_name())==Identifier:
             if identifier.name_compare(variable):
                 type_id = identifier.get_type()
                 if type_id == 'assign':
@@ -1060,16 +1073,18 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                         value = 1
                 else:
                     value1 = variable.get_expression().evaluate_expression(definitions)
-                    
+                    print(value1)
+
                     if not('t' in definitions):
                         error_("INTERNAL ERROR: t not found")
 
                     values_t = definitions['t']
                     t = values_t[0]
                     
-                    if t == value1:
+                    if 0 == value1:
                         found = True
                         value = 1
+                        
     else:
         children = expression.get_children()
         if e_type == 'u-':
@@ -1119,10 +1134,9 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                     constant = children[1].evaluate_expression(definitions)
                     value = value1/constant
                     found = True
-                    
     return found,value,flag_out_of_bounds
 
-def is_time_dependant_constraint(constraint:Constraint,variables_dictionary:dict,parameter_dictionary:dict)->bool:
+def is_time_dependant_constraint(constraint:Constraint,variables_dictionary:dict,parameter_dictionary:dict,index_id:str = "t")->bool:
     """
     is_time_dependant_constraint predicate : checks if constraint is time dependant
     A constraint is time dependant if its right hand side or left depend on "t"
@@ -1132,13 +1146,13 @@ def is_time_dependant_constraint(constraint:Constraint,variables_dictionary:dict
     OUTPUT: predicate, the boolean corresponding to the predicate
     """
     rhs = constraint.get_rhs()
-    time_dep:bool = is_time_dependant_expression(rhs,variables_dictionary,parameter_dictionary)
+    time_dep:bool = is_time_dependant_expression(rhs,variables_dictionary,parameter_dictionary,index_id)
     lhs = constraint.get_lhs()
     if time_dep == False:
-        time_dep = is_time_dependant_expression(lhs,variables_dictionary,parameter_dictionary)
+        time_dep = is_time_dependant_expression(lhs,variables_dictionary,parameter_dictionary,index_id)
     return time_dep
 
-def is_time_dependant_expression(expression:Expression,variables_dictionary:dict,parameter_dictionary:dict)->bool:
+def is_time_dependant_expression(expression:Expression,variables_dictionary:dict,parameter_dictionary:dict,index_id:str="t")->bool:
     """
     is_time_dependant_expression predicate : checks if expression is time dependant
     An expression is time dependant if it depends on "t"
@@ -1154,32 +1168,33 @@ def is_time_dependant_expression(expression:Expression,variables_dictionary:dict
 
     if e_type == 'literal':
         identifier = expression.get_name()
-        if type(expression.get_name())!=float and type(expression.get_name())!=int:
+        if type(expression.get_name())==Identifier:
             id_type = identifier.get_type()
             id_name = identifier.get_name()
-            
-            if id_name == "t":
+
+            if id_name == index_id:
                 predicate = True
             elif id_name == "T":
                 predicate = False
             else:
                 if id_name in variables_dictionary:
                     if id_type =="assign":
+
                         predicate = is_time_dependant_expression(identifier.get_expression(),\
-                            variables_dictionary,parameter_dictionary)
+                            variables_dictionary,parameter_dictionary,index_id)
                     else: 
-                        predicate = True
+                        predicate = False
                 elif id_name in parameter_dictionary:
                     if id_type =="assign":
                         predicate = is_time_dependant_expression(identifier.get_expression(),\
-                            variables_dictionary,parameter_dictionary)
+                            variables_dictionary,parameter_dictionary,index_id)
                     else:
                         vector = parameter_dictionary[id_name]
                         if len(vector)>1:
-                            predicate = True
+                            predicate = False
     else:
         for i in range(nb_child):
-            predicate_i = is_time_dependant_expression(children[i],variables_dictionary,parameter_dictionary)
+            predicate_i = is_time_dependant_expression(children[i],variables_dictionary,parameter_dictionary,index_id)
             if predicate_i:
                 predicate = predicate_i
                 break

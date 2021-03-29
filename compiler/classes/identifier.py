@@ -21,6 +21,7 @@ class Identifier(Symbol):
         Symbol.__init__(self,name_id,type_id,line)
         self.expression = expression
         self.index = 0 #GLOBAL INDEX inside the Ax <= b matrix
+        self.size = None
 
     def __str__(self):
         
@@ -33,6 +34,16 @@ class Identifier(Symbol):
     def __copy__(self):
         
         return Identifier(self.type,self.name,expression=None)
+
+    def set_size(self,dictionary):
+        if self.expression == None:
+            size = 1
+        else : 
+            size = self.expression.evaluate_expression(dictionary)
+        self.size = size
+
+    def get_size(self):
+        return self.size
 
     def name_compare(self,identifier_i)->bool:
         
@@ -59,6 +70,7 @@ class Identifier(Symbol):
     def set_index(self,value):
         
         self.index = value
+        return value+self.size
         
     def get_index(self):
         

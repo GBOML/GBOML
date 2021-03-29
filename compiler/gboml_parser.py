@@ -245,12 +245,12 @@ def p_objectives(p):
 
 
 def p_define_objectives(p):
-    '''define_objectives : MIN COLON expr SEMICOLON obj_aux 
-                         | MAX COLON expr SEMICOLON obj_aux'''
+    '''define_objectives : MIN COLON expr time_loop condition SEMICOLON obj_aux 
+                         | MAX COLON expr time_loop condition SEMICOLON obj_aux'''
 
-    obj = Objective(p[1], p[3], line=p.lineno(1))
-    p[5].append(obj)
-    p[0] = p[5]
+    obj = Objective(p[1], p[3], p[4], p[5], line=p.lineno(1))
+    p[7].append(obj)
+    p[0] = p[7]
 
 
 def p_obj_aux(p):

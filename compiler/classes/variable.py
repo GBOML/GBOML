@@ -17,16 +17,6 @@ class Variable(Symbol):
 
         Symbol.__init__(self,identifier,v_type,line)
 
-        expr = identifier.get_expression()
-        
-        if expr != None:
-            if expr.get_type() != "literal":
-                error_("Wrong type for variable definition in line "+str(line)+" should be t or none")
-            
-            if expr.get_name != "t":
-                error_("Wrong expression for variable definition in line "+str(line)+" should be t or none")
-
-
     def __str__(self):
 
         string = "["+str(self.name)+' , '+str(self.type)

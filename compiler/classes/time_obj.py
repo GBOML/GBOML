@@ -75,10 +75,6 @@ class TimeInterval:
         assert type(end) == Expression, "Internal error: unknown type for end in TimeInterval object"
         assert type(step) == Expression or type(step) == int, "Internal error: unknown type for step in TimeInterval object"
 
-        if time_var != "t":
-            error_("Semantic error:"+str(line)+": only \"t\""+\
-                " can be looped on. Looping \""+ str(time_var)+\
-                "\" is not allowed")
         self.name = time_var
         self.begin = begin
 
@@ -89,6 +85,8 @@ class TimeInterval:
         self.end = end
         self.line = line
 
+    def get_index_name(self):
+        return self.name
     
     def get_range(self,definitions:dict)->range:
 

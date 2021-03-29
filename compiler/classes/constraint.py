@@ -63,6 +63,13 @@ class Constraint(Type):
         
         return self.rhs.get_leafs()+self.lhs.get_leafs()
 
+    def get_index_var(self):
+        var_name = "t"
+        if self.time_interval != None:
+            var_name =  self.time_interval.get_index_name()
+        
+        return var_name
+
     def get_time_range(self,definitions):
         
         range_time = None
