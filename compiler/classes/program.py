@@ -18,6 +18,7 @@ class Program:
         self.global_param=global_param
         self.link_constraints = []
         self.nb_var_index = 0
+        self.var_dict = {}
 
     def __str__(self):
         
@@ -128,3 +129,17 @@ class Program:
 
     def set_nb_var_index(self,index):
         self.nb_var_index = index
+
+    def set_variables_dict(self,var_dict):
+        self.var_dict = var_dict
+
+    def get_tuple_name(self):
+        tuple_names = []
+
+        for node_name in self.var_dict.keys():
+            node_var_dict = self.var_dict[node_name]
+            for var_name in node_var_dict.keys():
+                name_index = [var_name,node_var_dict[var_name].get_index()]
+                tuple_names.append([node_name,name_index])
+
+        return tuple_names

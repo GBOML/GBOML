@@ -45,7 +45,8 @@ def semantic(program:Program)->Program:
     definitions["global"]= global_dict
     definitions["GLOBAL"]= global_dict
 
-    all_variables = {}
+    program_variables = {}
+    external_variables = {}
 
     global_index = 0
 
@@ -61,8 +62,9 @@ def semantic(program:Program)->Program:
         name = node.get_name()
         #Retrieve a dictionary of [name,identifier object] tuple
         node_variables = node.get_dictionary_variables()
+        program_variables[name] = node_variables
 
-        all_variables[name] = node.get_dictionary_variables("external")
+        external_variables[name] = node.get_dictionary_variables("external")
 
         #Check if variables and parameters share names
         match_dictionaries(node_parameters,node_variables)
@@ -88,6 +90,7 @@ def semantic(program:Program)->Program:
         convert_objectives_matrix(node,node_variables,parameter_dictionary)
 
     program.set_nb_var_index(global_index)
+    program.set_variables_dict(program_variables)
 
     #if the model does not have a proper constraint defined
     if program.get_number_constraints()==0:
@@ -111,9 +114,9 @@ def semantic(program:Program)->Program:
     dict_objects["T"] = [time_value]
 
 
-    check_link(program,all_variables,dict_objects)
+    check_link(program,external_variables,dict_objects)
 
-    convert_link_matrix(program,all_variables,definitions)
+    convert_link_matrix(program,external_variables,definitions)
 
     #program.set_link_constraints(input_output_matrix)
 
