@@ -115,11 +115,7 @@ def semantic(program:Program)->Program:
 
     convert_link_matrix(program,all_variables,dict_objects)
 
-    exit()
-
-    input_output_matrix = convert_links_to_matrix(all_input_output_pairs)
-
-    program.set_link_constraints(input_output_matrix)
+    #program.set_link_constraints(input_output_matrix)
 
     return program
     
