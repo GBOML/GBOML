@@ -4,28 +4,47 @@ import numpy as np # type: ignore
 from scipy.sparse import coo_matrix # type: ignore
 from .utils import error_
 
-def matrix_generationC(root:Program)-> coo_matrix:
+def matrix_generationC(root:Program)->tuple:
 	"""
 	matrix_generationC function: takes as input a program object and returns a coo_matrix 
 	of the different objectives flatten. In other words, returns the different objectives
 	as a matrix : min C*x where each line of C corresponds to one objective.
 	INPUT:  Program object
 	OUTPUT: C -> Sparse coo matrix of the objective function
+			objective_map -> Mapping to check which objective relates to which node
 	"""
 
 	# TODO: add map (node name -> objective indexes) back in?
 	all_rows = []
 	all_columns = []
 	all_values = []
+	objective_map = {}
 
 	nb_variables = root.get_nb_var_index()
 	nb_objectives = 0
 
 	nodes = root.get_nodes()
 	for node in nodes:
+		node_objectives = {}
 
+		# TODO: Generation of the objective map currently assumes the following:
+		# 1: the first obj_index will be 0 (if not, we generate an empty entry in the first loop iteration)
+		# 2: objective with the same obj_index come in groups (we close an entry of node_objectives once we get a new obj_index)
+		# This could be avoided by having node.get_objective_list return a container that is structured by obj_indexes
+		current_obj_index = 0
+		current_row_indexes = []
 		objectives = node.get_objective_list()
 		for [values,col_indexes,obj_index],sign in objectives:
+
+			if obj_index != current_obj_index:
+				objective_data = {}
+				objective_data["type"] = sign
+				objective_data["indexes"] = current_row_indexes
+				node_objectives[current_obj_index] = objective_data
+				current_obj_index = obj_index
+				current_row_indexes = []
+
+			current_row_indexes.append(nb_objectives)
 
 			if sign == "max":
 				values = - values
@@ -37,13 +56,21 @@ def matrix_generationC(root:Program)-> coo_matrix:
 			all_rows.append(row_indexes)
 			nb_objectives = nb_objectives + 1
 
+		if current_row_indexes:
+			objective_data = {}
+			objective_data["type"] = sign
+			objective_data["indexes"] = current_row_indexes
+			node_objectives[current_obj_index] = objective_data
+
+		objective_map[node.get_name()] = node_objectives
+
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
 	values = np.concatenate(all_values)
 
 	sparse_matrix = coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
 
-	return sparse_matrix
+	return sparse_matrix, objective_map
 
 def matrix_generationAb(root:Program)->tuple:
 	"""
