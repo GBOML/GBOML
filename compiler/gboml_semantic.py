@@ -219,7 +219,9 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
             unique_constraint = True
 
         add_t:float = 0.0
+        print(constr_range)
         for k in constr_range:
+            print(k)
             definitions[constr_var]=[k]
 
             if constr.check_time(definitions)==False:
@@ -274,7 +276,6 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
                 add_t += t.time()-starting_t
                 sign = constr.get_sign()
                 matrix = [new_values,columns]
-                print(matrix)
                 program.add_link_constraints([matrix,constant,sign])
                 if unique_constraint == True:
                     break
@@ -1350,6 +1351,12 @@ def is_time_dependant_expression(expression:Expression,variables_dictionary:dict
                         vector = parameter_dictionary[id_name]
                         if len(vector)>1:
                             predicate = False
+    
+        if type(expression.get_name())==Attribute: 
+            attr = expression.get_name()
+            identifier = attr.get_attribute()
+            predicate = is_time_dependant_expression(identifier.get_expression(),variables_dictionary,parameter_dictionary,index_id)
+
     else:
         for i in range(nb_child):
             predicate_i = is_time_dependant_expression(children[i],variables_dictionary,parameter_dictionary,index_id)
