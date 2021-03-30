@@ -4,6 +4,6 @@
 #VARIABLES 
 internal : x;
 #CONSTRAINTS
-x[t]<=-4;
+x<=-4;
 #OBJECTIVES
 max : x;

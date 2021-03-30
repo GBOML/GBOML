@@ -205,6 +205,7 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
                             size = external_dict[variable].get_size()
                             variables_used.append([node_name,index,identifier,size])
                             break
+        program.add_var_link(variables_used)
     
         nb_variables = len(variables_used)
 
@@ -222,9 +223,7 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
             unique_constraint = True
 
         add_t:float = 0.0
-        print(constr_range)
         for k in constr_range:
-            print(k)
             definitions[constr_var]=[k]
 
             if constr.check_time(definitions)==False:

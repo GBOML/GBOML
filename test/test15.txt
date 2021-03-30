@@ -2,9 +2,9 @@
 
 #NODE A 
 #VARIABLES 
-output : b ;
-input : a ;
-output : c;
+external : b ;
+external : a ;
+external : c;
 
 #CONSTRAINTS 
 a >=0;
@@ -15,10 +15,10 @@ min : a ;
 
 #NODE R
 #VARIABLES
-input : f;
-input : d;
-output: h;
-input : ff;
+external : f;
+external : d;
+external: h;
+external : ff;
 
 #LINKS
 A.b == R.f;

@@ -3,7 +3,7 @@ T = 10;
 
 #NODE A
 #VARIABLES 
-internal : x;
+internal : x[T];
 #CONSTRAINTS
 x[t]>=0 for t in [9:9];
 #OBJECTIVES

@@ -5,11 +5,11 @@
 w = {1,2,3};
 one = 1;
 #VARIABLES
-internal : x;
-input : y;
+internal : x[T];
+input : y[T];
 #CONSTRAINTS 
-x>=0;
-y>=0;
+x[t]>=0;
+y[t]>=0;
 #OBJECTIVES 
 min: w*x[0];
 min: one*y[0];

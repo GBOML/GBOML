@@ -1,0 +1,9 @@
+#TIMEHORIZON T =  10;
+
+#NODE A 
+#VARIABLES
+input : x[0] ;
+#CONSTRAINTS
+x[0]>=0;
+#OBJECTIVES
+min: x

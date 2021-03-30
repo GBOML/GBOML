@@ -2,9 +2,9 @@
 
 #NODE H
 #VARIABLES 
-internal : y;
-internal : x;
+internal : y[T];
+internal : x[T];
 #CONSTRAINTS
 x[t]==0;
 #OBJECTIVES
-min : y;
+min : y[t];

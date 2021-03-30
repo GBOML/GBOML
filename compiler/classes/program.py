@@ -19,6 +19,7 @@ class Program:
         self.link_constraints = []
         self.nb_var_index = 0
         self.var_dict = {}
+        self.link_list = []
 
     def __str__(self):
         
@@ -143,3 +144,15 @@ class Program:
                 tuple_names.append([node_name,name_index])
 
         return tuple_names
+
+    def add_var_link(self,tuple_list):
+        link = []
+
+        for element in tuple_list:
+            [node_name,_,identifier,_] = element
+            link.append([node_name,str(identifier)])
+        
+        self.link_list.append(link)
+
+    def get_link_var(self):
+        return self.link_list

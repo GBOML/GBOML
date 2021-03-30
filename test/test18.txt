@@ -1,0 +1,4 @@
+#TIMEHORIZON
+T = 10;
+
+#NODE C

@@ -2,8 +2,8 @@
 
 #NODE H
 #VARIABLES 
-internal : x;
+internal : x[T];
 #CONSTRAINTS
 x[t]>=4;
 #OBJECTIVES
-min : x;
+min : x[t];

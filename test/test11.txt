@@ -3,8 +3,8 @@ T = 10;
 
 #NODE A
 #VARIABLES 
-internal : x;
+internal : x[T];
 #CONSTRAINTS
 x[t]>=0;
 #OBJECTIVES
-min: x;
+min: x[t];
