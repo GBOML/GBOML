@@ -283,8 +283,6 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
                     break
             
         definitions.pop(constr_var)
-                        
-    print("Check_var --- %s seconds ---" % (t.time() - start_time))
 
 
 
@@ -912,12 +910,10 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
             
             if flag_out_of_bounds==False:
 
-                starting_t = t.time() 
                 constant = constant_in_constraint(constr,variables,definitions)
                 if not np.any(new_values) and constant != 0:
                     error_("Error constraint "+str(constr)+" is impossible for t="+str(k))
 
-                add_t += t.time()-starting_t
                 sign = constr.get_sign()
                 matrix = [new_values,columns]
                 node.add_constraints_matrix([matrix,constant,sign])
@@ -926,7 +922,7 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
             
         definitions.pop(constr_var)
                         
-    print("Check_var --- %s seconds ---" % (t.time() - start_time))
+    print("Check variables of node "+ str(node.get_name()) +" : --- %s seconds ---" % (t.time() - start_time))
 
 
     
@@ -1357,7 +1353,8 @@ def is_time_dependant_expression(expression:Expression,variables_dictionary:dict
         if type(expression.get_name())==Attribute: 
             attr = expression.get_name()
             identifier = attr.get_attribute()
-            predicate = is_time_dependant_expression(identifier.get_expression(),variables_dictionary,parameter_dictionary,index_id)
+            if identifier.get_type() == "assign":
+                predicate = is_time_dependant_expression(identifier.get_expression(),variables_dictionary,parameter_dictionary,index_id)
 
     else:
         for i in range(nb_child):

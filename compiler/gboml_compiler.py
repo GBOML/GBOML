@@ -51,13 +51,9 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
     program = semantic(ast)
 
     A,b = matrix_generationAb(program)
-    print(A,b)
     C,objective_map = matrix_generationC(program)
 
-    print(C)
     T = program.get_time().get_value()
     os.chdir(curr_dir)
-
-    print(program.get_tuple_name())
 
     return program,A,b,C,T,program.get_tuple_name(),objective_map
