@@ -28,10 +28,7 @@ def generate_json(program, variable_names, solver_data, status, solution, object
 
     model_data["nodes"] = nodes
 
-    links = []
-    for link in program.get_links():
-        links+=link.to_vector()
-    model_data["links"] = links
+    model_data["links"] = program.get_link_var()
 
     data["model"] = model_data
 
@@ -44,28 +41,22 @@ def generate_json(program, variable_names, solver_data, status, solution, object
     solution_data["status"] = status
     solution_data["objective"] = objective
  
+    var_dict = program.get_variables_dict()
+
     if solution is not None:
         product = C*solution
 
         nodes = {}
         for node_name, variable_indexes in variable_names:
-            all_obj = []
-            if node_name in objective_map:
-                objective_dict = objective_map[node_name]
-                for key in objective_dict:
-                    index_type_dict = objective_dict[key]
-                    indexes = index_type_dict["indexes"]
-                    o_type = index_type_dict["type"]
-                    obj_val = product[indexes].sum()
-                    if o_type == "max":
-                        obj_val = - obj_val
-                    
-                    all_obj.append([obj_val])
+            inner_node_vars = var_dict[node_name]
 
+            all_obj = []
+            
             node_data = {}
             variables = {}
             for index, var_name in variable_indexes:
-                variables[var_name] = solution[index:(index+horizon)].flatten().tolist()
+                var_obj = inner_node_vars[var_name]
+                variables[var_name] = solution[index:(index+var_obj.get_size())].flatten().tolist()
             node_data["variables"] = variables
             node_data["objectives"] = all_obj
             nodes[node_name] = node_data
