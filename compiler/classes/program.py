@@ -96,6 +96,10 @@ class Program:
         
         return self.link_constraints
     
+    def add_link_constraints(self,c):
+
+        self.link_constraints.append(c)
+
     def get_number_constraints(self):
         
         sum_constraints = 0

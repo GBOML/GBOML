@@ -50,8 +50,7 @@ def find_column(input, token):
 keywords = {
     'min': 'MIN',
     'max': 'MAX',
-    'input': 'INPUT',
-    'output': 'OUTPUT',
+    'external': 'EXTERNAL',
     'internal': 'INTERNAL',
     'in': 'IN',
     'import': 'IMPORT',

@@ -144,8 +144,7 @@ def p_variables(p):
 
 def p_define_variables(p):
     '''define_variables : INTERNAL COLON id SEMICOLON var_aux 
-                        | OUTPUT COLON id SEMICOLON var_aux 
-                        | INPUT COLON id SEMICOLON var_aux '''
+                        | EXTERNAL COLON id SEMICOLON var_aux '''
 
     var = Variable(p[3], p[1], line=p.lineno(1))
     p[5].insert(0, var)

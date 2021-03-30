@@ -160,12 +160,19 @@ class Node:
         
         return self.nb_constraint_matrix
 
-    def get_dictionary_variables(self):
+    def get_dictionary_variables(self,get_type = "all"):
         
         variables = self.variables
         all_variables = {}
         reserved_names = ["t","T"]
         for var in variables:
+
+            v_type = var.get_type()
+            if get_type == "external" and v_type =="internal":
+                continue
+            if get_type == "internal" and v_type == "external":
+                continue
+            
             identifier = var.get_identifier()
             name = identifier.get_name()
             if name in reserved_names:
