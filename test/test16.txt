@@ -6,10 +6,10 @@ w = {1,2,3};
 one = 1;
 #VARIABLES
 internal : x[T];
-input : y[T];
+external : y[T];
 #CONSTRAINTS 
 x[t]>=0;
 y[t]>=0;
 #OBJECTIVES 
-min: w*x[0];
+min: w[t]*x[0];
 min: one*y[0];

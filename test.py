@@ -6,6 +6,7 @@ class TestErrors(unittest.TestCase):
 
     #Case where we try to access a nonexistant file 
     def test_nonexistant_file(self):
+        
         process = subprocess.run(['python', 'main.py', 'test/nonexistant.txt'], 
                            stdout=subprocess.PIPE,
                            universal_newlines=True)
