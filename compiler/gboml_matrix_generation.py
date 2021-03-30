@@ -92,7 +92,34 @@ def matrix_generationAb(root:Program)->tuple:
 			all_rhs.append(rhs)
 			nb_constraints = nb_constraints + 1
 
-	# TODO: add link constraints
+	links = root.get_link_constraints()
+	for [values, col_indexes],rhs,sign in links:
+
+		if sign == "==":
+			#Do c<=b and -c<=-b
+			row_indexes = np.zeros(len(values))
+			row_indexes.fill(nb_constraints)
+			all_values.append(values)
+			all_columns.append(col_indexes)
+			all_rows.append(row_indexes)
+			all_rhs.append(rhs)
+			nb_constraints = nb_constraints + 1
+			sign = ">="
+
+		if sign == ">=":
+			#Do -c<=-b
+			values = - values
+			rhs = - rhs
+
+		row_indexes = np.zeros(len(values))
+		row_indexes.fill(nb_constraints)
+		all_values.append(values)
+		all_columns.append(col_indexes)
+		all_rows.append(row_indexes)
+		all_rhs.append(rhs)
+		nb_constraints = nb_constraints + 1
+
+	# TODO: combine constraint and link loops
 
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
