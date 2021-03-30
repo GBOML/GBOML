@@ -54,8 +54,6 @@ def semantic(program:Program)->Program:
         #Initialize dictionary of defined parameters
 
         parameter_dictionary = definitions.copy()
-        parameter_dictionary["global"] = global_dict_object
-        parameter_dictionary["GLOBAL"] = global_dict_object
 
         #Retrieve all the parameters'names in set
         node_parameters = node.get_dictionary_parameters() 
@@ -78,6 +76,8 @@ def semantic(program:Program)->Program:
         #Keep parameter dictionary
         node.set_parameter_dict(parameter_dictionary)
 
+        node_parameters["global"] = global_dict_object
+        node_parameters["GLOBAL"] = global_dict_object
         #Check constraints and objectives expressions
         check_expressions_dependancy(node,node_variables,node_parameters)
 
@@ -113,7 +113,7 @@ def semantic(program:Program)->Program:
 
     check_link(program,all_variables,dict_objects)
 
-    convert_link_matrix(program,all_variables,dict_objects)
+    convert_link_matrix(program,all_variables,definitions)
 
     #program.set_link_constraints(input_output_matrix)
 
@@ -257,7 +257,6 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
 
                 term,flag_out_of_bounds = variable_in_constraint(constr,var,definitions,node_name)
                 new_values[l]=term
-                print(term)
 
                 columns[l]=n+offset
             
@@ -502,7 +501,6 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
         if type(identifier)==Attribute:
             node_name = identifier.get_node_field()
             attr = identifier.get_attribute()
-
             if node_name in parameters :
                 #PARAM EXIST
                 attr_name = attr.get_name()
@@ -1208,6 +1206,7 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                         flag_out_of_bounds = True
 
                     value1 = variable.get_expression().evaluate_expression(definitions)
+                    
                     if value1 == t_value:
                         found = True
                         value = 1
@@ -1226,7 +1225,11 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                 type_id = attr_id.get_type()
                 if type_id == 'assign':
                     t_expr = attr_id.get_expression()
+                    if not('T' in definitions):
+                        error_("INTERNAL ERROR: T not found")
                     t_value = t_expr.evaluate_expression(definitions)
+                    values_T = definitions['T']
+                    T = values_T[0]
                     if t_value < 0 or t_value >= T:
                         flag_out_of_bounds = True
                     value1 = variable.get_expression().evaluate_expression(definitions)
@@ -1242,15 +1245,15 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
     else:
         children = expression.get_children()
         if e_type == 'u-':
-            found,value,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,definitions)
+            found,value,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,definitions,node_name)
             if flag_out_of_bounds:
                 return found,value,flag_out_of_bounds
             value = - value
         else:
-            found1,value1,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,definitions)
+            found1,value1,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,definitions,node_name)
             if flag_out_of_bounds:
                 return found,value,flag_out_of_bounds
-            found2,value2,flag_out_of_bounds = variable_factor_in_expression(children[1],variable,definitions)
+            found2,value2,flag_out_of_bounds = variable_factor_in_expression(children[1],variable,definitions,node_name)
             if flag_out_of_bounds:
                 return found,value,flag_out_of_bounds
 
@@ -1288,6 +1291,7 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                     constant = children[1].evaluate_expression(definitions)
                     value = value1/constant
                     found = True
+
     return found,value,flag_out_of_bounds
 
 def is_time_dependant_constraint(constraint:Constraint,variables_dictionary:dict,parameter_dictionary:dict,index_id:str = "t")->bool:
