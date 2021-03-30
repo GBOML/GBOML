@@ -60,4 +60,4 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
 
     print(program.get_tuple_name())
 
-    return program,A,b,C,T,None,None
+    return program,A,b,C,T,program.get_tuple_name(),objective_map

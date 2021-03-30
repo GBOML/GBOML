@@ -134,14 +134,19 @@ class Program:
     def set_variables_dict(self,var_dict):
         self.var_dict = var_dict
 
+    def get_variables_dict(self):
+        return self.var_dict
+
     def get_tuple_name(self):
         tuple_names = []
 
         for node_name in self.var_dict.keys():
             node_var_dict = self.var_dict[node_name]
+            all_tuples = []
             for var_name in node_var_dict.keys():
-                name_index = [var_name,node_var_dict[var_name].get_index()]
-                tuple_names.append([node_name,name_index])
+                name_index = [node_var_dict[var_name].get_index(),var_name]
+                all_tuples.append(name_index)
+            tuple_names.append([node_name,all_tuples])
 
         return tuple_names
 
