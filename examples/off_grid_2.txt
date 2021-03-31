@@ -8,16 +8,15 @@ c_pv = 1; //cost per unit of PV capacity in currency per watt
 rate = 0.07; // interest rate
 n = 2 ;// number of years
 #VARIABLES
-internal: ipv; // internal variable of the total cost in currency
-internal: p; // intermediate variable for cost
-output : ppv_max; //max capacity of PV panels installed in Watt 
-output : c_p; //investment cost in currency 
+internal: ipv[T]; // internal variable of the total cost in currency
+internal: p[T]; // intermediate variable for cost
+external : ppv_max; //max capacity of PV panels installed in Watt 
+external : c_p[T]; //investment cost in currency 
 #CONSTRAINTS
 ppv_max >= 0;
-ppv_max[0] == ppv_max;
-ipv == c_pv * ppv_max;
-p == ipv * rate * ((1+rate)**n) / (((1+rate)**n) - 1);
-c_p == p / 8760;
+ipv[t] == c_pv * ppv_max;
+p[t] == ipv[t] * rate * ((1+rate)**n) / (((1+rate)**n) - 1);
+c_p[t] == p[t] / 8760;
 
 
 #NODE PV
@@ -25,11 +24,11 @@ c_p == p / 8760;
 avg_prod = {0,0,0,0,0,0,0,0,0,0.04,0.08,0.12,0.14,0.15,
             0.14,0.12,0.08,0.04,0,0,0,0,0,0}; // average PV production per installed capacity (percentage)
 #VARIABLES
-input : ppv_max; // max production in watt 
-internal: var; 
-output : ppv; //the expected value of the PV power generation in watt
+external : ppv_max[T]; // max production in watt 
+internal: var[T]; 
+external : ppv[T]; //the expected value of the PV power generation in watt
 #CONSTRAINTS
-var == avg_prod[mod(t,24)];
+var[t] == avg_prod[mod(t,24)];
 ppv[t] == avg_prod[mod(t,24)] * ppv_max[t];
 
 
@@ -39,29 +38,29 @@ c_unit = 1; //cost per unit of storage capacity installed in currency per watt
 rate = 0.07; // interest rate
 n = 2; // number of years
 #VARIABLES
-internal: ib; //total cost of investment in currency 
-internal: p; //intermediate variable for cost
-output: soCmax; //max installed capacity in watt 
-output: c_b; //investment cost in currency
+internal: ib[T]; //total cost of investment in currency 
+internal: p[T]; //intermediate variable for cost
+external: soCmax[T]; //max installed capacity in watt 
+external: c_b[T]; //investment cost in currency
 #CONSTRAINTS
-soCmax >= 0;
-soCmax[0] == soCmax;
-ib == c_unit * soCmax;
-p == ib * rate * ((1+rate)**n) / (((1+rate)**n) - 1);
-c_b == p / 8760;
+soCmax[t] >= 0;
+soCmax[0] == soCmax[t];
+ib[t] == c_unit * soCmax[t];
+p[t] == ib[t] * rate * ((1+rate)**n) / (((1+rate)**n) - 1);
+c_b[t] == p[t] / 8760;
 
 
 #NODE BATTERY
 #PARAMETERS
 p = 1; // proportion of battery capacity
 #VARIABLES
-input: soCmax; // max installed capacity in watt 
-internal: soC; //state of charge of the battery in watt hour
-output: pbt;  //actual charging power in watt
+external: soCmax[T]; // max installed capacity in watt 
+internal: soC[T]; //state of charge of the battery in watt hour
+external: pbt[T];  //actual charging power in watt
 #CONSTRAINTS
-soC[0] == soCmax / 2;
+soC[0] == soCmax[t] / 2;
 soC[t] >= 0;
-soC[t] <= soCmax;
+soC[t] <= soCmax[t];
 soC[t+1] == soC[t] + pbt[t];
 
 
@@ -70,7 +69,7 @@ soC[t+1] == soC[t] + pbt[t];
 demand = {6.9,6.4,6.1,5.9,5.7,5.4,4.8, 4.5, 4.6, 
           4.6,4.7,4.9,5.1,5.3,5.4,5.4,5.4,5.8, 8.4,10.6,11.0,10.5,9.2,7.8};
 #VARIABLES
-output: pc; //consumption in watt 
+external: pc[T]; //consumption in watt 
 #CONSTRAINTS
 pc[t] == demand[mod(t,24)];
 
@@ -79,29 +78,29 @@ pc[t] == demand[mod(t,24)];
 #PARAMETERS
 pi_shed = 1; //  in curr/watt
 #VARIABLES
-input: battery; //in watt
-input: pv_production; //in watt
-input: c_p; //in curr
-input: c_b; //in curr
-input: consumption; //in watt
-internal: cfix;  //fixed cost in curr
-internal: cshed; //variable cost in curr
-internal: shed; //power curtailed in watt
-output: r; //reward
+external: battery[T]; //in watt
+external: pv_production[T]; //in watt
+external: c_p[T]; //in curr
+external: c_b[T]; //in curr
+external: consumption[T]; //in watt
+internal: cfix[T];  //fixed cost in curr
+internal: cshed[T]; //variable cost in curr
+internal: shed[T]; //power curtailed in watt
+external: r[T]; //reward
 #CONSTRAINTS
 pv_production[t] - battery[t] + shed[t] == consumption[t];
 cshed[t] == shed[t]*pi_shed;
 shed[t] >= 0;
-cfix == c_p + c_b;
-r[t] == 8760 * cfix / 120 +cshed[t];
+cfix[t] == c_p[t] + c_b[t];
+r[t] == 8760 * cfix[t] / 120 +cshed[t];
 #OBJECTIVES
-min: r;
+min: r[t];
 
 #LINKS //take the form of output = input
-INVEST_PV.ppv_max == PV.ppv_max;
-INVEST_BAT.soCmax == BATTERY.soCmax;
-PV.ppv == OPERATION_COST.pv_production;
-DEMAND.pc == OPERATION_COST.consumption;
-BATTERY.pbt == OPERATION_COST.battery;
-INVEST_PV.c_p == OPERATION_COST.c_p;
-INVEST_BAT.c_b == OPERATION_COST.c_b;
+INVEST_PV.ppv_max == PV.ppv_max[t];
+INVEST_BAT.soCmax[t] == BATTERY.soCmax[t];
+PV.ppv[t] == OPERATION_COST.pv_production[t];
+DEMAND.pc[t] == OPERATION_COST.consumption[t];
+BATTERY.pbt[t] == OPERATION_COST.battery[t];
+INVEST_PV.c_p[t] == OPERATION_COST.c_p[t];
+INVEST_BAT.c_b[t] == OPERATION_COST.c_b[t];
