@@ -2,7 +2,7 @@ import numpy as np
 import time 
 from scipy.sparse import coo_matrix
 
-def solver_clp(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
+def solver_clp(A:coo_matrix,b:np.ndarray,C:np.ndarray,name_tuples:list)->tuple:
     """
 	solver_clp function: takes as input the matrix A, the vectors b and C. It returns the solution
     of the problem : min C^T x s.t. A x <= b
@@ -13,65 +13,88 @@ def solver_clp(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     """
     #CYLP IMPORT
     try:
-        from cylp.cy import CyClpSimplex
-        from cylp.py.modeling.CyLPModel import CyLPArray
+        from cylp.cy import CyCbcModel, CyClpSimplex
+        from cylp.py.modeling.CyLPModel import CyLPModel, CyLPArray
+
     except:
         print("Warning: Did not find the CyLP package")
         exit(0)
 
-    # Initialize local time
-    start_time = time.time()
+    model = CyLPModel()
 
     # Compute model info
     nvars = np.shape(C)[1]
 
+    #solver = CyClpSimplex()
+    additional_var_bool = False
+
+    if nvars == 1 :
+        additional_var_bool = True
+        nvars = 2
+        line,col = A.shape
+        A = coo_matrix((A.data, (A.row, A.col)), shape=(line, col+1))
+        
+        C = np.append(C[0],[0])
+
     # Build CLP model
     c = CyLPArray(C)
-    solver = CyClpSimplex()
-    variables = solver.addVariable('variables', nvars)
-    solver.addConstraint(A * variables <= b)
 
-    if nvars == 1:
-        solver.objectiveCoefficients = np.array([np.squeeze(C)])
-    else:
-        solver.objective = c * variables
+    variables = model.addVariable('variables', nvars,isInt=False)
+    model.addConstraint(A * variables <= b)
+
+    model.objective = c * variables
 
     # Solve model
-    solver.primal()
+    s = CyClpSimplex(model)
 
+    for _, variable_indexes in name_tuples:
+
+            for index, _, var_type, var_size in variable_indexes:
+                
+                if var_type == "integer":
+                    s.setInteger(variables[index:index+var_size])
+                
+                if var_type == "binary":
+                    s.setInteger(variables[index:index+var_size])
+                    s += 0.0 <= variables[index:index+var_size]<=1 
+
+
+    cbcModel = s.getCbcModel()
+
+    #print(cbcModel.objective)
+
+    cbcModel.solve()
+    
     # Return solution
     solver_info = {}
     solver_info["name"] = "clp"
     solver_info["algorithm"] = "primal simplex"
-    solver_info["status"] = solver.getStatusString()
+    solver_info["status"] = cbcModel.status
 
     solution = None
     objective = None
-    status_code = solver.getStatusCode()
-    if status_code == -1:
-        status = "unknown"
-    elif status_code == 0:
+    status_code = cbcModel.status
+    if status_code == "solution":
         status = "optimal"
-        solution = solver.primalVariableSolution['variables']
-        objective = solver.objectiveValue
-    elif status_code == 1:
-        status = "infeasible"
-        objective = float('inf')
-    elif status_code == 2:
+        solution = cbcModel.primalVariableSolution['variables']
+        if additional_var_bool:
+            solution = solution[0:len(solution)-1]
+        objective = cbcModel.objectiveValue
+
+    elif status_code == "unset":
         status = "unbounded"
         objective = float('-inf')
-    elif status_code == 3:
-        status = "unknown"
-    elif status_code == 4:
-        status = "error"
-    elif status_code == 5:
-        status = "unknown"
-    else:
+
+    elif status_code == 'relaxation infeasible':
+        status = "infeasible"
+        objective = float("inf")
+
+    else :
         status = "unknown"
 
     return solution, objective, status, solver_info
 
-def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
+def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray,name_tuples:dict)->tuple:
     """
 	solver_gurobi function: takes as input the matrix A, the vectors b and C. It returns the solution
     of the problem : min C^T x s.t. A x <= b
@@ -102,6 +125,17 @@ def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     x = model.addMVar(shape=n, lb=-float('inf'), ub=float('inf'), vtype=GRB.CONTINUOUS, name="x")
     model.addMConstr(A, x, '<', b)
     model.setObjective(C @ x, GRB.MINIMIZE)
+
+
+    for _, variable_indexes in name_tuples:
+
+        for index, _, var_type, var_size in variable_indexes:
+            
+            if var_type == "integer":
+                x[index:index+var_size].vtype = GRB.INTEGER
+            
+            if var_type == "binary":
+                x[index:index+var_size].vtype = GRB.BINARY
 
     solver_info = {}
     solver_info["name"] = "gurobi"
@@ -171,7 +205,7 @@ def solver_gurobi(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
 
     return solution, objective, status, solver_info
 
-def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
+def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray,name_tuples:dict)->tuple:
     """
 	solver_cplex function: takes as input the matrix A, the vectors b and C. It returns the solution
     of the problem : min C^T x s.t. A x <= b
@@ -194,6 +228,24 @@ def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
     model = cplex.Cplex()
 
     model.variables.add(obj=C,lb=[-cplex.infinity]*n,ub=[cplex.infinity]*n)
+
+    for _, variable_indexes in name_tuples:
+
+        for index, _, var_type, var_size in variable_indexes:
+            
+            if var_type == "integer":
+                i = index
+                while i < index+var_size:
+                    model.variables.set_types(i,model.variables.type.integer)
+                    i = i+1
+                
+            
+            if var_type == "binary":
+                i = index
+                while i < index+var_size:
+                    model.variables.set_types(i,model.variables.type.binary)
+                    i = i+1
+    
     model.linear_constraints.add(senses=['L']*m,rhs=b)
     model.linear_constraints.set_coefficients(A_zipped)
     model.objective.set_sense(model.objective.sense.minimize)
@@ -272,7 +324,7 @@ def solver_cplex(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
 
     return solution, objective, status, solver_info
 
-def solver_scipy(A:coo_matrix,b:np.ndarray,C:np.ndarray)->tuple:
+def solver_scipy(A:coo_matrix,b:np.ndarray,C:np.ndarray,name_tuples:dict)->tuple:
     """
 	solver_scipy function: takes as input the matrix A, the vectors b and C. It returns the solution
     of the problem : min C^T x s.t. A x <= b

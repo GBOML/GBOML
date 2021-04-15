@@ -63,6 +63,10 @@ class Constraint(Type):
         
         return self.rhs.get_leafs()+self.lhs.get_leafs()
 
+    def get_expanded_leafs(self,dictionary:dict)->list:
+        
+        return self.rhs.expanded_leafs(dictionary)+self.lhs.expanded_leafs(dictionary)
+
     def get_index_var(self):
         var_name = "t"
         if self.time_interval != None:

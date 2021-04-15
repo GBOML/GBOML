@@ -81,7 +81,7 @@ def semantic(program:Program)->Program:
         node_parameters["global"] = global_dict_object
         node_parameters["GLOBAL"] = global_dict_object
         #Check constraints and objectives expressions
-        check_expressions_dependancy(node,node_variables,node_parameters)
+        check_expressions_dependancy(node,node_variables,node_parameters,parameter_dictionary)
 
         #Augment node with constraintes written in matrix format
         convert_constraints_matrix(node,node_variables,parameter_dictionary)
@@ -169,8 +169,8 @@ def check_names_repetitions(elements_list:list)->None:
 
 def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
     """
-    convert_constraints_matrix function : converts a node's constraints and variables 
-    into constraint and variables matrices of the respective form [value,lign,column]
+    convert_link_matrix function : converts a node's links and variables 
+    into constraints and variables matrices of the respective form [value,lign,column]
     and full matrix 
     INPUT:  node, node object treated
             variables, dictionary of variables
@@ -186,10 +186,8 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
         error_("INTERNAL ERROR: T not found in list of parameters")
     T = definitions["T"][0]
 
-    start_time = t.time()
-
     for constr in constraints:
-        constr_leafs = constr.get_leafs()
+        constr_leafs = constr.get_expanded_leafs(definitions)
         variables_used = []
 
         for leaf in constr_leafs:
@@ -285,64 +283,6 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
         definitions.pop(constr_var)
 
 
-
-def convert_links_to_matrix(input_output_pairs:list)->list:
-    """
-    convert_links_to_matrix function : converts input output pairs in the matrix formalization
-                                       Node1 * A = Node2 * B
-    INPUT : input_output_pairs -> list of attribute pairs
-    OUTPUT : list of tuples Node1 - A - Node2 - B
-    """
-    input_output_matrix = []
-
-    for i in range(len(input_output_pairs)):
-        
-        input_node = input_output_pairs[i][1]
-        output_node = input_output_pairs[i][3]
-        for j in range(len(input_output_pairs[i][4])):
-            vector_1, vector_2 = get_index_link(input_output_pairs[i][4][j])
-            if j==0:
-                matrixNodeIn = vector_1
-                matrixNodeOut = vector_2
-            else:
-                matrixNodeIn = np.concatenate((matrixNodeIn,vector_1),axis = 1)
-                matrixNodeOut = np.concatenate((matrixNodeOut,vector_2),axis = 1)
-        quadruple = [input_node,matrixNodeIn,output_node,matrixNodeOut]
-        input_output_matrix.append(quadruple)
-    return input_output_matrix
-
-def regroup_by_name(input_output_pairs:list)->list:
-    """
-    regroup_by_name function : takes a list of input output pairs and regroups 
-                               the links per node pair
-    INPUT : input_output_pairs -> list of attribute pairs
-    OUTPUT : list of tuples Node1_name - Node2.name and links
-    """
-    triplet: list = []
-
-    for i in range(len(input_output_pairs)):
-        link = input_output_pairs[i]
-        input_attr = link[0]
-        output_attr = link[1]
-
-        name_input = input_attr.node
-        node_input = input_attr.get_node_object()
-        name_output = output_attr.node
-        node_output = output_attr.get_node_object()
-
-        found = False
-
-        for j in range(len(triplet)):
-            if triplet[j][0] == name_input and triplet[j][2]==name_output:
-                triplet[j][4].append(link)
-                found = True
-                break
-
-        if not found : 
-            triplet.append([name_input,node_input,name_output,node_output,[link]])
-
-    return triplet
-
 def check_link(program:Program,variables:dict,parameters:dict)->None:
     """
     check_link function : Takes program object and checks its links
@@ -365,66 +305,6 @@ def check_link(program:Program,variables:dict,parameters:dict)->None:
         check_linear(rhs,variables,parameters)
         check_linear(lhs,variables,parameters)
 
-def get_index_link(link:list)->tuple:
-    """
-    get_index_link function : transforms attribute equality 
-                              Node1.x = Node2.y
-                              in numpy array equality
-                              A*Node1_variables = B*Node2_variables
-                              returns the vectors A and B
-    INPUT:  link -> list of two attributes
-    OUTPUT: tuple of two numpy arrays
-    """
-    input_attr = link[0]
-    output_attr = link[1]
-
-    node_input = input_attr.get_node_object()
-    node_output = output_attr.get_node_object()
-
-    variables_input = node_input.get_variable_matrix()
-    variables_output = node_output.get_variable_matrix()
-
-    _,m = np.shape(variables_input)
-    input_vector = np.zeros((m, 1))
-
-    for i in range(m):
-        if variables_input[0][i].name_compare(input_attr.attribute):
-            input_vector[i]=1
-
-    _,p = np.shape(variables_output)
-    output_vector = np.zeros((p, 1))
-    for j in range(p):
-        if variables_output[0][j].name_compare(output_attr.attribute):
-            output_vector[j] =1 
-
-    return input_vector,output_vector
-
-def find_variable_and_type(node:Node,attribute_name:str,output_v:bool = True,internal_v:bool = True, input_v:bool=True)->bool:
-    """
-    find_variable_and_type function : returns true if the variable name is defined for node
-    INPUT:  node -> Node object
-            attribute_name -> variable name
-            output_v -> look for output variables
-            internal_v -> look for internal variables
-            input_v -> look for input variables 
-    OUTPUT: found -> boolean either true if variable in found with the given type 
-                     or false otherwise
-    """
-    variables= node.get_variables()
-    variable_size = len(variables)
-    found:bool = False
-
-    for i in range(variable_size):
-        variable_i = variables[i]
-        var_name = variable_i.get_name()
-        var_type = variable_i.get_type()
-        if var_name.name_compare(attribute_name):
-        
-            if ((var_type == "output" and output_v == True) or
-                (var_type == "input" and input_v ==True) or
-                (var_type == "internal" and internal_v ==True)):
-                found =  True
-    return found
 
 ### End LINK FUNCTIONS
 ### -------------------------
@@ -441,7 +321,7 @@ def set_size_variables(dictionary_var:dict, dictionary_param:dict, index:int)->i
 ### -------------------------
 ### Expression FUNCTIONS
 
-def check_expressions_dependancy(node:Node,variables:dict,parameters:dict)->None:
+def check_expressions_dependancy(node:Node,variables:dict,parameters_obj:dict,parameter_val:dict)->None:
     """
     check_expressions_dependancy function : checks the expressions inside a node
     INPUT:  node -> Node object
@@ -450,36 +330,46 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters:dict)->None
     OUTPUT: None
     """
     constraints = node.get_constraints()
-    
     for cons in constraints:
         index_id = cons.get_index_var()
-        if index_id in variables or index_id in parameters: 
+        if index_id in variables or index_id in parameters_obj: 
             error_("Redefinition of "+str(index_id)+" at line : "+str(cons.get_line()))
         else: 
-            parameters[index_id]=[0]
+            parameters_obj[index_id]=[0]
 
         rhs = cons.get_rhs()
         lhs = cons.get_lhs()
 
-        var_in_right = variables_in_expression(rhs,variables,parameters, check_size=True)
-        var_in_left = variables_in_expression(lhs,variables,parameters,check_size=True)
+        var_in_right = variables_in_expression(rhs,variables,parameters_obj, check_size=True)
+        var_in_left = variables_in_expression(lhs,variables,parameters_obj,check_size=True)
 
         if var_in_right == False and var_in_left == False:
             error_('No variable in constraint at line '+str(cons.get_line()))
 
-        check_linear(rhs,variables,parameters)
-        check_linear(lhs,variables,parameters)
-        parameters.pop(index_id)
-        
+        check_linear(rhs,variables,parameters_obj)
+        check_linear(lhs,variables,parameters_obj)
+
+        parameters_obj.pop(index_id)
+    
     objectives = node.get_objectives()
 
     for obj in objectives:
+        
+        index_id = cons.get_index_var()
+
+        if index_id in variables or index_id in parameters_obj: 
+            error_("Redefinition of "+str(index_id)+" at line : "+str(cons.get_line()))
+        else : 
+            parameters_obj[index_id]=[0]
+        
         expr = obj.get_expression()
-        contains_var = variables_in_expression(expr,variables,parameters)
+        
+        contains_var = variables_in_expression(expr,variables,parameters_obj,check_size=True)
         if contains_var == False:
             error_('Objective only depends on constants not on variable at line '+str(expr.get_line()))
-        check_linear(expr,variables,parameters)
-    
+        check_linear(expr,variables,parameters_obj)
+
+        parameters_obj.pop(index_id)
 
 def variables_in_expression(expression:Expression,variables:dict,parameters:dict,check_in:bool = True, check_size = False )->bool:
     """
@@ -497,76 +387,93 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
 
     for expr_id in leafs:
         
-        identifier = expr_id.get_name()
+        if expr_id.get_type()=='sum':
+            time_int = expr_id.get_time_interval()
+            time_var = time_int.get_index_name()
+            children_expr = expr_id.get_children()
+            if time_var in parameters:
+                error_("Redefinition of "+str(time_var)+" at line : "+str(expr_id.get_line()))
+            
+            parameters[time_var]=None
 
-        if type(identifier)==Attribute:
-            node_name = identifier.get_node_field()
-            attr = identifier.get_attribute()
-            if node_name in parameters :
-                #PARAM EXIST
-                attr_name = attr.get_name()
-                attr_type = attr.get_type()
-
-                inside_dict = parameters[node_name]
-                if attr_name in inside_dict:
-                    param_obj = inside_dict[attr_name]
-                    if check_size and ((param_obj.get_type()== "expression" and attr_type=="assign") or \
-                    (param_obj.get_type()== "table" and attr_type=="basic")):
-                        error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
-                        +" for identifier : "+ str(identifier)) 
-
-                    defined = True
-                    is_variable = False
-
-            elif node_name in variables: 
-                attr_name = attr.get_name()
-                inside_dict = variables[node_name]
-                if attr_name in inside_dict:
-                    defined = True
+            for child in children_expr:
+                is_child_var = variables_in_expression(child,variables,parameters,check_in,check_size)
+                if is_child_var == True:
                     is_variable = True
-                    id_var = inside_dict[attr_name]
-                    if check_size and id_var.get_type()!= attr.get_type():
+
+            parameters.pop(time_var)
+
+        else : 
+            identifier = expr_id.get_name()
+
+            if type(identifier)==Attribute:
+                node_name = identifier.get_node_field()
+                attr = identifier.get_attribute()
+                if node_name in parameters :
+                    #PARAM EXIST
+                    attr_name = attr.get_name()
+                    attr_type = attr.get_type()
+
+                    inside_dict = parameters[node_name]
+                    if attr_name in inside_dict:
+                        param_obj = inside_dict[attr_name]
+                        if check_size and ((param_obj.get_type()== "expression" and attr_type=="assign") or \
+                        (param_obj.get_type()== "table" and attr_type=="basic")):
+                            error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
+                            +" for identifier : "+ str(identifier)) 
+
+                        defined = True
+                        is_variable = False
+
+                elif node_name in variables: 
+                    attr_name = attr.get_name()
+                    inside_dict = variables[node_name]
+                    if attr_name in inside_dict:
+                        defined = True
+                        is_variable = True
+                        id_var = inside_dict[attr_name]
+                        if check_size and id_var.get_type()!= attr.get_type():
+                            error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
+                                +" for identifier : "+ str(identifier)) 
+
+                
+                if defined == False:
+                    error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
+                
+                if check_in == True:
+                    check_in_brackets(attr,variables,parameters)
+
+            elif type(identifier)==Identifier:
+                id_name = identifier.get_name() 
+                reserved_names = ["T","t"]
+                if id_name in variables:
+                    is_variable = True
+                    defined = True
+                    id_var = variables[id_name]
+                    if check_size and id_var.get_type()!= identifier.get_type():
                         error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
                             +" for identifier : "+ str(identifier)) 
 
-            
-            if defined == False:
-                error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
-            
-            if check_in == True:
-                check_in_brackets(attr,variables,parameters)
+                elif id_name in reserved_names:
+                    defined = True 
+                    id_type = identifier.get_type()
+                    if id_type == "assign":
+                        error_("Error: can not assign time variables : "+str(expression.get_name())+\
+                            " at line "+str(expression.get_line()))
 
-        if type(identifier)==Identifier:
-            id_name = identifier.get_name() 
-            reserved_names = ["T","t"]
-            if id_name in variables:
-                is_variable = True
-                defined = True
-                id_var = variables[id_name]
-                if check_size and id_var.get_type()!= identifier.get_type():
-                    error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
-                        +" for identifier : "+ str(identifier)) 
+                elif id_name in parameters:
+                    defined = True
+                    id_param = parameters[id_name]
+                    if check_size and ((id_param.get_type()== "expression" and identifier.get_type()=="assign") or \
+                        (id_param.get_type()== "table" and identifier.get_type()=="basic")):
+                        error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
+                            +" for identifier : "+ str(identifier)) 
 
-            elif id_name in parameters:
-                defined = True
-                id_param = parameters[id_name]
-                if check_size and ((id_param.get_type()== "expression" and identifier.get_type()=="assign") or \
-                    (id_param.get_type()== "table" and identifier.get_type()=="basic")):
-                    error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
-                        +" for identifier : "+ str(identifier)) 
+                if defined == False:
+                    error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
 
-            elif id_name in reserved_names:
-                defined = True 
-                id_type = identifier.get_type()
-                if id_type == "assign":
-                    error_("Error: can not assign time variables : "+str(expression.get_name())+\
-                        " at line "+str(expression.get_line()))
-
-            if defined == False:
-                error_("Undefined name "+str(expression.get_name())+" at line "+str(expression.get_line()))
-
-            if check_in == True:
-                check_in_brackets(identifier,variables,parameters)
+                if check_in == True:
+                    check_in_brackets(identifier,variables,parameters)
 
 
     return is_variable
@@ -591,9 +498,27 @@ def check_linear(expression:Expression,variables:dict,parameters:dict)->bool:
     elif e_type == 'u-':
         if nb_child !=1:
             error_("INTERNAL ERROR : unary minus operator must have one child, got "+str(nb_child)+" check internal parser")
+
         lin1  =  check_linear(children[0],variables,parameters)
         if lin1 == False:
             error_("Non linearity in expression : "+str(children[0])+" only linear problems are accepted at line "+str(children[0].get_line()))
+
+    elif e_type == 'sum':
+        if nb_child !=1:
+            error_("INTERNAL ERROR : sum operator must have one child, got "+str(nb_child)+" check internal parser")
+
+        time_int = expression.get_time_interval()
+        time_var = time_int.get_index_name()
+        if time_var in parameters:
+            error_("Redefinition of "+str(time_int)+" at line : "+str(expression.get_line()))
+            
+        parameters[time_var]=None
+        
+        lin1  =  check_linear(children[0],variables,parameters)
+        parameters.pop(time_var)
+        if lin1 == False:
+            error_("Non linearity in expression : "+str(children[0])+" only linear problems are accepted at line "+str(children[0].get_line()))
+
     else : 
         if nb_child != 2:
             error_("INTERNAL ERROR : binary operators must have two children, got "+str(nb_child)+" check internal parser")
@@ -674,7 +599,7 @@ def evaluate_table(list_values:list,definitions:dict)->list:
     for value in list_values:
         value_i = value.get_name()
 
-        if type(value_i) != float and type(value_i) !=int:
+        if type(value_i) == Identifier:
             type_val = value_i.get_type()
             id_name = value_i.get_name()
 
@@ -781,6 +706,22 @@ def check_expr_in_brackets(expression:Expression,variables:dict,parameters:dict)
 
         children = expression.get_children()
         is_time_var = check_expr_in_brackets(children[0],variables,parameters)
+
+    elif e_type == "sum":
+        if nb_child !=1:
+            error_("INTERNAL ERROR : unary minus must have one child, got "+str(nb_child)+" check internal parser")
+
+        children = expression.get_children()
+        time_interval = expression.get_time_interval()
+        name_index = time_interval.get_index_name()
+        #range_index = time_interval.get_range(definitions)
+        if name_index in parameters:
+            error_("Redefinition of "+name_index+" at line "+expression.get_line())
+        parameters[name_index]=None
+        is_time_var = check_expr_in_brackets(children[0],variables,parameters)
+        parameters.pop(name_index)
+
+
     else:
         if nb_child != 2:
             error_("INTERNAL ERROR : binary operators must have two children, got "+str(nb_child)+" check internal parser")
@@ -834,20 +775,24 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
     start_time = t.time()
 
     for constr in constraints:
-        constr_leafs = constr.get_leafs()
+        constr_leafs = constr.get_expanded_leafs(definitions)
         variables_used = []
 
         for leaf in constr_leafs:
-            identifier = leaf.get_name()
-            if type(identifier)==Identifier:                
+            l_type = leaf.get_type()
+
+            if l_type == "literal":
+                identifier = leaf.get_name() 
+
+                if type(identifier)==Identifier:
                 
-                for variable in variables_dict: 
-                    if identifier.name_compare(variable):
-                        index = variables_dict[variable].get_index()
-                        size = variables_dict[variable].get_size()
-                        variables_used.append([index,identifier,size])
-                        break
-    
+                    for variable in variables_dict: 
+                        if identifier.name_compare(variable):
+                            index = variables_dict[variable].get_index()
+                            size = variables_dict[variable].get_size()
+                            variables_used.append([index,identifier,size])
+                            break
+
         nb_variables = len(variables_used)
 
         constr_range = constr.get_time_range(definitions)
@@ -863,7 +808,6 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
         if(not is_time_dependant_constraint(constr,variables,definitions,constr_var)):
             unique_constraint = True
 
-        add_t:float = 0.0
         for k in constr_range:
             definitions[constr_var]=[k]
 
@@ -916,6 +860,7 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
 
                 sign = constr.get_sign()
                 matrix = [new_values,columns]
+                #print(matrix,constant)
                 node.add_constraints_matrix([matrix,constant,sign])
                 if unique_constraint == True:
                     break
@@ -968,6 +913,27 @@ def constant_factor_in_expression(expression:Expression,variables:dict,constants
                 value = children[0].evaluate_expression(constants)
             else: 
                 value = constant_factor_in_expression(children[0],variables,constants)
+        elif e_type == "sum":
+            time_interv = expression.get_time_interval()
+            index_name = time_interv.get_index_name() 
+            index_range = time_interv.get_range()
+            if index_name in constants:
+                error_("INTERNAL ERROR: index already in constants in sum")
+            constants[index_name] = 0
+            
+            is_var = variables_in_expression(children[0],variables,constants,check_in = False)
+
+            value = 0
+            for k in index_range:
+                constants[index_name]=[k]
+                if is_var==False:
+                    value_k = children[0].evaluate_expression(constants)
+                else: 
+                    value_k = constant_factor_in_expression(children[0],variables,constants)
+
+                value += value_k
+            constants.pop(index_name)
+
         elif e_type == "/":
             is_var1 = variables_in_expression(children[0],variables,constants,check_in = False)
             is_var2 = variables_in_expression(children[1],variables,constants,check_in = False)
@@ -1064,7 +1030,7 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
         obj_type = obj.get_type()
         expr = obj.get_expression()
 
-        expr_leafs = expr.get_leafs()
+        expr_leafs = expr.expanded_leafs(definitions)
 
         variables_used = []
 
@@ -1248,8 +1214,27 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
             if flag_out_of_bounds:
                 return found,value,flag_out_of_bounds
             value = - value
+
+        elif e_type == "sum":
+            time_interval = expression.get_time_interval()
+            name_index = time_interval.get_index_name()
+            range_index = time_interval.get_range(definitions)
+            value = 0
+
+            for k in range_index:
+                definitions[name_index]=[k]
+                found_interim, value_interm, flag_out_of_bounds_interm = variable_factor_in_expression(children[0],variable,definitions,node_name)
+                if flag_out_of_bounds_interm:
+                    flag_out_of_bounds = True
+                    return found, value, flag_out_of_bounds
+                if found_interim == True:
+                    found = True
+                    value += value_interm
+            definitions.pop(name_index)
+
         else:
             found1,value1,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,definitions,node_name)
+            
             if flag_out_of_bounds:
                 return found,value,flag_out_of_bounds
             found2,value2,flag_out_of_bounds = variable_factor_in_expression(children[1],variable,definitions,node_name)
@@ -1286,6 +1271,7 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                 constant = child.evaluate_expression(definitions) #MUST BE ALL CONSTANTS AS DEFINITIONS
                 value = value*constant
             elif e_type == '/':
+
                 if found1:
                     constant = children[1].evaluate_expression(definitions)
                     value = value1/constant

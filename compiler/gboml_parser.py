@@ -143,12 +143,22 @@ def p_variables(p):
 
 
 def p_define_variables(p):
-    '''define_variables : INTERNAL COLON id SEMICOLON var_aux 
-                        | EXTERNAL COLON id SEMICOLON var_aux '''
+    '''define_variables : INTERNAL option_var COLON id SEMICOLON var_aux 
+                        | EXTERNAL option_var COLON id SEMICOLON var_aux '''
 
-    var = Variable(p[3], p[1], line=p.lineno(1))
-    p[5].insert(0, var)
-    p[0] = p[5]
+    p[4].set_option(p[2])
+    var = Variable(p[4], p[1], line=p.lineno(1))
+    p[6].insert(0, var)
+    p[0] = p[6]
+
+def p_option_var(p):
+    '''option_var : BINARY
+                  | CONTINUOUS
+                  | INTEGER
+                  | empty '''
+    if p[1] == None:
+        p[1]="continuous"
+    p[0] = p[1]
 
 
 def p_var_aux(p):
@@ -283,27 +293,45 @@ def p_expr(p):
             | expr POW expr %prec POW
             | LPAR expr RPAR
             | MOD LPAR expr COMMA expr RPAR
+            | SUM LPAR expr time_loop RPAR
             | term'''
 
     if len(p) == 4:
+        
+        # CASES + - * / ^ ()
         if type(p[2]) == str:
             p[0] = Expression(p[2],line = p.lineno(2))
             p[0].add_child(p[1])
             p[0].add_child(p[3])
         else:
+            # ()
             p[0] = p[2]
+    
     elif len(p) == 3:
 
+        # CASE u-
         p[0] = Expression('u-',line = p.lineno(1))
         p[0].add_child(p[2])
+    
     elif len(p) == 7:
-
+        
+        # CASE MODULO
         p[0] = Expression(p[1],line = p.lineno(1))
         p[0].add_child(p[3])
         p[0].add_child(p[5])
-    else:
+    
+    elif len(p)==2:
 
+        # CASE term
         p[0] = p[1]
+
+    elif len(p)==6:
+        
+        # CASE SUM
+        p[0] = Expression('sum',line = p.lineno(1))
+        p[0].add_child(p[3])
+
+        p[0].set_time_interval(p[4])
 
 
 def p_term(p):

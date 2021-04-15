@@ -1,5 +1,5 @@
 from compiler.classes.parent import Symbol
-from compiler.classes.expression import Expression
+import copy
 
 class Identifier(Symbol):
     """
@@ -12,16 +12,17 @@ class Identifier(Symbol):
       if it is a variable
     """
 
-    def __init__(self,type_id:str,name_id:str,expression:Expression=None,line:int=0):
+    def __init__(self,type_id:str,name_id:str,expression=None,line:int=0):
 
         assert type(name_id) == str, "Internal error: expected string for identifier name" 
         assert type_id == "basic" or type_id == "assign", "Internal error: unknown type for identifier"
-        assert expression == None or type(expression) == Expression, "Internal error: wrong expression type for identifier"
+        #assert expression == None or type(expression) == Expression, "Internal error: wrong expression type for identifier"
 
         Symbol.__init__(self,name_id,type_id,line)
         self.expression = expression
         self.index = 0 #GLOBAL INDEX inside the Ax <= b matrix
         self.size = None
+        self.option = None
 
     def __str__(self):
         
@@ -32,8 +33,14 @@ class Identifier(Symbol):
         return string
 
     def __copy__(self):
-        
-        return Identifier(self.type,self.name,expression=None)
+        expr = copy.copy(self.expression)
+        return Identifier(self.type,self.name,expression=expr)
+
+    def set_option(self,option):
+        self.option = option
+    
+    def get_option(self):
+        return self.option
 
     def set_size(self,dictionary):
         if self.expression == None:

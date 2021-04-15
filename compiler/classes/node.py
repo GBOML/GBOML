@@ -50,6 +50,17 @@ class Node:
 
     def set_parameter_dict(self,param):
         
+        param = param.copy()
+
+        if "global" in param: 
+            param.pop("global")
+        
+        if "GLOBAL" in param:
+            param.pop("GLOBAL")
+        
+        if "T" in param:
+            param.pop("T")
+        
         self.param_dict = param
 
     def add_link(self,link):

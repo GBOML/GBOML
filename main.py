@@ -54,13 +54,13 @@ if __name__ == '__main__':
             print("Vector C ",C_sum)
 
         if args.linprog:
-            x, objective, status, solver_info = solver_scipy(A,b,C_sum)
+            x, objective, status, solver_info = solver_scipy(A,b,C_sum,name_tuples)
         elif args.clp:
-            x, objective, status, solver_info = solver_clp(A,b,C_sum)
+            x, objective, status, solver_info = solver_clp(A,b,C_sum,name_tuples)
         elif args.cplex:
-            x, objective, status, solver_info = solver_cplex(A,b,C_sum)
+            x, objective, status, solver_info = solver_cplex(A,b,C_sum,name_tuples)
         elif args.gurobi:
-            x, objective, status, solver_info = solver_gurobi(A,b,C_sum)
+            x, objective, status, solver_info = solver_gurobi(A,b,C_sum,name_tuples)
         else:
             print("No solver was chosen")
             exit()

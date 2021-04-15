@@ -52,6 +52,9 @@ keywords = {
     'max': 'MAX',
     'external': 'EXTERNAL',
     'internal': 'INTERNAL',
+    'integer': 'INTEGER',
+    'continuous': 'CONTINUOUS',
+    'binary': "BINARY",
     'in': 'IN',
     'import': 'IMPORT',
     'mod': 'MOD',
@@ -60,6 +63,7 @@ keywords = {
     'and': 'AND',
     'or': 'OR',
     'not': 'NOT',
+    "sum": 'SUM',
     }
 
 reserved = {

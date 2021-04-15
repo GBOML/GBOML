@@ -54,7 +54,7 @@ def generate_json(program, variable_names, solver_data, status, solution, object
             
             node_data = {}
             variables = {}
-            for index, var_name in variable_indexes:
+            for index, var_name,_,_ in variable_indexes:
                 var_obj = inner_node_vars[var_name]
                 variables[var_name] = solution[index:(index+var_obj.get_size())].flatten().tolist()
             node_data["variables"] = variables

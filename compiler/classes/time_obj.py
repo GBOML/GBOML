@@ -51,8 +51,7 @@ class Time:
             error_("ERROR: the chosen time horizon is negative.")
 
         elif time_value == 0:
-            print("WARNING: the time horizon considered is 0 no operation to be done")
-            exit()
+            print("WARNING: the time horizon considered is 0")
         
         self.value = time_value
 
@@ -85,10 +84,14 @@ class TimeInterval:
         self.end = end
         self.line = line
 
+    def __copy__(self):
+        time_int = TimeInterval(self.name,self.begin,self.end,self.step,self.line)
+        return time_int
+
     def get_index_name(self):
         return self.name
     
-    def get_range(self,definitions:dict)->range:
+    def get_range(self,definitions:dict,clip:int=sys.maxsize)->range:
 
         begin_value = self.begin.evaluate_expression(definitions)
         end_value = self.end.evaluate_expression(definitions)
@@ -97,9 +100,7 @@ class TimeInterval:
         else: 
             step_value = self.step.evaluate_expression(definitions)
         
-        time_horizon = sys.maxsize
-
-        time_horizon = definitions["T"][0]
+        time_horizon = clip
 
         begin_value, end_value,step_value = self.check(begin_value,end_value,step_value,time_horizon)
 
