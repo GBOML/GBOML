@@ -355,7 +355,7 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters_obj:dict,pa
 
     for obj in objectives:
         
-        index_id = cons.get_index_var()
+        index_id = obj.get_index_var()
 
         if index_id in variables or index_id in parameters_obj: 
             error_("Redefinition of "+str(index_id)+" at line : "+str(cons.get_line()))
@@ -365,6 +365,7 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters_obj:dict,pa
         expr = obj.get_expression()
         
         contains_var = variables_in_expression(expr,variables,parameters_obj,check_size=True)
+        
         if contains_var == False:
             error_('Objective only depends on constants not on variable at line '+str(expr.get_line()))
         check_linear(expr,variables,parameters_obj)
@@ -681,6 +682,7 @@ def check_expr_in_brackets(expression:Expression,variables:dict,parameters:dict)
                 error_('Variable in brackets for assignement ')
 
             if found == False:
+                
                 error_('Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(expression.get_line()))
             
             if id_type == "assign":
@@ -1154,11 +1156,13 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
 
     if e_type == 'literal':
         identifier = expression.get_name()
+        var_size = variable.get_size()
         if type(expression.get_name())==Identifier:
             if identifier.name_compare(variable):
                 type_id = identifier.get_type()
                 if type_id == 'assign':
                     t_expr = identifier.get_expression()
+
                     t_value = t_expr.evaluate_expression(definitions)
 
                     if not('T' in definitions):
@@ -1167,7 +1171,7 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                     values_T = definitions['T']
                     T = values_T[0]
 
-                    if t_value < 0 or t_value >= T:
+                    if t_value < 0 and t_value >= var_size :
                         flag_out_of_bounds = True
 
                     value1 = variable.get_expression().evaluate_expression(definitions)
@@ -1195,7 +1199,7 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                     t_value = t_expr.evaluate_expression(definitions)
                     values_T = definitions['T']
                     T = values_T[0]
-                    if t_value < 0 or t_value >= T:
+                    if t_value < 0 or t_value >= var_size:
                         flag_out_of_bounds = True
                     value1 = variable.get_expression().evaluate_expression(definitions)
                     if value1 == t_value:

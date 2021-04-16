@@ -314,5 +314,45 @@ class TestErrors(unittest.TestCase):
         return_code = process.returncode
         self.assertNotEqual(return_code, 0)
 
+    def test_sum_objective(self):
+        process = subprocess.run(['python', 'main.py', 'test/test18.txt',"--matrix"], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        output_split = process.stdout.split("\n")
+        self.assertEqual(output_split[13],"Vector C  [[1. 1. 1. 1. 1. 1. 1. 1. 1. 1. 0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]]")
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+
+    def test_bigger_variable(self):
+        process = subprocess.run(['python', 'main.py', 'test/test19.txt',"--gurobi","--json"], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+        with open("test/test19.json", 'r') as j:
+            contents = json.loads(j.read())
+            solution = contents["solution"]
+            obj = solution["objective"]
+            self.assertEqual(obj,10.0)
+
+    def test_hyperlink(self):
+        process = subprocess.run(['python', 'main.py', 'test/test20.txt',"--gurobi","--json"], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+        with open("test/test20.json", 'r') as j:
+            contents = json.loads(j.read())
+            solution = contents["solution"]
+            nodes = solution["nodes"]
+            nodeA = nodes["A"] 
+            nodeB = nodes['B']
+            Ax = nodeA["variables"]["x"]
+            By = nodeB["variables"]["y"]
+            Bw = nodeB["variables"]["w"]
+
+            for i in range(6):
+                self.assertEqual(Ax[i],By[i]+Bw[i])
+
 if __name__ == '__main__':
     unittest.main()

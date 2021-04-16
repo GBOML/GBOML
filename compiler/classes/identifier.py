@@ -1,4 +1,6 @@
 from compiler.classes.parent import Symbol
+from compiler.utils import error_
+
 import copy
 
 class Identifier(Symbol):
@@ -47,6 +49,9 @@ class Identifier(Symbol):
             size = 1
         else : 
             size = self.expression.evaluate_expression(dictionary)
+        if size <=0:
+            error_('ERROR : wrong size for variable : '+str(self)+ " at line : "+str(self.get_line()))
+
         self.size = size
 
     def get_size(self):
