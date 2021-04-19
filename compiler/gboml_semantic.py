@@ -918,7 +918,7 @@ def constant_factor_in_expression(expression:Expression,variables:dict,constants
         elif e_type == "sum":
             time_interv = expression.get_time_interval()
             index_name = time_interv.get_index_name() 
-            index_range = time_interv.get_range()
+            index_range = time_interv.get_range(constants)
             if index_name in constants:
                 error_("INTERNAL ERROR: index already in constants in sum")
             constants[index_name] = 0
