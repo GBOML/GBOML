@@ -26,6 +26,7 @@ class Expression(Symbol):
         self.children:list = []
         self.leafs = None
         self.time_interval = None
+        self.replaced_dict = {}
 
     def __str__(self)->str:
         
@@ -73,6 +74,11 @@ class Expression(Symbol):
     def get_time_interval(self):
         return self.time_interval
 
+    def add_replacement(self,name,value):
+        self.replaced_dict[name] =  value
+
+    def get_replacement_dict(self):
+        return self.replaced_dict
 
     def expanded_leafs(self,definitions):
         expr_type = self.get_type()
@@ -90,6 +96,8 @@ class Expression(Symbol):
                 expr_copy = copy.copy(original_expr)
                 new_expr = expr_copy.replace(name_index,k,definitions)
                 new_leafs = new_expr.expanded_leafs(definitions)
+                for leaf in new_leafs:
+                    leaf.add_replacement(name_index,k)
                 all_leafs += new_leafs
 
             return all_leafs

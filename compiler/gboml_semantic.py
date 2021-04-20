@@ -785,16 +785,15 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
 
             if l_type == "literal":
                 identifier = leaf.get_name() 
-
+                replaced_dict = leaf.get_replacement_dict()
                 if type(identifier)==Identifier:
                 
                     for variable in variables_dict: 
                         if identifier.name_compare(variable):
                             index = variables_dict[variable].get_index()
                             size = variables_dict[variable].get_size()
-                            variables_used.append([index,identifier,size])
+                            variables_used.append([index,identifier,size,replaced_dict])
                             break
-
         nb_variables = len(variables_used)
 
         constr_range = constr.get_time_range(definitions)
@@ -821,8 +820,10 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
             
             offset:float = 0.0
             l = 0
-            for n,identifier,id_size in variables_used:
+            for n,identifier,id_size,replaced_dict in variables_used:
                 
+                print(identifier)
+
                 id_type = identifier.get_type()
                 id_name = identifier.get_name()
 
@@ -845,7 +846,7 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
 
                 var.set_expression(expr)
 
-                term,flag_out_of_bounds = variable_in_constraint(constr,var,definitions)
+                term,flag_out_of_bounds = variable_in_constraint(constr,var,definitions,replaced_dict)
                 new_values[l]=term
 
                 columns[l]=n+offset
@@ -862,11 +863,10 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
 
                 sign = constr.get_sign()
                 matrix = [new_values,columns]
-                #print(matrix,constant)
                 node.add_constraints_matrix([matrix,constant,sign])
                 if unique_constraint == True:
                     break
-            
+            exit()
         definitions.pop(constr_var)
                         
     print("Check variables of node "+ str(node.get_name()) +" : --- %s seconds ---" % (t.time() - start_time))
@@ -1117,7 +1117,7 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
 
 
 
-def variable_in_constraint(constr:Constraint,variable:Identifier,constants:dict,node_name = "")->tuple:
+def variable_in_constraint(constr:Constraint,variable:Identifier,constants:dict,replaced_dict= {},node_name = "")->tuple:
     """
     variable_in_constraint function : computes the constant term
     multiplying a variable in a constraint
@@ -1131,14 +1131,14 @@ def variable_in_constraint(constr:Constraint,variable:Identifier,constants:dict,
     lhs = constr.get_lhs()
     flag_out_of_bounds = False
 
-    _,value1,flag_out_of_bounds1 = variable_factor_in_expression(rhs,variable,constants,node_name)
-    _,value2,flag_out_of_bounds2 = variable_factor_in_expression(lhs,variable,constants,node_name)
+    _,value1,flag_out_of_bounds1 = variable_factor_in_expression(rhs,variable,constants,replaced_dict,node_name)
+    _,value2,flag_out_of_bounds2 = variable_factor_in_expression(lhs,variable,constants,replaced_dict,node_name)
     value = value1 - value2
     if flag_out_of_bounds1 or flag_out_of_bounds2:
         flag_out_of_bounds = True
     return value,flag_out_of_bounds
 
-def variable_factor_in_expression(expression:Expression,variable:Identifier,definitions:dict,node_name = "")->tuple:
+def variable_factor_in_expression(expression:Expression,variable:Identifier,definitions:dict,replaced_dict:dict={},node_name = "")->tuple:
     """
     variable_factor_in_expression function : computes the constant term
     multiplying a variable in an expression
@@ -1224,9 +1224,10 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
             name_index = time_interval.get_index_name()
             range_index = time_interval.get_range(definitions)
             value = 0
-
-            for k in range_index:
-                definitions[name_index]=[k]
+            if is_in_sum(variable,expression):
+                index_val = replaced_dict[name_index]
+                
+                definitions[name_index]=[index_val]
                 found_interim, value_interm, flag_out_of_bounds_interm = variable_factor_in_expression(children[0],variable,definitions,node_name)
                 if flag_out_of_bounds_interm:
                     flag_out_of_bounds = True
@@ -1234,7 +1235,7 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                 if found_interim == True:
                     found = True
                     value += value_interm
-            definitions.pop(name_index)
+                definitions.pop(name_index)
 
         else:
             found1,value1,flag_out_of_bounds = variable_factor_in_expression(children[0],variable,definitions,node_name)
@@ -1282,6 +1283,27 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                     found = True
 
     return found,value,flag_out_of_bounds
+
+def is_in_sum(variable:Identifier,expr:Expression)->bool:
+    expr_type = expr.get_type()
+    is_in = False
+    if expr_type == "sum":
+        children = expr.get_children()
+        child = children[0]
+        child_leaves = child.get_leafs()
+        for leaf in child_leaves:
+            l_type = leaf.get_type()
+            if l_type == "literal":
+                identifier = leaf.get_name()
+                if variable.name_compare(identifier):
+                    is_in = True
+                    break
+            elif l_type == "sum":
+                is_in = is_in_sum(variable,expr)
+                if is_in:
+                    break
+    return is_in
+
 
 def is_time_dependant_constraint(constraint:Constraint,variables_dictionary:dict,parameter_dictionary:dict,index_id:str = "t")->bool:
     """
