@@ -822,8 +822,6 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
             l = 0
             for n,identifier,id_size,replaced_dict in variables_used:
                 
-                print(identifier)
-
                 id_type = identifier.get_type()
                 id_name = identifier.get_name()
 
@@ -866,7 +864,6 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
                 node.add_constraints_matrix([matrix,constant,sign])
                 if unique_constraint == True:
                     break
-            exit()
         definitions.pop(constr_var)
                         
     print("Check variables of node "+ str(node.get_name()) +" : --- %s seconds ---" % (t.time() - start_time))
