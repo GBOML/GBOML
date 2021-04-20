@@ -1222,16 +1222,18 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
             range_index = time_interval.get_range(definitions)
             value = 0
             if is_in_sum(variable,expression):
-                index_val = replaced_dict[name_index]
+                #index_val = replaced_dict[name_index]
                 
-                definitions[name_index]=[index_val]
-                found_interim, value_interm, flag_out_of_bounds_interm = variable_factor_in_expression(children[0],variable,definitions,node_name)
-                if flag_out_of_bounds_interm:
-                    flag_out_of_bounds = True
-                    return found, value, flag_out_of_bounds
-                if found_interim == True:
-                    found = True
-                    value += value_interm
+                #definitions[name_index]=[index_val]
+                for name_index in range_index:
+                    found_interim, value_interm, flag_out_of_bounds_interm = variable_factor_in_expression(children[0],variable,definitions,node_name)
+                    if flag_out_of_bounds_interm:
+                        flag_out_of_bounds = True
+                        return found, value, flag_out_of_bounds
+                        
+                    if found_interim == True:
+                        found = True
+                        value += value_interm
                 definitions.pop(name_index)
 
         else:
