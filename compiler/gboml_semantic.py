@@ -65,7 +65,6 @@ def semantic(program:Program)->Program:
         program_variables[name] = node_variables
 
         external_variables[name] = node.get_dictionary_variables("external")
-
         #Check if variables and parameters share names
         match_dictionaries(node_parameters,node_variables)
 
@@ -80,9 +79,9 @@ def semantic(program:Program)->Program:
 
         node_parameters["global"] = global_dict_object
         node_parameters["GLOBAL"] = global_dict_object
+        
         #Check constraints and objectives expressions
         check_expressions_dependancy(node,node_variables,node_parameters,parameter_dictionary)
-
         #Augment node with constraintes written in matrix format
         convert_constraints_matrix(node,node_variables,parameter_dictionary)
 
@@ -365,7 +364,7 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters_obj:dict,pa
         expr = obj.get_expression()
         
         contains_var = variables_in_expression(expr,variables,parameters_obj,check_size=True)
-        
+
         if contains_var == False:
             error_('Objective only depends on constants not on variable at line '+str(expr.get_line()))
         check_linear(expr,variables,parameters_obj)
@@ -424,7 +423,7 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
                             +" for identifier : "+ str(identifier)) 
 
                         defined = True
-                        is_variable = False
+                        #is_variable = False
 
                 elif node_name in variables: 
                     attr_name = attr.get_name()
@@ -464,8 +463,9 @@ def variables_in_expression(expression:Expression,variables:dict,parameters:dict
 
                 elif id_name in parameters:
                     defined = True
+
                     id_param = parameters[id_name]
-                    if check_size and ((id_param.get_type()== "expression" and identifier.get_type()=="assign") or \
+                    if id_param != None and check_size and ((id_param.get_type()== "expression" and identifier.get_type()=="assign") or \
                         (id_param.get_type()== "table" and identifier.get_type()=="basic")):
                         error_("Unmatching type between definition and usage at line : "+str(identifier.get_line())\
                             +" for identifier : "+ str(identifier)) 
@@ -785,14 +785,14 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
 
             if l_type == "literal":
                 identifier = leaf.get_name() 
-                replaced_dict = leaf.get_replacement_dict()
+               
                 if type(identifier)==Identifier:
                 
                     for variable in variables_dict: 
                         if identifier.name_compare(variable):
                             index = variables_dict[variable].get_index()
                             size = variables_dict[variable].get_size()
-                            variables_used.append([index,identifier,size,replaced_dict])
+                            variables_used.append([index,identifier,size])
                             break
         nb_variables = len(variables_used)
 
@@ -820,7 +820,7 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
             
             offset:float = 0.0
             l = 0
-            for n,identifier,id_size,replaced_dict in variables_used:
+            for n,identifier,id_size in variables_used:
                 
                 id_type = identifier.get_type()
                 id_name = identifier.get_name()
@@ -844,7 +844,7 @@ def convert_constraints_matrix(node:Node,variables:dict,definitions:dict)->None:
 
                 var.set_expression(expr)
 
-                term,flag_out_of_bounds = variable_in_constraint(constr,var,definitions,replaced_dict)
+                term,flag_out_of_bounds = variable_in_constraint(constr,var,definitions)
                 new_values[l]=term
 
                 columns[l]=n+offset
@@ -1114,7 +1114,7 @@ def convert_objectives_matrix(node:Node,variables:dict,definitions:dict)->None:
 
 
 
-def variable_in_constraint(constr:Constraint,variable:Identifier,constants:dict,replaced_dict= {},node_name = "")->tuple:
+def variable_in_constraint(constr:Constraint,variable:Identifier,constants:dict,node_name = "")->tuple:
     """
     variable_in_constraint function : computes the constant term
     multiplying a variable in a constraint
@@ -1128,14 +1128,14 @@ def variable_in_constraint(constr:Constraint,variable:Identifier,constants:dict,
     lhs = constr.get_lhs()
     flag_out_of_bounds = False
 
-    _,value1,flag_out_of_bounds1 = variable_factor_in_expression(rhs,variable,constants,replaced_dict,node_name)
-    _,value2,flag_out_of_bounds2 = variable_factor_in_expression(lhs,variable,constants,replaced_dict,node_name)
+    _,value1,flag_out_of_bounds1 = variable_factor_in_expression(rhs,variable,constants,node_name)
+    _,value2,flag_out_of_bounds2 = variable_factor_in_expression(lhs,variable,constants,node_name)
     value = value1 - value2
     if flag_out_of_bounds1 or flag_out_of_bounds2:
         flag_out_of_bounds = True
     return value,flag_out_of_bounds
 
-def variable_factor_in_expression(expression:Expression,variable:Identifier,definitions:dict,replaced_dict:dict={},node_name = "")->tuple:
+def variable_factor_in_expression(expression:Expression,variable:Identifier,definitions:dict,node_name = "")->tuple:
     """
     variable_factor_in_expression function : computes the constant term
     multiplying a variable in an expression
@@ -1225,12 +1225,13 @@ def variable_factor_in_expression(expression:Expression,variable:Identifier,defi
                 #index_val = replaced_dict[name_index]
                 
                 #definitions[name_index]=[index_val]
-                for name_index in range_index:
+                for v in range_index:
+                    definitions[name_index]=[v]
                     found_interim, value_interm, flag_out_of_bounds_interm = variable_factor_in_expression(children[0],variable,definitions,node_name)
                     if flag_out_of_bounds_interm:
                         flag_out_of_bounds = True
                         return found, value, flag_out_of_bounds
-                        
+
                     if found_interim == True:
                         found = True
                         value += value_interm
