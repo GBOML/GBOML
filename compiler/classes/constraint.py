@@ -14,7 +14,7 @@ class Constraint(Type):
     """
 
 
-    def __init__(self,c_type:str,rhs:Expression,lhs:Expression,time_interval:TimeInterval = None,\
+    def __init__(self,c_type:str,lhs:Expression,rhs:Expression,time_interval:TimeInterval = None,\
         condition:Condition = None,line:int=0):
 
         assert type(c_type) == str, "Internal error: expected string for Constraint type" 

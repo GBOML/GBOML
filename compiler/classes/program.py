@@ -20,6 +20,7 @@ class Program:
         self.nb_var_index = 0
         self.var_dict = {}
         self.link_list = []
+        self.factor_links = []
 
     def __str__(self):
         
@@ -51,6 +52,12 @@ class Program:
         string += '\nLinks predefined are : '+ str(self.links)
         
         return string
+
+    def set_link_factors(self,factor_list):
+        self.factor_links = factor_list
+
+    def get_link_factors(self):
+        return self.factor_links
 
     def get_global_parameters(self):
         return self.global_param

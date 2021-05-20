@@ -29,6 +29,8 @@ class Node:
         self.objective_list = []
         self.nb_constraint_matrix = 0
         self.param_dict = None
+        self.constr_factors = []
+        self.obj_factors = []
 
     def __str__(self):
         
@@ -47,6 +49,18 @@ class Node:
     def get_line(self):
         
         return self.line
+
+    def set_objective_factors(self,fact_list):
+        self.obj_factors = fact_list
+
+    def set_constraint_factors(self,fact_list):
+        self.constr_factors = fact_list
+
+    def get_objective_factors(self):
+        return self.obj_factors
+
+    def get_constraint_factors(self):
+        return self.constr_factors
 
     def set_parameter_dict(self,param):
         
@@ -150,6 +164,10 @@ class Node:
         
         return self.v_matrix
 
+    def set_constraints_matrix(self,list_matrix):
+        self.nb_constraint_matrix = len(list_matrix) 
+        self.c_triplet_list = list_matrix
+
     def add_constraints_matrix(self,c_matrix):
         
         self.nb_constraint_matrix += 1
@@ -158,6 +176,9 @@ class Node:
     def get_constraints_matrix(self):
         
         return self.c_triplet_list
+
+    def set_objective_matrix(self,o):
+        self.objective_list = o
 
     def add_objective_matrix(self,o):
         

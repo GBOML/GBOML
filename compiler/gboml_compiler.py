@@ -1,9 +1,11 @@
 from .gboml_lexer import tokenize_file
 from .gboml_parser import parse_file
 from .gboml_semantic import semantic
-from .gboml_matrix_generation import matrix_generationAb,matrix_generationC
+from .gboml_matrix_generation import matrix_generationAb,\
+    matrix_generationC, extend_factor
 
 import sys,os
+import time
 import numpy as np # type: ignore
 
 
@@ -43,17 +45,22 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
     if lex == True: 
         tokenize_file(filename)
 
+    
     ast = parse_file(filename)
+    
 
     if parse == True:
         print(ast.to_string())
 
     program = semantic(ast)
-
+    
+    extend_factor(program)
+    
     A,b = matrix_generationAb(program)
-    C,objective_map = matrix_generationC(program)
+    C,indep_terms,objective_map = matrix_generationC(program)
 
     T = program.get_time().get_value()
     os.chdir(curr_dir)
+    
 
     return program,A,b,C,T,program.get_tuple_name(),objective_map

@@ -23,6 +23,7 @@ class Expression(Symbol):
         assert node_type in ["+","-","/","*","**","u-","mod","literal","sum"], "Internal error: unknown type for Expression"
 
         Symbol.__init__(self,name,node_type,line)
+        self.parent = None
         self.children:list = []
         self.leafs = None
         self.time_interval = None
@@ -54,8 +55,14 @@ class Expression(Symbol):
         
         return len(self.children)
 
+    def get_parent(self):
+        return self.parent
+
+    def add_parent(self,p):
+        self.parent = p
+
     def add_child(self,child):
-        
+        child.add_parent(self)
         self.children.append(child)
     
     def set_leafs(self,leaves):
@@ -185,9 +192,9 @@ class Expression(Symbol):
     def evaluate_expression(self,definitions:dict):
         
         # Get type, children and nb_children
-        e_type = self.get_type()
-        nb_child = self.get_nb_children()
+        e_type = self.type
         children = self.get_children()
+        nb_child = len(children)
 
         # if expression type is unary minus
         if e_type == 'u-':

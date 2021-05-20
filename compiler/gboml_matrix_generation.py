@@ -4,6 +4,33 @@ import numpy as np # type: ignore
 from scipy.sparse import coo_matrix # type: ignore
 from .utils import error_
 
+def extend_factor(root:Program):
+
+	nodes = root.get_nodes()
+	for node in nodes : 
+
+		obj_fact_list = node.get_objective_factors()
+		obj_acc = []
+		for i,object_fact in enumerate(obj_fact_list):
+			obj_matrix = object_fact.get_extension()
+			obj_acc.append([i,obj_matrix])
+		node.set_objective_matrix(obj_acc) 
+
+		constr_fact_list = node.get_constraint_factors()
+		constr_acc = []
+		for constr_fact in constr_fact_list:
+			constr_matrix = constr_fact.get_extension()
+			constr_acc += constr_matrix
+		node.set_constraints_matrix(constr_acc)
+
+	link_factors = root.get_link_factors()
+	link_acc = []
+	for link in link_factors:
+		link_constr = link.get_extension()
+		link_acc += link_constr
+	root.set_link_constraints(link_acc)
+
+
 def matrix_generationC(root:Program)->tuple:
 	"""
 	matrix_generationC function: takes as input a program object and returns a coo_matrix 
@@ -18,12 +45,14 @@ def matrix_generationC(root:Program)->tuple:
 	all_rows = []
 	all_columns = []
 	all_values = []
+	all_indep_terms = []
 	objective_map = {}
 
 	nb_variables = root.get_nb_var_index()
 	nb_objectives = 0
 
 	nodes = root.get_nodes()
+
 	for node in nodes:
 		node_objectives = {}
 
@@ -31,46 +60,42 @@ def matrix_generationC(root:Program)->tuple:
 		# 1: the first obj_index will be 0 (if not, we generate an empty entry in the first loop iteration)
 		# 2: objective with the same obj_index come in groups (we close an entry of node_objectives once we get a new obj_index)
 		# This could be avoided by having node.get_objective_list return a container that is structured by obj_indexes
-		current_obj_index = 0
 		current_row_indexes = []
 		objectives = node.get_objective_list()
-		for [values,col_indexes,obj_index],sign in objectives:
+		node_name = node.get_name()
 
-			if obj_index != current_obj_index:
-				objective_data = {}
-				objective_data["type"] = sign
-				objective_data["indexes"] = current_row_indexes
-				node_objectives[current_obj_index] = objective_data
-				current_obj_index = obj_index
-				current_row_indexes = []
+		for obj_index, tuple_obj in objectives:
+			_,_,sign = tuple_obj[0]
+			obj_data = {}
+			obj_data["type"] = sign	
+			obj_data["indexes"] = np.arange(nb_objectives,len(tuple_obj))		
+			node_objectives[obj_index] = obj_data
 
-			current_row_indexes.append(nb_objectives)
+			for [values,col_indexes],constant, sign in tuple_obj:
 
-			if sign == "max":
-				values = - values
+				current_row_indexes.append(nb_objectives)
 
-			row_indexes = np.zeros(len(values))
-			row_indexes.fill(nb_objectives)
-			all_values.append(values)
-			all_columns.append(col_indexes)
-			all_rows.append(row_indexes)
-			nb_objectives = nb_objectives + 1
+				if sign == "max":
+					values = - values
 
-		if current_row_indexes:
-			objective_data = {}
-			objective_data["type"] = sign
-			objective_data["indexes"] = current_row_indexes
-			node_objectives[current_obj_index] = objective_data
+				row_indexes = np.zeros(len(values))
+				row_indexes.fill(nb_objectives)
+				all_values.append(values)
+				all_columns.append(col_indexes)
+				all_rows.append(row_indexes)
+				all_indep_terms.append(constant)
+				nb_objectives = nb_objectives + 1
 
-		objective_map[node.get_name()] = node_objectives
-
+		objective_map[node_name] = node_objectives
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
 	values = np.concatenate(all_values)
+	indep_terms = np.array(all_indep_terms)
 
 	sparse_matrix = coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
+	sparse_matrix.sum_duplicates()
 
-	return sparse_matrix, objective_map
+	return sparse_matrix, indep_terms, objective_map
 
 def matrix_generationAb(root:Program)->tuple:
 	"""
@@ -151,9 +176,9 @@ def matrix_generationAb(root:Program)->tuple:
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
 	values = np.concatenate(all_values)
-	rhs_vector = np.array(all_rhs)
+	rhs_vector = np.array(all_rhs,dtype=float)
 	sparse_matrix = coo_matrix((values, (rows, columns)),shape=(nb_constraints, nb_variables))
-
+	sparse_matrix.sum_duplicates()
 	#sparse_matrix.sum_duplicates()
 	sparse_matrix.eliminate_zeros()
 

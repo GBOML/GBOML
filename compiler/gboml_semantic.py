@@ -8,10 +8,10 @@
 
 
 from .classes import Time, Expression,Variable,Parameter,\
-    Attribute,Program,Objective,Node,Identifier,Constraint 
-import copy 
+    Attribute,Program,Objective,Node,Identifier,Constraint, Factorize
+
 import numpy as np # type: ignore
-from .utils import error_,list_to_string
+from .utils import error_
 import time as t 
 
 def semantic(program:Program)->Program:
@@ -50,8 +50,10 @@ def semantic(program:Program)->Program:
 
     global_index = 0
 
-    #Inside each node 
+    #Inside each node
+    #node_list = iter(node_list) 
     for node in node_list:
+        start_time = t.time()
         #Initialize dictionary of defined parameters
 
         parameter_dictionary = definitions.copy()
@@ -70,7 +72,6 @@ def semantic(program:Program)->Program:
 
         #Add evaluated parameters to the dictionary of defined paramaters
         parameter_dictionary = parameter_evaluation(node.get_parameters(),parameter_dictionary)
-
         #Set size of different parameters
         global_index = set_size_variables(node_variables,parameter_dictionary,global_index)
 
@@ -81,19 +82,24 @@ def semantic(program:Program)->Program:
         node_parameters["GLOBAL"] = global_dict_object
         
         #Check constraints and objectives expressions
-        check_expressions_dependancy(node,node_variables,node_parameters,parameter_dictionary)
+        list_constraints_factors, list_objectives_factors = check_expressions_dependancy(node,node_variables,node_parameters,parameter_dictionary)
+
+        node.set_constraint_factors(list_constraints_factors)
+        node.set_objective_factors(list_objectives_factors)
+
         #Augment node with constraintes written in matrix format
-        convert_constraints_matrix(node,node_variables,parameter_dictionary)
+        #convert_constraints_matrix(node,node_variables,parameter_dictionary)
 
         #Augment node with objectives written in matrix format
-        convert_objectives_matrix(node,node_variables,parameter_dictionary)
+        #convert_objectives_matrix(node,node_variables,parameter_dictionary)
+        print("Check variables of node "+ str(node.get_name()) +" : --- %s seconds ---" % (t.time() - start_time))
 
     program.set_nb_var_index(global_index)
     program.set_variables_dict(program_variables)
 
     #if the model does not have a proper constraint defined
-    if program.get_number_constraints()==0:
-        error_("ERROR: no valid constraint was defined making the problem unsolvable")
+    #if program.get_number_constraints()==0:
+    #    error_("ERROR: no valid constraint was defined making the problem unsolvable")
 
     #LINKS conversion
     # TODO: is there a reason that we have the node loop above but the link loops in separate functions?
@@ -113,12 +119,10 @@ def semantic(program:Program)->Program:
     dict_objects["T"] = [time_value]
 
 
-    check_link(program,external_variables,dict_objects)
-
-    convert_link_matrix(program,external_variables,definitions)
-
+    list_links_factors = check_link(program,external_variables,dict_objects,definitions)
+    program.set_link_factors(list_links_factors)
+    #convert_link_matrix(program,external_variables,definitions)
     #program.set_link_constraints(input_output_matrix)
-
     return program
     
 ### -------------------------
@@ -282,7 +286,7 @@ def convert_link_matrix(program:Program,variables:dict,definitions:dict)->None:
         definitions.pop(constr_var)
 
 
-def check_link(program:Program,variables:dict,parameters:dict)->None:
+def check_link(program:Program,variables:dict,parameters_obj:dict,parameter_val:dict)->None:
     """
     check_link function : Takes program object and checks its links
     INPUT:  program -> Program object
@@ -290,21 +294,24 @@ def check_link(program:Program,variables:dict,parameters:dict)->None:
     """
 
     links = program.get_links()
-
+    list_factor = []
     for link in links:
         rhs = link.get_rhs()
         lhs = link.get_lhs()
 
-        var_in_right = variables_in_expression(rhs,variables,parameters,check_size = True)
-        var_in_left = variables_in_expression(lhs,variables,parameters,check_size = True)
+        var_in_right = variables_in_expression(rhs,variables,parameters_obj,check_size = True)
+        var_in_left = variables_in_expression(lhs,variables,parameters_obj,check_size = True)
 
         if var_in_right == False and var_in_left == False:
             error_('No variable in linking constraint at line '+str(link.get_line()))
 
-        check_linear(rhs,variables,parameters)
-        check_linear(lhs,variables,parameters)
-
-
+        check_linear(rhs,variables,parameters_obj)
+        check_linear(lhs,variables,parameters_obj)
+        factor = Factorize(link)
+        factor.factorize_constraint(variables,parameter_val,[])
+        list_factor.append(factor)
+    
+    return list_factor
 ### End LINK FUNCTIONS
 ### -------------------------
 
@@ -329,6 +336,7 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters_obj:dict,pa
     OUTPUT: None
     """
     constraints = node.get_constraints()
+    list_constraints_factors = []
     for cons in constraints:
         index_id = cons.get_index_var()
         if index_id in variables or index_id in parameters_obj: 
@@ -349,8 +357,12 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters_obj:dict,pa
         check_linear(lhs,variables,parameters_obj)
 
         parameters_obj.pop(index_id)
-    
+        factor = Factorize(cons)
+        factor.factorize_constraint(variables, parameter_val,[])
+        list_constraints_factors.append(factor)
+        
     objectives = node.get_objectives()
+    list_objectives_factors = []
 
     for obj in objectives:
         
@@ -370,6 +382,11 @@ def check_expressions_dependancy(node:Node,variables:dict,parameters_obj:dict,pa
         check_linear(expr,variables,parameters_obj)
 
         parameters_obj.pop(index_id)
+        factor = Factorize(obj)
+        factor.factorize_objective(variables, parameter_val,[])
+        list_objectives_factors.append(factor)
+    
+    return list_constraints_factors, list_objectives_factors
 
 def variables_in_expression(expression:Expression,variables:dict,parameters:dict,check_in:bool = True, check_size = False )->bool:
     """
@@ -1299,7 +1316,7 @@ def is_in_sum(variable:Identifier,expr:Expression)->bool:
                     is_in = True
                     break
             elif l_type == "sum":
-                is_in = is_in_sum(variable,expr)
+                is_in = is_in_sum(variable,leaf)
                 if is_in:
                     break
     return is_in
