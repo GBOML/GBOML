@@ -1,6 +1,7 @@
 from compiler.classes.parent import Type
 from compiler.classes.expression import Expression
 
+
 class Objective(Type):
     """
     Objective object is composed of: 
@@ -8,14 +9,13 @@ class Objective(Type):
     - an expression
     """
 
+    def __init__(self, o_type, expression, time_interval=None, condition=None, line=0):
 
-    def __init__(self,o_type,expression,time_interval = None, condition = None,line = 0):
         assert o_type == "min" or o_type == "max", "Internal error: unknown objective type"
         assert type(expression) == Expression, "Internal error: expected expression type expression in objective"
-
-        Type.__init__(self,o_type,line)
+        Type.__init__(self, o_type, line)
         self.expression = expression
-        self.time_interval=time_interval
+        self.time_interval = time_interval
         self.condition = condition
 
     def __str__(self):
@@ -29,24 +29,27 @@ class Objective(Type):
         return self.expression
 
     def get_index_var(self):
+
         var_name = "t"
-        if self.time_interval != None:
-            var_name =  self.time_interval.get_index_name()
+        if self.time_interval is not None:
+
+            var_name = self.time_interval.get_index_name()
         
         return var_name
 
-    def get_time_range(self,definitions):
+    def get_time_range(self, definitions):
         
         range_time = None
-        if self.time_interval != None:
-            range_time =  self.time_interval.get_range(definitions)
+        if self.time_interval is not None:
+
+            range_time = self.time_interval.get_range(definitions)
         
         return range_time
 
-    def check_time(self,definitions):
+    def check_time(self, definitions):
         
         predicate = True
-        if self.condition != None:
+        if self.condition is not None:
             predicate = self.condition.check(definitions)
         
         return predicate

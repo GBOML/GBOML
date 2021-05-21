@@ -1,17 +1,17 @@
 from .gboml_lexer import tokenize_file
 from .gboml_parser import parse_file
 from .gboml_semantic import semantic
-from .gboml_matrix_generation import matrix_generationAb,\
-    matrix_generationC, extend_factor
+from .gboml_matrix_generation import matrix_generation_a_b,\
+    matrix_generation_c, extend_factor
 
-import sys,os
-import time
-import numpy as np # type: ignore
+import sys
+import os
 
 
-def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = False)->tuple:
+def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: bool = False) -> tuple:
+
     """
-	compile_gboml function: takes as input a gboml file and converts it in a program object and 
+    compile_gboml function: takes as input a gboml file and converts it in a program object and
     three matrices, min : C^T * X s.t. A*x <= b
     INPUT : input file -> str of the path towards the input file
             log -> boolean to retrieve terminal log in a .log file
@@ -26,7 +26,7 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
              objective_belonging -> Mapping to check which objectif relates to which node
     """
 
-    if(os.path.isfile(input_file)==False):
+    if os.path.isfile(input_file) is False:
         print("No such file as "+str(input_file))
         exit(-1)
 
@@ -36,31 +36,28 @@ def compile_gboml(input_file:str,log:bool = False,lex:bool = False,parse:bool = 
     if dir_path != "":
         os.chdir(dir_path)
 
-    if log == True:
+    if log is True:
         filename_split = filename.rsplit('.', 1)
         logfile = filename_split[0]
         f = open(logfile+".out", 'w')
         sys.stdout = f
 
-    if lex == True: 
+    if lex is True:
         tokenize_file(filename)
 
-    
     ast = parse_file(filename)
-    
 
-    if parse == True:
+    if parse is True:
         print(ast.to_string())
 
     program = semantic(ast)
     
     extend_factor(program)
     
-    A,b = matrix_generationAb(program)
-    C,indep_terms,objective_map = matrix_generationC(program)
+    matrix_a, vector_b = matrix_generation_a_b(program)
+    vector_c, indep_terms, objective_map = matrix_generation_c(program)
 
-    T = program.get_time().get_value()
+    time_horizon = program.get_time().get_value()
     os.chdir(curr_dir)
-    
 
-    return program,A,b,C,T,program.get_tuple_name(),objective_map
+    return program, matrix_a, vector_b, vector_c, time_horizon, program.get_tuple_name(), objective_map

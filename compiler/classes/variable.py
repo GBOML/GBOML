@@ -1,6 +1,6 @@
 from compiler.classes.parent import Symbol
 from compiler.classes.identifier import Identifier
-from compiler.utils import error_
+
 
 class Variable(Symbol): 
     """
@@ -9,13 +9,12 @@ class Variable(Symbol):
     - an Identifier object
     """
 
-    def __init__(self,identifier:Identifier,v_type:str, line = 0):
+    def __init__(self, identifier: Identifier, v_type: str, line=0):
 
         assert type(v_type) == str, "Internal error: expected string for variable type"
         assert v_type == "internal" or v_type == "external", "Internal error: unknown variable type"
         assert type(identifier) == Identifier, "Internal error: identifier must be an Identifier object"
-
-        Symbol.__init__(self,identifier,v_type,line)
+        Symbol.__init__(self, identifier, v_type, line)
 
     def __str__(self):
 

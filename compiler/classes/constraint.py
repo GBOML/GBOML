@@ -3,6 +3,7 @@ from compiler.classes.expression import Expression
 from compiler.classes.time_obj import TimeInterval
 from compiler.classes.condition import Condition
 
+
 class Constraint(Type): 
     """
     Constraint object is a structure composed of 
@@ -13,79 +14,78 @@ class Constraint(Type):
     - a condition object
     """
 
-
-    def __init__(self,c_type:str,lhs:Expression,rhs:Expression,time_interval:TimeInterval = None,\
-        condition:Condition = None,line:int=0):
+    def __init__(self, c_type: str, lhs: Expression, rhs: Expression, time_interval: TimeInterval = None,
+                 condition: Condition = None, line: int = 0):
 
         assert type(c_type) == str, "Internal error: expected string for Constraint type" 
-        assert c_type in ["==","<=",">="], \
+        assert c_type in ["==", "<=", ">="], \
             "Internal error: unknown type for constraint"
-        assert type(rhs)==Expression, "Internal error: expected Expression type \
+        assert type(rhs) == Expression, "Internal error: expected Expression type \
             for right hand side in Constraint"
-        assert type(rhs)==Expression, "Internal error: expected Expression type \
+        assert type(rhs) == Expression, "Internal error: expected Expression type \
             for left hand side in Constraint"
-        assert time_interval == None or type(time_interval)==TimeInterval,\
+        assert time_interval is None or type(time_interval) == TimeInterval,\
             "Internal error: expected TimeInterval object in Constraint"
-        assert condition == None or type(condition)==Condition,\
+        assert condition is None or type(condition) == Condition,\
             "Internal error: expected Condition object in Constraint"
         
-        Type.__init__(self,c_type,line)
+        Type.__init__(self, c_type, line)
         self.rhs = rhs
         self.lhs = lhs
-        self.time_interval=time_interval
+        self.time_interval = time_interval
         self.condition = condition
 
-    def __str__(self)->str:
+    def __str__(self) -> str:
 
         string = "["+str(self.type)+' , '+str(self.rhs)
         string += " , "+str(self.lhs)
-        if self.condition != None:
+        if self.condition is not None:
             string += " ][ condition : "+str(self.condition)
-        if self.time_interval != None:
+        if self.time_interval is not None:
             string += "][ time : "+str(self.time_interval)
-        string+=']'
+        string += ']'
         
         return string
 
-    def get_sign(self)->str:
+    def get_sign(self) -> str:
 
         return self.get_type()
 
-    def get_rhs(self)->Expression:
+    def get_rhs(self) -> Expression:
         
         return self.rhs
 
-    def get_lhs(self)->Expression:
+    def get_lhs(self) -> Expression:
         
         return self.lhs
     
-    def get_leafs(self)->list:
+    def get_leafs(self) -> list:
         
         return self.rhs.get_leafs()+self.lhs.get_leafs()
 
-    def get_expanded_leafs(self,dictionary:dict)->list:
+    def get_expanded_leafs(self, dictionary: dict) -> list:
         
         return self.rhs.expanded_leafs(dictionary)+self.lhs.expanded_leafs(dictionary)
 
     def get_index_var(self):
         var_name = "t"
-        if self.time_interval != None:
-            var_name =  self.time_interval.get_index_name()
+        if self.time_interval is not None:
+            var_name = self.time_interval.get_index_name()
         
         return var_name
 
-    def get_time_range(self,definitions):
+    def get_time_range(self, definitions):
         
         range_time = None
-        if self.time_interval != None:
-            range_time =  self.time_interval.get_range(definitions)
+        if self.time_interval is not None:
+            range_time = self.time_interval.get_range(definitions)
         
         return range_time
 
-    def check_time(self,definitions):
+    def check_time(self, definitions):
         
         predicate = True
-        if self.condition != None:
+        if self.condition is not None:
             predicate = self.condition.check(definitions)
         
         return predicate

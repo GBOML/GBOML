@@ -6,11 +6,14 @@
 # Writer : MIFTARI B
 # ------------
 
-import ply.lex as lex # type: ignore
+# IMPORT Ply's lexer
+import ply.lex as lex  # type: ignore
+
+# IMPORT regular expressions
 import re
 
 
-def tokenize(data:str)->None:
+def tokenize(data: str) -> None:
     """
     tokenize : Input a string
                Prints the tokens in the string
@@ -26,7 +29,7 @@ def tokenize(data:str)->None:
     lexer = lex.lex()
 
 
-def tokenize_file(filepath:str)->None:
+def tokenize_file(filepath: str) -> None:
     """
     tokenize_file : Input a file
                     Prints the tokens in the file
@@ -37,13 +40,13 @@ def tokenize_file(filepath:str)->None:
     return tokenize(data)
 
 
-def find_column(input, token):
+def find_column(input_string, token):
     """
     find_column : input a string and a token
                   find the token column in the string
     """
 
-    line_start = input.rfind('\n', 0, token.lexpos) + 1
+    line_start = input_string.rfind('\n', 0, token.lexpos) + 1
     return token.lexpos - line_start + 1
 
 
@@ -135,7 +138,7 @@ t_NEQ = r'\!\='
 
 
 def t_filename(t):
-    r'''\".*\"'''
+    r"""\".*\""""
 
     filename = t.value.replace('"', '')
     legal_characters = r"[a-zA-Z_0-9./:\\]+"
@@ -149,16 +152,18 @@ def t_filename(t):
         t_error(t)
 
 
-def t_ID(t):
-    r'''[a-zA-Z_][a-zA-Z_0-9$]*'''
+def t_id(t):
+    r"""[a-zA-Z_][a-zA-Z_0-9$]*"""
 
     if t.value in keywords:
         t.type = keywords.get(t.value, 'ID')
+    else:
+        t.type = "ID"
     return t
 
 
 def t_reserved(t):
-    r'''[#][a-zA-Z_0-9]+'''
+    r"""[#][a-zA-Z_0-9]+"""
 
     if t.value in reserved:
         t.type = reserved.get(t.value, 'ID')
@@ -167,16 +172,15 @@ def t_reserved(t):
         t_error(t)
 
 
-def t_COMMENT(t):
-    r'''[/][/].*'''
+def t_comment(t):
+    r"""[/][/].*"""
 
     pass
 
-     # No return value. Token discarded
-
 
 def t_number(t):
-    r'''[0-9]+[\.][0-9]*[e]-[0-9]+|[0-9]+[\.][0-9]*[e][0-9]+|[0-9]+[e][0-9]+|[0-9]+[\.][0-9]*|[0-9]+|[\.][0-9]+'''
+    r"""[0-9]+[\.][0-9]*[e]-[0-9]+|[0-9]+[\.][0-9]*[e][0-9]+|[0-9]+[e][0-9]+|
+    [0-9]+[e]-[0-9]+|[0-9]+[\.][0-9]*|[0-9]+|[\.][0-9]+"""
 
     if "." in t.value or 'e' in t.value:
         t.value = float(t.value)
@@ -188,8 +192,9 @@ def t_number(t):
 
 # track line number
 
+
 def t_newline(t):
-    r'''\n+'''
+    r"""\n+"""
 
     t.lexer.lineno += len(t.value)
 
@@ -217,5 +222,3 @@ def t_error(t):
 
 
 lexer = lex.lex()
-
-# tokenize_file("text.txt")

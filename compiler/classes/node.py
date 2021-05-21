@@ -1,5 +1,6 @@
 from compiler.utils import error_
 
+
 class Node: 
     """
     Node object is composed of: 
@@ -15,7 +16,7 @@ class Node:
     - all parameters dictionary [name, [values]]
     """
 
-    def __init__(self,name,line = 0):
+    def __init__(self, name, line=0):
         
         self.name = name
         self.constraints = []
@@ -42,7 +43,7 @@ class Node:
         
         return string
 
-    def set_line(self,line):
+    def set_line(self, line):
         
         self.line = line
 
@@ -50,34 +51,37 @@ class Node:
         
         return self.line
 
-    def set_objective_factors(self,fact_list):
+    def set_objective_factors(self, fact_list):
+
         self.obj_factors = fact_list
 
-    def set_constraint_factors(self,fact_list):
+    def set_constraint_factors(self, fact_list):
+
         self.constr_factors = fact_list
 
     def get_objective_factors(self):
+
         return self.obj_factors
 
     def get_constraint_factors(self):
+
         return self.constr_factors
 
-    def set_parameter_dict(self,param):
+    def set_parameter_dict(self, param):
         
         param = param.copy()
+        if "global" in param:
 
-        if "global" in param: 
             param.pop("global")
-        
         if "GLOBAL" in param:
+
             param.pop("GLOBAL")
-        
         if "T" in param:
+
             param.pop("T")
-        
         self.param_dict = param
 
-    def add_link(self,link):
+    def add_link(self, link):
 
         self.links.append(link)
 
@@ -85,19 +89,19 @@ class Node:
         
         return self.links
 
-    def set_constraints(self,cons):
+    def set_constraints(self, cons):
         
         self.constraints = cons
 
-    def set_variables(self,var):
+    def set_variables(self, var):
         
         self.variables = var
 
-    def set_parameters(self,para):
+    def set_parameters(self, para):
         
         self.parameters = para
 
-    def set_objectives(self,obj):
+    def set_objectives(self, obj):
         
         self.objectives = obj
 
@@ -133,7 +137,9 @@ class Node:
 
         names = []
         for var in self.variables:
+
             names.append(var.get_name().get_name())
+
         return names
 
     def get_parameters(self):
@@ -156,19 +162,19 @@ class Node:
 
         return len(self.objective_list)
 
-    def set_variable_matrix(self,X):
+    def set_variable_matrix(self, var_matrix):
         
-        self.v_matrix = X
+        self.v_matrix = var_matrix
 
     def get_variable_matrix(self):
         
         return self.v_matrix
 
-    def set_constraints_matrix(self,list_matrix):
+    def set_constraints_matrix(self, list_matrix):
         self.nb_constraint_matrix = len(list_matrix) 
         self.c_triplet_list = list_matrix
 
-    def add_constraints_matrix(self,c_matrix):
+    def add_constraints_matrix(self, c_matrix):
         
         self.nb_constraint_matrix += 1
         self.c_triplet_list.append(c_matrix)
@@ -177,10 +183,10 @@ class Node:
         
         return self.c_triplet_list
 
-    def set_objective_matrix(self,o):
+    def set_objective_matrix(self, o):
         self.objective_list = o
 
-    def add_objective_matrix(self,o):
+    def add_objective_matrix(self, o):
         
         self.objective_list.append(o)
 
@@ -192,27 +198,30 @@ class Node:
         
         return self.nb_constraint_matrix
 
-    def get_dictionary_variables(self,get_type = "all"):
+    def get_dictionary_variables(self, get_type="all"):
         
         variables = self.variables
         all_variables = {}
-        reserved_names = ["t","T"]
+        reserved_names = ["t", "T"]
         for var in variables:
 
             v_type = var.get_type()
-            if get_type == "external" and v_type =="internal":
+            if get_type == "external" and v_type == "internal":
+
                 continue
             if get_type == "internal" and v_type == "external":
+
                 continue
-            
             identifier = var.get_identifier()
             name = identifier.get_name()
             if name in reserved_names:
-                error_("Semantic error, variable named "+str(name)+" is not allowed at line "+str(var.get_line()))
 
+                error_("Semantic error, variable named "+str(name)+" is not allowed at line "+str(var.get_line()))
             if name not in all_variables:
-                all_variables[name]=identifier
-            else : 
+
+                all_variables[name] = identifier
+            else:
+
                 error_("Semantic error, redefinition of variable "+str(name)+" at line "+str(var.get_line()))
         
         return all_variables
@@ -221,15 +230,18 @@ class Node:
         
         parameters = self.parameters
         all_parameters = dict()
-        reserved_names = ["t","T"]
+        reserved_names = ["t", "T"]
         for param in parameters:
+
             name = param.get_name()
             if name in reserved_names:
-                error_("Semantic error, variable named "+str(name)+" is not allowed at line "+str(param.get_line()))
 
+                error_("Semantic error, variable named "+str(name)+" is not allowed at line "+str(param.get_line()))
             if name not in all_parameters:
-                all_parameters[name]=param
-            else : 
+
+                all_parameters[name] = param
+            else:
+
                 error_("Semantic error, redefinition of variable "+str(name)+" at line "+str(param.get_line()))
         
         return all_parameters

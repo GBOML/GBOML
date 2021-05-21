@@ -1,6 +1,7 @@
 from compiler.classes.parent import Type
 from compiler.classes.expression import Expression
 
+
 class Condition(Type):
     """
     Condition object is a tree like structure where:
@@ -9,47 +10,49 @@ class Condition(Type):
     - leaf nodes have children of Expressions type
     """
 
-    def __init__(self,type_id:str,children:list,line:int=0)->None:
+    def __init__(self, type_id: str, children: list, line: int = 0) -> None:
     
         assert type(type_id) == str, "Internal error: expected string for condition type" 
-        assert type_id in ["and","not","or","==","!=","<",">","<=",">="], \
+        assert type_id in ["and", "not", "or", "==", "!=", "<", ">", "<=", ">="], \
             "Internal error: unknown type for condition"
-        
-        Type.__init__(self,type_id,line)
+        Type.__init__(self, type_id, line)
         self.type = type_id
         self.children = children
 
-    def __str__(self)->str:
+    def __str__(self) -> str:
     
         string = "["+str(self.type)
         for child in self.children:
             string += ','+str(child)
-        string +=']'
+        string += ']'
     
         return string
 
-    def get_children(self)->list:
+    def get_children(self) -> list:
     
         return self.children
     
-    def check(self,definitions:dict)->bool:
+    def check(self, definitions: dict) -> bool:
     
         predicate = False
+        if type(self.children[0]) == Condition:
 
-        if type(self.children[0])==Condition:
             predicate_0 = self.children[0].check(definitions)
-            
-            if len(self.children)==2:
+            predicate_1 = False
+            if len(self.children) == 2:
+
                 predicate_1 = self.children[1].check(definitions)
-        
             if self.type == 'and':
+
                 predicate = (predicate_0 and predicate_1)
             elif self.type == 'or':
+
                 predicate = (predicate_0 or predicate_1)
             elif self.type == "not":
+
                 predicate = (not predicate_0)
                 
-        elif type(self.children[0])==Expression:
+        elif type(self.children[0]) == Expression:
             value0 = self.children[0].evaluate_expression(definitions)
             value1 = self.children[1].evaluate_expression(definitions)
 
@@ -67,5 +70,3 @@ class Condition(Type):
                 predicate = (value0 != value1)
 
         return predicate
-    
-    

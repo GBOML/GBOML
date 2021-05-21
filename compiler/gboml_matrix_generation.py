@@ -1,37 +1,36 @@
-from .classes import Time, Expression,Variable,Parameter,Attribute,Program,\
-	Objective,Node,Identifier,Constraint
-import numpy as np # type: ignore
-from scipy.sparse import coo_matrix # type: ignore
-from .utils import error_
+from .classes import Program
+import numpy as np  # type: ignore
+from scipy.sparse import coo_matrix  # type: ignore
 
-def extend_factor(root:Program):
 
+def extend_factor(root: Program) -> None:
 	nodes = root.get_nodes()
-	for node in nodes : 
+	for node in nodes:
 
 		obj_fact_list = node.get_objective_factors()
 		obj_acc = []
-		for i,object_fact in enumerate(obj_fact_list):
-			obj_matrix = object_fact.get_extension()
-			obj_acc.append([i,obj_matrix])
-		node.set_objective_matrix(obj_acc) 
+		for i, object_fact in enumerate(obj_fact_list):
 
+			obj_matrix = object_fact.get_extension()
+			obj_acc.append([i, obj_matrix])
+		node.set_objective_matrix(obj_acc)
 		constr_fact_list = node.get_constraint_factors()
 		constr_acc = []
 		for constr_fact in constr_fact_list:
+
 			constr_matrix = constr_fact.get_extension()
 			constr_acc += constr_matrix
 		node.set_constraints_matrix(constr_acc)
-
 	link_factors = root.get_link_factors()
 	link_acc = []
 	for link in link_factors:
+
 		link_constr = link.get_extension()
 		link_acc += link_constr
 	root.set_link_constraints(link_acc)
 
 
-def matrix_generationC(root:Program)->tuple:
+def matrix_generation_c(root: Program) -> tuple:
 	"""
 	matrix_generationC function: takes as input a program object and returns a coo_matrix 
 	of the different objectives flatten. In other words, returns the different objectives
@@ -58,20 +57,21 @@ def matrix_generationC(root:Program)->tuple:
 
 		# TODO: Generation of the objective map currently assumes the following:
 		# 1: the first obj_index will be 0 (if not, we generate an empty entry in the first loop iteration)
-		# 2: objective with the same obj_index come in groups (we close an entry of node_objectives once we get a new obj_index)
+		# 2: objective with the same obj_index come in groups (we close an entry of node_objectives
+		# once we get a new obj_index)
 		# This could be avoided by having node.get_objective_list return a container that is structured by obj_indexes
 		current_row_indexes = []
 		objectives = node.get_objective_list()
 		node_name = node.get_name()
 
 		for obj_index, tuple_obj in objectives:
-			_,_,sign = tuple_obj[0]
-			obj_data = {}
+			_, _, sign = tuple_obj[0]
+			obj_data = dict()
 			obj_data["type"] = sign	
-			obj_data["indexes"] = np.arange(nb_objectives,len(tuple_obj))		
+			obj_data["indexes"] = np.arange(nb_objectives, len(tuple_obj))
 			node_objectives[obj_index] = obj_data
 
-			for [values,col_indexes],constant, sign in tuple_obj:
+			for [values, col_indexes], constant, sign in tuple_obj:
 
 				current_row_indexes.append(nb_objectives)
 
@@ -92,12 +92,13 @@ def matrix_generationC(root:Program)->tuple:
 	values = np.concatenate(all_values)
 	indep_terms = np.array(all_indep_terms)
 
-	sparse_matrix = coo_matrix((values, (rows, columns)),shape=(nb_objectives, nb_variables))
+	sparse_matrix = coo_matrix((values, (rows, columns)), shape=(nb_objectives, nb_variables))
 	sparse_matrix.sum_duplicates()
 
 	return sparse_matrix, indep_terms, objective_map
 
-def matrix_generationAb(root:Program)->tuple:
+
+def matrix_generation_a_b(root: Program) -> tuple:
 	"""
 	matrix_generationAb function: takes as input a program object and returns a tuple 
 	composed of a sparse matrix of constraints A and a vector of independent terms b.
@@ -118,10 +119,10 @@ def matrix_generationAb(root:Program)->tuple:
 	for node in nodes:
 
 		constraints = node.get_constraints_matrix()
-		for [values,col_indexes],rhs,sign in constraints:
+		for [values, col_indexes], rhs, sign in constraints:
 
 			if sign == "==":
-				#Do c<=b and -c<=-b
+				# Do c<=b and -c<=-b
 				row_indexes = np.zeros(len(values))
 				row_indexes.fill(nb_constraints)
 				all_values.append(values)
@@ -132,7 +133,7 @@ def matrix_generationAb(root:Program)->tuple:
 				sign = ">="
 
 			if sign == ">=":
-				#Do -c<=-b
+				# Do -c<=-b
 				values = - values
 				rhs = - rhs
 
@@ -145,10 +146,10 @@ def matrix_generationAb(root:Program)->tuple:
 			nb_constraints = nb_constraints + 1
 
 	links = root.get_link_constraints()
-	for [values, col_indexes],rhs,sign in links:
+	for [values, col_indexes], rhs, sign in links:
 
 		if sign == "==":
-			#Do c<=b and -c<=-b
+			# Do c<=b and -c<=-b
 			row_indexes = np.zeros(len(values))
 			row_indexes.fill(nb_constraints)
 			all_values.append(values)
@@ -159,7 +160,7 @@ def matrix_generationAb(root:Program)->tuple:
 			sign = ">="
 
 		if sign == ">=":
-			#Do -c<=-b
+			# Do -c<=-b
 			values = - values
 			rhs = - rhs
 
@@ -176,32 +177,9 @@ def matrix_generationAb(root:Program)->tuple:
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
 	values = np.concatenate(all_values)
-	rhs_vector = np.array(all_rhs,dtype=float)
-	sparse_matrix = coo_matrix((values, (rows, columns)),shape=(nb_constraints, nb_variables))
+	rhs_vector = np.array(all_rhs, dtype=float)
+	sparse_matrix = coo_matrix((values, (rows, columns)), shape=(nb_constraints, nb_variables))
 	sparse_matrix.sum_duplicates()
-	#sparse_matrix.sum_duplicates()
 	sparse_matrix.eliminate_zeros()
 
-	return sparse_matrix,rhs_vector
-
-def set_index(variable_matrix:np.ndarray,start:int)->tuple:
-	"""
-	set_index function: takes as input a matrix of variables with the first element
-	of each column being the timestep [0] of a new variable. It sets the index of that
-	variable to its place in the flat X vector and returns a tuple of the next starting value
-	and pairs starting index and variable name.
-	INPUT: variable_matrix -> np.ndarray of identifier objects 
-		   start -> the first starting index of a node in the flat vector X
-	OUTPUT: start -> Next starting index of next node
-			tuple_name -> list of starting index and variable name pairs
-	"""
-
-	n,m = np.shape(variable_matrix)
-	tuple_name = []
-	for j in range(m):
-		variable_matrix[0][j].set_index(start)
-		name = variable_matrix[0][j].get_name()
-		tuple_name.append([start,name])
-		start = start+n
-		
-	return start,tuple_name
+	return sparse_matrix, rhs_vector
