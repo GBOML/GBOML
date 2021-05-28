@@ -254,7 +254,7 @@ class TestErrors(unittest.TestCase):
                            universal_newlines=True)
         output_split = process.stdout.split("\n")
         self.assertEqual(output_split[2],'Matrix A    (0, 9)\t-1.0')
-        self.assertEqual(output_split[3],'Vector b  [-0.]')
+        self.assertEqual(output_split[3],'Vector b  [0.]')
         self.assertEqual(output_split[4],"Vector C  [[0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]]")
         return_code = process.returncode
         self.assertEqual(return_code, 0)
@@ -266,7 +266,7 @@ class TestErrors(unittest.TestCase):
                            universal_newlines=True)
         output_split = process.stdout.split("\n")
         self.assertEqual(output_split[2],'Matrix A    (0, 9)\t-1.0')
-        self.assertEqual(output_split[3],'Vector b  [-0.]')
+        self.assertEqual(output_split[3],'Vector b  [0.]')
         self.assertEqual(output_split[4],"Vector C  [[0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]]")
         return_code = process.returncode
         self.assertEqual(return_code, 0)
@@ -353,6 +353,31 @@ class TestErrors(unittest.TestCase):
 
             for i in range(6):
                 self.assertEqual(Ax[i],By[i]+Bw[i])
+
+    def test_globalkey(self):
+        process = subprocess.run(['python', 'main.py', 'test/test21.txt',"--cplex","--json"], 
+                           stdout=subprocess.PIPE,
+                           universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+        
+        with open("test/test21.json", 'r') as j:
+            contents = json.loads(j.read())
+            model = contents["model"]
+            nodes = model["nodes"]
+
+            nodeO = nodes["O"]
+            parametersO = nodeO["parameters"]
+            p1 = parametersO["p1"][0]
+            p2 = parametersO["p2"][0]
+            self.assertEqual(p1,2)
+            self.assertEqual(p2,3)
+
+            solution = contents["solution"]
+            obj = solution["objective"]
+            self.assertEqual(obj,5.0)
+
+
 
 if __name__ == '__main__':
     unittest.main()

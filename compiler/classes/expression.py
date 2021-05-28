@@ -219,19 +219,8 @@ class Expression(Symbol):
         nb_child = len(children)
         value = 0
 
-        # if expression type is unary minus
-        if e_type == 'u-':
-
-            if nb_child != 1:
-
-                error_("INTERNAL ERROR : unary minus must have one child, got "+str(nb_child)+" check internal parser")
-
-            # evaluate the children
-            term1 = children[0].evaluate_expression(definitions)
-            value = -term1
-
         # if type is literal (leaf without child)
-        elif e_type == 'literal':
+        if e_type == 'literal':
 
             if nb_child != 0:
 
@@ -240,7 +229,7 @@ class Expression(Symbol):
             # get identifier can either be a INT FLOAT ID or ID[expr]
             identifier = self.get_name()
             
-            # retreive value directly if FLOAT or INT
+            # retrieve value directly if FLOAT or INT
             if type(identifier) == float or type(identifier) == int:
 
                 value = identifier
@@ -312,6 +301,17 @@ class Expression(Symbol):
                 else:
 
                     error_("Wrong time indexing in Identifier '" + str(identifier) + "' at line, "+str(self.get_line()))
+        # if expression type is unary minus
+        elif e_type == 'u-':
+
+            if nb_child != 1:
+                error_("INTERNAL ERROR : unary minus must have one child, got " + str(
+                    nb_child) + " check internal parser")
+
+            # evaluate the children
+            term1 = children[0].evaluate_expression(definitions)
+            value = -term1
+
         elif e_type == "sum":
         
             time_int = self.time_interval.get_range(definitions)

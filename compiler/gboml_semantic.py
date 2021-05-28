@@ -45,7 +45,6 @@ def semantic(program: Program) -> Program:
 
     # Either global or GLOBAL as usage keyword
     definitions["global"] = global_dict
-    definitions["GLOBAL"] = global_dict
 
     # Variables of the whole program
     program_variables = {}
@@ -88,8 +87,7 @@ def semantic(program: Program) -> Program:
         node.set_parameter_dict(parameter_dictionary)
 
         node_parameters["global"] = global_dict_object
-        node_parameters["GLOBAL"] = global_dict_object
-        
+
         # Check constraints and objectives expressions
         # Retrieve list of factor objects
 
@@ -109,7 +107,6 @@ def semantic(program: Program) -> Program:
 
     dict_objects = dict()
     dict_objects["global"] = global_dict_object
-    dict_objects["GLOBAL"] = global_dict_object
     dict_objects["T"] = [time_value]
 
     # LINK checking
