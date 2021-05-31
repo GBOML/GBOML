@@ -146,8 +146,8 @@ def matrix_generation_a_b(root: Program) -> tuple:
 			nb_constraints = nb_constraints + 1
 
 	links = root.get_link_constraints()
-	for [values, col_indexes], rhs, sign in links:
 
+	for [values, col_indexes], rhs, sign in links:
 		if sign == "==":
 			# Do c<=b and -c<=-b
 			row_indexes = np.zeros(len(values))

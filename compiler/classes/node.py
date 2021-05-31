@@ -160,7 +160,10 @@ class Node:
 
     def get_number_expanded_objectives(self):
 
-        return len(self.objective_list)
+        length = 0
+        for obj_index, tuple_obj in self.objective_list:
+            length += len(tuple_obj)
+        return length
 
     def set_variable_matrix(self, var_matrix):
         

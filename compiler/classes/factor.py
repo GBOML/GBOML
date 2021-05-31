@@ -106,7 +106,7 @@ class Factorize:
             return self.factorize_sum(variables, constants, indexes)
 
     def factorize_constraint(self, variables, constants, indexes):
-        
+
         constraint = self.obj
         leaves_rhs = constraint.get_rhs().get_leafs()
         leaves_lhs = constraint.get_lhs().get_leafs()
@@ -378,12 +378,15 @@ class Factorize:
                     expr_acc = Expression(expr_type)
                     expr_acc.add_child(expr1)
                     expr_acc.add_child(expr2)
-                elif var_1: 
+                elif var_1 is False:
 
                     expr_acc = expr1
-                elif var_2:
-
-                    expr_acc = expr2
+                elif var_2 is False:
+                    if expr_type == "-":
+                        expr_acc = Expression("u-")
+                        expr_acc.add_child(expr2)
+                    else:
+                        expr_acc = expr2
             elif expr_type == "sum":
 
                 expr1, var_1 = tuple_expr_is_var[0]
@@ -495,6 +498,7 @@ class Factorize:
     def extend(self, definitions):
 
         time_horizon = definitions["T"][0]
+
         unique_evaluation = False
         coef_var_tuples = self.coef_var_tuples 
         nb_coef_var = len(coef_var_tuples)
@@ -577,7 +581,6 @@ class Factorize:
             name_index = objective.get_index_var()
             obj_type = objective.get_type()
             b_expr = self.get_indep_expr()
-
             if obj_range is None:
 
                 t_horizon = time_horizon

@@ -194,7 +194,7 @@ def check_link(program: Program, variables: dict, parameters_obj: dict, paramete
         factor = Factorize(link)
         factor.factorize_constraint(variables, parameter_val, [])
         list_factor.append(factor)
-    
+
     return list_factor
 
 #
