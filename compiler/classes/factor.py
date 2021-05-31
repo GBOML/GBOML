@@ -521,6 +521,7 @@ class Factorize:
             for k in time_range:
 
                 definitions[name_index] = [k]
+                flag_out_of_bounds = False
                 if constraint.check_time(definitions) is False:
 
                     continue
@@ -587,6 +588,7 @@ class Factorize:
             for k in obj_range:
 
                 definitions[name_index] = [k]
+                flag_out_of_bounds = False
                 if objective.check_time(definitions) is False:
 
                     continue
@@ -639,7 +641,7 @@ class Factorize:
             new_values = np.zeros(nb_coef_var*len(range_index))
             columns = np.zeros(nb_coef_var*len(range_index))
             multiplicator = self.mult_expr.evaluate_expression(definitions)
-
+            flag_out_of_bounds = False
             i = 0
             for k in range_index:
 
