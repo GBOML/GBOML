@@ -180,6 +180,11 @@ def check_link(program: Program, variables: dict, parameters_obj: dict, paramete
     links = program.get_links()
     list_factor = []
     for link in links:
+        index_id = link.get_index_var()
+        if index_id in variables or index_id in parameters_obj:
+            error_("Redefinition of " + str(index_id) + " at line : " + str(link.get_line()))
+        else:
+            parameters_obj[index_id] = [0]
         rhs = link.get_rhs()
         lhs = link.get_lhs()
 
@@ -194,7 +199,7 @@ def check_link(program: Program, variables: dict, parameters_obj: dict, paramete
         factor = Factorize(link)
         factor.factorize_constraint(variables, parameter_val, [])
         list_factor.append(factor)
-
+        parameters_obj.pop(index_id)
     return list_factor
 
 #

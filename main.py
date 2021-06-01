@@ -41,6 +41,8 @@ if __name__ == '__main__':
     # Save log
     parser.add_argument("--log", help="Get log in a file", action="store_const", const=True)
 
+    parser.add_argument("--output", help="Output filename", type=str)
+
     args = parser.parse_args()
     start_time = time()
     if args.input_file:
@@ -50,10 +52,6 @@ if __name__ == '__main__':
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
         if args.matrix:
-
-            print(len(b))
-            print(len(C_sum[0]))
-            print(A.shape)
 
             print("Matrix A ", A)
             print("Vector b ", b)
@@ -96,30 +94,38 @@ if __name__ == '__main__':
 
             print("Solver returned with unknown status")
 
-        filename_split = args.input_file.rsplit('.', 1)
-        filename = filename_split[0]
+        if args.output:
+
+            filename = args.output
+        else:
+
+            filename_split = args.input_file.rsplit('.', 1)
+            filename = filename_split[0]
+            time_str = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
+            filename = filename + "_"+time_str
         if args.json:
 
             dictionary = generate_json(program, name_tuples, solver_info, status, x, objective, C, objective_map)
-            with open(filename+".json", 'w') as outfile:
+            try:
+                with open(filename+".json", 'w') as outfile:
 
-                json.dump(dictionary, outfile, indent=4)
+                    json.dump(dictionary, outfile, indent=4)
+                print("Filesaved: " + filename+".json")
+            except PermissionError:
+
+                print("WARNING the file "+str(filename)+".json already exists and is open.")
+                print("Was unable to save the file")
         if args.csv:
 
             panda_datastruct = generate_pandas(x, T, name_tuples)
             try:
 
                 panda_datastruct.to_csv(filename+".csv")
+                print("Filesaved: " + filename+".csv")
             except PermissionError:
 
-                time_str = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
                 print("WARNING the file "+str(filename)+".csv already exists and is open.")
-                try:
-                    panda_datastruct.to_csv(filename+time_str+".csv")
-                    print("The file was saved as : "+str(filename+time_str+".csv"))
-                except PermissionError:
-
-                    print("Unable to save the file")
+                print("Was unable to save the file")
     else:
 
         print('ERROR : expected input file')

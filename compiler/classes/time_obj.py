@@ -75,6 +75,9 @@ class TimeInterval:
         assert type(step) == Expression or type(step) == int, \
             "Internal error: unknown type for step in TimeInterval object"
         self.name = time_var
+        if time_var == "t":
+            error_("ERROR: t is a reserved keyword and can not be overwritten at line "+str(line))
+
         self.begin = begin
         if type(step) == int:
 

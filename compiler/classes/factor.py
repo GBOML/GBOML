@@ -382,10 +382,13 @@ class Factorize:
 
                     expr_acc = expr1
                 elif var_2 is False:
+
                     if expr_type == "-":
+
                         expr_acc = Expression("u-")
                         expr_acc.add_child(expr2)
                     else:
+
                         expr_acc = expr2
             elif expr_type == "sum":
 
@@ -503,6 +506,7 @@ class Factorize:
         coef_var_tuples = self.coef_var_tuples 
         nb_coef_var = len(coef_var_tuples)
         flag_out_of_bounds = False
+        explicit_time_range = False
         children_sums = self.get_children()
         np_append = np.append
         list_values_columns = []
@@ -514,10 +518,16 @@ class Factorize:
             sign = constraint.get_sign()
             time_range = constraint.get_time_range(definitions)
             name_index = constraint.get_index_var()
+            ignored_times_list = []
+            out_of_bounds = []
+
             if time_range is None:
 
                 t_horizon = time_horizon
                 time_range = range(t_horizon)
+            else:
+
+                explicit_time_range = True
             if (not is_index_dependant_expression(constraint.get_rhs(), name_index)) and \
                     (not is_index_dependant_expression(constraint.get_lhs(), name_index)):
 
@@ -527,7 +537,7 @@ class Factorize:
                 definitions[name_index] = [k]
                 flag_out_of_bounds = False
                 if constraint.check_time(definitions) is False:
-
+                    ignored_times_list.append(k)
                     continue
                 new_values = np.zeros(nb_coef_var)
                 columns = np.zeros(nb_coef_var)
@@ -543,6 +553,14 @@ class Factorize:
                         offset = 0
                     if (offset < 0) or (offset >= max_size):
 
+                        if explicit_time_range:
+
+                            error_("Constraint : "+str(constraint) + " at line "+str(constraint.get_line()) +
+                                   " has a time range ill-defined as a variable goes out of bounds for " +
+                                   str(name_index) + " equals "+str(k))
+                        else:
+
+                            out_of_bounds.append(k)
                         flag_out_of_bounds = True
                         break
                     columns[i] = index + offset
@@ -573,6 +591,11 @@ class Factorize:
             if name_index in definitions:
 
                 definitions.pop(name_index)
+
+            if out_of_bounds:
+
+                print("Warning constraint : "+str(constraint) + " at line "+str(constraint.get_line()) +
+                      " is ignored for "+str(name_index) + " equal to " + str(out_of_bounds))
         elif self.type_fact == "objective":
 
             objective = self.obj
@@ -581,10 +604,16 @@ class Factorize:
             name_index = objective.get_index_var()
             obj_type = objective.get_type()
             b_expr = self.get_indep_expr()
+            out_of_bounds = []
+            ignored_times_list = []
+
             if obj_range is None:
 
                 t_horizon = time_horizon
                 obj_range = range(t_horizon)
+            else:
+
+                explicit_time_range = True
             if not is_index_dependant_expression(obj_expr, name_index):
 
                 unique_evaluation = True
@@ -594,6 +623,7 @@ class Factorize:
                 flag_out_of_bounds = False
                 if objective.check_time(definitions) is False:
 
+                    ignored_times_list.append(k)
                     continue
                 new_values = np.zeros(nb_coef_var)
                 columns = np.zeros(nb_coef_var)
@@ -608,6 +638,15 @@ class Factorize:
 
                         offset = 0
                     if (offset < 0) or (offset >= max_size):
+
+                        if explicit_time_range:
+
+                            error_("Constraint : "+str(objective) + " at line "+str(objective.get_line()) +
+                                   " has a time range ill-defined as a variable goes out of bounds for " +
+                                   str(name_index) + " equals "+str(k))
+                        else:
+
+                            out_of_bounds.append(k)
 
                         flag_out_of_bounds = True
                         break
@@ -634,6 +673,10 @@ class Factorize:
             if name_index in definitions:
 
                 definitions.pop(name_index)
+            if out_of_bounds:
+
+                print("Warning objective : "+str(objective) + " at line "+str(objective.get_line()) +
+                      " is ignored for "+str(name_index) + " equal to " + str(out_of_bounds))
 
         elif self.type_fact == "sum":
 
