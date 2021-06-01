@@ -63,12 +63,12 @@ def generate_pandas(x, horizon, name_tuples):
 
     ordered_values = []
     columns = []
-    for node_name, index_variables in name_tuples:
+    for node_name, variable_indexes in name_tuples:
 
-        for index, variable in index_variables:
+        for index, var_name, _, var_size in variable_indexes:
 
-            full_name = str(node_name)+"."+str(variable)
-            values = x[index:(index+horizon)].flatten()
+            full_name = str(node_name)+"."+str(var_name)
+            values = x[index:(index+var_size)].flatten()
             columns.append(full_name)
             ordered_values.append(values)
     df = pd.DataFrame(ordered_values, index=columns)

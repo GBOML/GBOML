@@ -18,8 +18,9 @@ from output import generate_json, generate_pandas
 import json
 import sys
 import argparse
-import time
+from time import time, gmtime, strftime
 import numpy as np
+import scipy
 
 if __name__ == '__main__':
 
@@ -41,17 +42,23 @@ if __name__ == '__main__':
     parser.add_argument("--log", help="Get log in a file", action="store_const", const=True)
 
     args = parser.parse_args()
-    start_time = time.time()
+    start_time = time()
     if args.input_file:
 
         program, A, b, C, T, name_tuples, objective_map = compile_gboml(args.input_file, args.log, args.lex, args.parse)
-        print("All --- %s seconds ---" % (time.time() - start_time))
+        print("All --- %s seconds ---" % (time() - start_time))
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
+
         if args.matrix:
+
+            print(len(b))
+            print(len(C_sum[0]))
+            print(A.shape)
 
             print("Matrix A ", A)
             print("Vector b ", b)
             print("Vector C ", C_sum)
+
         if args.linprog:
 
             x, objective, status, solver_info = solver_scipy(A, b, C_sum, name_tuples)
@@ -100,8 +107,20 @@ if __name__ == '__main__':
         if args.csv:
 
             panda_datastruct = generate_pandas(x, T, name_tuples)
-            panda_datastruct.to_csv(filename+".csv")
+            try:
+
+                panda_datastruct.to_csv(filename+".csv")
+            except PermissionError:
+
+                time_str = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
+                print("WARNING the file "+str(filename)+".csv already exists and is open.")
+                try:
+                    panda_datastruct.to_csv(filename+time_str+".csv")
+                    print("The file was saved as : "+str(filename+time_str+".csv"))
+                except PermissionError:
+
+                    print("Unable to save the file")
     else:
 
         print('ERROR : expected input file')
-    print("--- %s seconds ---" % (time.time() - start_time))
+    print("--- %s seconds ---" % (time() - start_time))
