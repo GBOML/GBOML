@@ -8,7 +8,7 @@ import sys
 import os
 
 
-def compile_gboml(q,input_file: str, log: bool = False, lex: bool = False, parse: bool = False) -> tuple:
+def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: bool = False) -> tuple:
 
     """
     compile_gboml function: takes as input a gboml file and converts it in a program object and
