@@ -57,7 +57,7 @@ class Expression(Symbol):
         self.children = []
         if self.time_interval is not None:
 
-            self.time_interval.free()
+            self.time_interval = None
         self.time_interval = None
         self.name = None
         self.parent = None
