@@ -18,9 +18,8 @@ from output import generate_json, generate_pandas
 import json
 import sys
 import argparse
-from time import time, gmtime, strftime
+from time import time, gmtime, strftime, sleep
 import numpy as np
-import scipy
 
 if __name__ == '__main__':
 
@@ -48,11 +47,18 @@ if __name__ == '__main__':
     if args.input_file:
 
         program, A, b, C, T, name_tuples, objective_map = compile_gboml(args.input_file, args.log, args.lex, args.parse)
+
         print("All --- %s seconds ---" % (time() - start_time))
+        
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
         if args.matrix:
-
+            print(len(A.data))
+            print("coo "+str(asizeof.asizeof(A)))
+            print("b "+str(asizeof.asizeof(b)))
+            print("C_sum "+str(asizeof.asizeof(C_sum)))
+            print("program "+str(asizeof.asizeof(program)))
+            
             print("Matrix A ", A)
             print("Vector b ", b)
             print("Vector C ", C_sum)

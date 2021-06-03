@@ -28,7 +28,6 @@ class Expression(Symbol):
         self.children: list = []
         self.leafs = None
         self.time_interval = None
-        self.replaced_dict = {}
 
     def __str__(self) -> str:
         
@@ -49,6 +48,21 @@ class Expression(Symbol):
             string = str(self.name)
 
         return string
+
+    def free(self):
+
+        for child in self.children:
+
+            child.free()
+        self.children = []
+        if self.time_interval is not None:
+
+            self.time_interval.free()
+        self.time_interval = None
+        self.name = None
+        self.parent = None
+        self.type = None
+        self.line = None
 
     def get_children(self):
 
@@ -94,14 +108,6 @@ class Expression(Symbol):
     def get_time_interval(self):
 
         return self.time_interval
-
-    def add_replacement(self, name, value):
-
-        self.replaced_dict[name] = value
-
-    def get_replacement_dict(self):
-
-        return self.replaced_dict
 
     def expanded_leafs(self, definitions):
 

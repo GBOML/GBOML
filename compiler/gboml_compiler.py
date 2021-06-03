@@ -8,7 +8,7 @@ import sys
 import os
 
 
-def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: bool = False) -> tuple:
+def compile_gboml(q,input_file: str, log: bool = False, lex: bool = False, parse: bool = False) -> tuple:
 
     """
     compile_gboml function: takes as input a gboml file and converts it in a program object and
@@ -59,5 +59,5 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
 
     time_horizon = program.get_time().get_value()
     os.chdir(curr_dir)
-
-    return program, matrix_a, vector_b, vector_c, time_horizon, program.get_tuple_name(), objective_map
+    q.put((program, matrix_a, vector_b, vector_c, time_horizon, program.get_tuple_name(), objective_map))
+    #return program, matrix_a, vector_b, vector_c, time_horizon, program.get_tuple_name(), objective_map

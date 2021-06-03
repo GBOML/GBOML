@@ -195,6 +195,13 @@ class Factorize:
         self.coef_var_tuples = coef_var
         self.extension = self.extend(constants)
 
+        for child in self.children:
+            child.coef_var_tuples = None
+
+            child.obj = None
+        self.children = None
+        self.coef_var_tuples = None
+
     def factorize_objective(self, variables, constants, indexes):
 
         objective = self.obj
@@ -235,6 +242,12 @@ class Factorize:
             coef_var.append([expr_coef, index, expr, var_size])
         self.coef_var_tuples = coef_var
         self.extension = self.extend(constants)
+
+        for child in self.children:
+            child.coef_var_tuples = None
+            child.obj = None
+        self.children = None
+        self.coef_var_tuples = None
 
     def factorize_sum(self, variables, constants, indexes):
 

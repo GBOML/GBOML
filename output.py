@@ -17,13 +17,13 @@ def generate_json(program, variable_names, solver_data, status, solution, object
 
         node_data = dict()
         node_data["number_parameters"] = node.get_number_parameters()
-        node_data["number_variables"] = node.get_number_variables()
-        node_data["number_constraints"] = node.get_number_constraints()
-        node_data["number_expanded_constraints"] = node.get_number_expanded_constraints()
-        node_data["number_objectives"] = node.get_number_objectives()
-        node_data["number_expanded_objectives"] = node.get_number_expanded_objectives()
-        node_data["parameters"] = node.get_parameter_dict()
-        node_data["variables"] = node.get_variable_names()
+        #node_data["number_variables"] = node.get_number_variables()
+        #node_data["number_constraints"] = node.get_number_constraints()
+        #node_data["number_expanded_constraints"] = node.get_number_expanded_constraints()
+        #node_data["number_objectives"] = node.get_number_objectives()
+        #node_data["number_expanded_objectives"] = node.get_number_expanded_objectives()
+        #node_data["parameters"] = node.get_parameter_dict()
+        #node_data["variables"] = node.get_variable_names()
         nodes[node.get_name()] = node_data
 
     model_data["nodes"] = nodes

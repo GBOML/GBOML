@@ -13,6 +13,7 @@ def extend_factor(root: Program) -> None:
 
 			obj_matrix = object_fact.get_extension()
 			obj_acc.append([i, obj_matrix])
+
 		node.set_objective_matrix(obj_acc)
 		constr_fact_list = node.get_constraint_factors()
 		constr_acc = []
@@ -21,12 +22,14 @@ def extend_factor(root: Program) -> None:
 			constr_matrix = constr_fact.get_extension()
 			constr_acc += constr_matrix
 		node.set_constraints_matrix(constr_acc)
+		node.constr_factors = None
 	link_factors = root.get_link_factors()
 	link_acc = []
 	for link in link_factors:
 
 		link_constr = link.get_extension()
 		link_acc += link_constr
+	root.factor_links = None
 	root.set_link_constraints(link_acc)
 
 
@@ -87,6 +90,7 @@ def matrix_generation_c(root: Program) -> tuple:
 				nb_objectives = nb_objectives + 1
 
 		objective_map[node_name] = node_objectives
+		node.objective_list = None
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
 	values = np.concatenate(all_values)
@@ -144,7 +148,7 @@ def matrix_generation_a_b(root: Program) -> tuple:
 			all_rows.append(row_indexes)
 			all_rhs.append(rhs)
 			nb_constraints = nb_constraints + 1
-
+		node.c_triplet_list = None
 	links = root.get_link_constraints()
 
 	for [values, col_indexes], rhs, sign in links:
@@ -171,9 +175,7 @@ def matrix_generation_a_b(root: Program) -> tuple:
 		all_rows.append(row_indexes)
 		all_rhs.append(rhs)
 		nb_constraints = nb_constraints + 1
-
-	# TODO: combine constraint and link loops
-
+	root.link_constraints = None
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
 	values = np.concatenate(all_values)

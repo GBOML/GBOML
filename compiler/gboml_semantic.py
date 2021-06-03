@@ -97,7 +97,7 @@ def semantic(program: Program) -> Program:
 
         node.set_constraint_factors(list_constraints_factors)
         node.set_objective_factors(list_objectives_factors)
-
+        free_non_useful_information_in_node(node)
         print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
 
     program.set_nb_var_index(global_index)
@@ -115,6 +115,19 @@ def semantic(program: Program) -> Program:
     program.set_link_factors(list_links_factors)
 
     return program
+
+
+def free_non_useful_information_in_node(node):
+    constraints = node.get_constraints()
+    objectives = node.get_objectives()
+    for constraint in constraints:
+        constraint.rhs.free()
+        constraint.rhs = None
+        constraint.lhs.free()
+        constraint.lhs = None
+    for objective in objectives:
+        objective.expression.free()
+        objective.expression = None
 
 #
 # Name checking functions
