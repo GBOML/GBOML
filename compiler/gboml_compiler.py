@@ -59,5 +59,5 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
 
     time_horizon = program.get_time().get_value()
     os.chdir(curr_dir)
-    q.put((program, matrix_a, vector_b, vector_c, time_horizon, program.get_tuple_name(), objective_map))
-    #return program, matrix_a, vector_b, vector_c, time_horizon, program.get_tuple_name(), objective_map
+
+    return program, matrix_a, vector_b, vector_c, time_horizon, program.get_tuple_name(), objective_map
