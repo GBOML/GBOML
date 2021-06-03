@@ -195,7 +195,7 @@ class Factorize:
         self.coef_var_tuples = coef_var
         self.extension = self.extend(constants)
 
-        for child in self.children:
+        for value, child in self.children:
             child.coef_var_tuples = None
 
             child.obj = None
