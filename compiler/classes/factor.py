@@ -580,14 +580,14 @@ class Factorize:
                     i = i+1
                 if not flag_out_of_bounds:
 
-                    for sign, child in children_sums:
+                    for sign_mult, child in children_sums:
 
                         tuple_val_col = child.extend(definitions)
                         if not tuple_val_col:
 
                             error_("Out of bounds sum at line "+str(constraint.get_line()))
                         child_values, child_columns = tuple_val_col
-                        child_values = sign * child_values
+                        child_values = sign_mult * child_values
                         new_values = np_append(new_values, child_values)
                         columns = np_append(columns, child_columns)
                     if b_expr is not None:
