@@ -156,6 +156,10 @@ class Program:
 
         self.nb_var_index = index
 
+    def set_global_parameters(self, global_param):
+
+        self.global_param = global_param
+
     def set_variables_dict(self, var_dict):
 
         self.var_dict = var_dict

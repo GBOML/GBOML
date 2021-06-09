@@ -68,7 +68,8 @@ class Factorize:
         self.children = []
         self.mult_expr = None
         self.extension = []
-    
+        # self.variables = []
+
     def add_coef_var_tuples(self, coef_var):
 
         self.coef_var_tuples.append(coef_var)
@@ -131,7 +132,7 @@ class Factorize:
 
                     var = variables[id_name]
                     var_leaves.append([-1, leaf, identifier, var.get_index(), var.get_size()])
-            
+
             if type(inner_expr) == Attribute:
 
                 attribute = inner_expr
@@ -151,7 +152,7 @@ class Factorize:
                 is_var = fct_constr.factorize_sum(variables, constants, self.index_list)
                 if is_var is True:
                     self.add_child([-1, fct_constr])
-        
+
         for leaf in leaves_lhs:
 
             inner_expr = leaf.get_name()
@@ -705,6 +706,9 @@ class Factorize:
             for k in range_index:
 
                 definitions[name_index] = [k]
+                if expr_sum.check_time(definitions) is False:
+                    continue
+
                 for expr_coef, index, offset_expr, max_size in coef_var_tuples:
 
                     new_values[i] = expr_coef.evaluate_expression(definitions)

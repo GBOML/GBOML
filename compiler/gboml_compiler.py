@@ -55,9 +55,9 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
     extend_factor(program)
     
     matrix_a, vector_b = matrix_generation_a_b(program)
-    vector_c, indep_terms, objective_map = matrix_generation_c(program)
+    vector_c, indep_terms_c, objective_map = matrix_generation_c(program)
 
     time_horizon = program.get_time().get_value()
     os.chdir(curr_dir)
 
-    return program, matrix_a, vector_b, vector_c, time_horizon, program.get_tuple_name(), objective_map
+    return program, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, program.get_tuple_name(), objective_map

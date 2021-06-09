@@ -113,6 +113,7 @@ def semantic(program: Program) -> Program:
 
     list_links_factors = check_link(program, external_variables, dict_objects, definitions)
     program.set_link_factors(list_links_factors)
+    program.set_global_parameters(global_dict)
 
     return program
 

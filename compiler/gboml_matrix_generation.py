@@ -71,7 +71,7 @@ def matrix_generation_c(root: Program) -> tuple:
 			_, _, sign = tuple_obj[0]
 			obj_data = dict()
 			obj_data["type"] = sign	
-			obj_data["indexes"] = np.arange(nb_objectives, len(tuple_obj))
+			obj_data["indexes"] = np.arange(nb_objectives, nb_objectives+len(tuple_obj))
 			node_objectives[obj_index] = obj_data
 
 			for [values, col_indexes], constant, sign in tuple_obj:
@@ -80,6 +80,7 @@ def matrix_generation_c(root: Program) -> tuple:
 
 				if sign == "max":
 					values = - values
+					constant = - constant
 
 				row_indexes = np.zeros(len(values))
 				row_indexes.fill(nb_objectives)

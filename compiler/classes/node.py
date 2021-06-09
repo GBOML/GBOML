@@ -29,6 +29,7 @@ class Node:
         self.c_triplet_list = []
         self.objective_list = []
         self.nb_constraint_matrix = 0
+        self.nb_objective_matrix = 0
         self.param_dict = None
         self.constr_factors = []
         self.obj_factors = []
@@ -119,7 +120,7 @@ class Node:
 
     def get_number_expanded_constraints(self):
 
-        return len(self.c_triplet_list)
+        return self.nb_constraint_matrix
 
     def get_parameter_dict(self):
 
@@ -160,10 +161,7 @@ class Node:
 
     def get_number_expanded_objectives(self):
 
-        length = 0
-        for obj_index, tuple_obj in self.objective_list:
-            length += len(tuple_obj)
-        return length
+        return self.nb_objective_matrix
 
     def set_variable_matrix(self, var_matrix):
         
@@ -174,7 +172,7 @@ class Node:
         return self.v_matrix
 
     def set_constraints_matrix(self, list_matrix):
-        self.nb_constraint_matrix = len(list_matrix) 
+        self.nb_constraint_matrix += len(list_matrix)
         self.c_triplet_list = list_matrix
 
     def add_constraints_matrix(self, c_matrix):
@@ -187,6 +185,11 @@ class Node:
         return self.c_triplet_list
 
     def set_objective_matrix(self, o):
+
+        length = 0
+        for obj_index, tuple_obj in o:
+            length += len(tuple_obj)
+        self.nb_objective_matrix = length
         self.objective_list = o
 
     def add_objective_matrix(self, o):

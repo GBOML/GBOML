@@ -108,8 +108,8 @@ class TimeInterval:
         else:
 
             step_value = self.step.evaluate_expression(definitions)
-        time_horizon = clip
-        begin_value, end_value, step_value = self.check(begin_value, end_value, step_value, time_horizon)
+
+        begin_value, end_value, step_value = self.check(begin_value, end_value, step_value, clip)
 
         return range(begin_value, end_value+1, step_value)
 
@@ -126,12 +126,12 @@ class TimeInterval:
 
             error_("ERROR: in for loop, the end_value: "+str(self.end) +
                    " is smaller than the begin value "+str(self.begin) + " at line " + str(self.line))
-        if begin_value < 0:
+        # if begin_value < 0:
 
-            error_("ERROR: in for loop, the begin value: "+str(self.begin) + " is negative at line "+str(self.line))
-        if end_value < 1:
+        # error_("ERROR: in for loop, the begin value: "+str(self.begin) + " is negative at line "+str(self.line))
+        # if end_value < 1:
 
-            error_("ERROR: in for loop, the end value: "+str(self.end) + " is negative or null at line "+str(self.line))
+        # error_("ERROR: in for loop, the end value: "+str(self.end) + " is negative or null at line "+str(self.line))
         if step_value < 1:
 
             error_("ERROR: in for loop, the step value: "+str(self.step)+" is negative or null at line "+str(self.line))

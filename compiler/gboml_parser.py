@@ -293,7 +293,7 @@ def p_define_objectives(p):
                          | MAX COLON expr time_loop condition SEMICOLON obj_aux"""
 
     obj = Objective(p[1], p[3], p[4], p[5], line=p.lineno(1))
-    p[7].append(obj)
+    p[7].insert(0,obj)
     p[0] = p[7]
 
 
@@ -330,7 +330,7 @@ def p_expr(p):
             | expr POW expr %prec POW
             | LPAR expr RPAR
             | MOD LPAR expr COMMA expr RPAR
-            | SUM LPAR expr time_loop RPAR
+            | SUM LPAR expr time_loop condition RPAR
             | term"""
 
     if len(p) == 4:
@@ -355,21 +355,22 @@ def p_expr(p):
     elif len(p) == 7:
         
         # CASE MODULO
-        p[0] = Expression(p[1], line=p.lineno(1))
-        p[0].add_child(p[3])
-        p[0].add_child(p[5])
+        if p[1] == "mod":
+            p[0] = Expression(p[1], line=p.lineno(1))
+            p[0].add_child(p[3])
+            p[0].add_child(p[5])
+
+        if p[1] == "sum":
+            # CASE SUM
+            p[0] = Expression('sum', line=p.lineno(1))
+            p[0].add_child(p[3])
+            p[0].set_time_interval(p[4])
+            p[0].set_condition(p[5])
     
     elif len(p) == 2:
 
         # CASE term
         p[0] = p[1]
-
-    elif len(p) == 6:
-        
-        # CASE SUM
-        p[0] = Expression('sum', line=p.lineno(1))
-        p[0].add_child(p[3])
-        p[0].set_time_interval(p[4])
     
 
 def p_term(p):

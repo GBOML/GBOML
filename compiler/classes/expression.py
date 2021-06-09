@@ -20,13 +20,14 @@ class Expression(Symbol):
 
     def __init__(self, node_type: str, name=None, line: int = 0):
 
-        assert type(node_type) == str, "Internal error: expected string for Expression type" 
+        assert type(node_type) == str, "Internal error: expected string for Expression type"
         assert node_type in ["+", "-", "/", "*", "**", "u-", "mod", "literal", "sum"],\
             "Internal error: unknown type for Expression"
         Symbol.__init__(self, name, node_type, line)
         self.parent = None
         self.children: list = []
         self.leafs = None
+        self.condition = None
         self.time_interval = None
 
     def __str__(self) -> str:
@@ -59,6 +60,7 @@ class Expression(Symbol):
 
             self.time_interval = None
         self.time_interval = None
+        self.condition = None
         self.name = None
         self.parent = None
         self.type = None
@@ -108,6 +110,22 @@ class Expression(Symbol):
     def get_time_interval(self):
 
         return self.time_interval
+
+    def set_condition(self, cond):
+
+        self.condition = cond
+
+    def get_condition(self):
+
+        return self.condition
+
+    def check_time(self, definitions):
+
+        predicate = True
+        if self.condition is not None:
+            predicate = self.condition.check(definitions)
+
+        return predicate
 
     def expanded_leafs(self, definitions):
 
@@ -327,11 +345,20 @@ class Expression(Symbol):
                 error_("ERROR: index "+str(time_var) +
                        " for loop already defined. Redefinition at line "+str(self.line))
             sum_terms = 0
+            condition_verified = False
             for i in time_int:
 
                 definitions[time_var] = [i]
-                term1 = children[0].evaluate_expression(definitions)
-                sum_terms += term1
+                if self.check_time(definitions):
+
+                    condition_verified = True
+                    term1 = children[0].evaluate_expression(definitions)
+                    sum_terms += term1
+
+            if not condition_verified:
+                error_("ERROR: at expression :"+str(self)+" there exists no value in sum range that "
+                                                          "verifies that condition at line "+str(self.line))
+
             definitions.pop(time_var)
             value = sum_terms
 
