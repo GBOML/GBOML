@@ -2,7 +2,8 @@ import numpy as np
 from scipy.sparse import coo_matrix
 
 
-def solver_clp(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray, name_tuples: list) -> tuple:
+def solver_clp(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray, objective_offset: float,
+               name_tuples: list) -> tuple:
     """
     solver_clp function: takes as input the matrix A, the vectors b and C. It returns the solution
     of the problem : min C^T x s.t. A x <= b
@@ -38,6 +39,7 @@ def solver_clp(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
     variables = model.addVariable('variables', nvars, isInt=False)
     model.addConstraint(matrix_a * variables <= vector_b)
     model.objective = c * variables
+    print("model object " +str(type(model.objective)))
     # Solve model
     s = CyClpSimplex(model)
     for _, variable_indexes in name_tuples:
@@ -68,7 +70,7 @@ def solver_clp(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
         if additional_var_bool:
 
             solution = solution[0:len(solution)-1]
-        objective = cbc_model.objectiveValue
+        objective = cbc_model.objectiveValue + objective_offset
     elif status_code == "unset":
 
         status = "unbounded"
@@ -83,7 +85,8 @@ def solver_clp(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
     return solution, objective, status, solver_info
 
 
-def solver_gurobi(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray, name_tuples: dict) -> tuple:
+def solver_gurobi(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
+                  objective_offset: float, name_tuples: dict) -> tuple:
     """
     solver_gurobi function: takes as input the matrix A, the vectors b and C. It returns the solution
     of the problem : min C^T x s.t. A x <= b
@@ -112,7 +115,7 @@ def solver_gurobi(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarr
     model = grbp.Model()
     x = model.addMVar(shape=n, lb=-float('inf'), ub=float('inf'), vtype=GRB.CONTINUOUS, name="x")
     model.addMConstr(matrix_a, x, '<', b)
-    model.setObjective(vector_c @ x, GRB.MINIMIZE)
+    model.setObjective(vector_c @ x + objective_offset, GRB.MINIMIZE)
     for _, variable_indexes in name_tuples:
 
         for index, _, var_type, var_size in variable_indexes:
@@ -206,7 +209,8 @@ def solver_gurobi(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarr
     return solution, objective, status, solver_info
 
 
-def solver_cplex(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray, name_tuples: dict) -> tuple:
+def solver_cplex(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
+                 objective_offset: float, name_tuples: dict) -> tuple:
     """
     solver_cplex function: takes as input the matrix A, the vectors b and C. It returns the solution
     of the problem : min C^T x s.t. A x <= b
@@ -250,6 +254,7 @@ def solver_cplex(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarra
     model.linear_constraints.add(senses=['L']*m, rhs=vector_b)
     model.linear_constraints.set_coefficients(matrix_a_zipped)
     model.objective.set_sense(model.objective.sense.minimize)
+    model.objective.set_offset(objective_offset)
     solver_info = {}
     solver_info["name"] = "cplex"
     print("\nReading CPLEX options from file cplex.opt")
@@ -335,11 +340,11 @@ def solver_cplex(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarra
 
         print(e)
         status = "error"
-
     return solution, objective, status, solver_info
 
 
-def solver_scipy(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray, name_tuples: dict) -> tuple:
+def solver_scipy(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
+                 objective_offset: float, name_tuples: dict) -> tuple:
     """
     solver_scipy function: takes as input the matrix A, the vectors b and C. It returns the solution
     of the problem : min C^T x s.t. A x <= b
@@ -363,7 +368,7 @@ def solver_scipy(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarra
 
         status = "optimal"
         solution = result.x
-        objective = result.fun
+        objective = result.fun+objective_offset
     else:
 
         status = "unknown"

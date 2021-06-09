@@ -46,35 +46,33 @@ if __name__ == '__main__':
     start_time = time()
     if args.input_file:
 
-        program, A, b, C, T, name_tuples, objective_map = compile_gboml(args.input_file, args.log, args.lex, args.parse)
+        program, A, b, C, indep_terms_c, T, name_tuples, objective_map = compile_gboml(args.input_file, args.log,
+                                                                                       args.lex, args.parse)
 
         print("All --- %s seconds ---" % (time() - start_time))
         
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
         if args.matrix:
-            print(len(A.data))
-            print("coo "+str(asizeof.asizeof(A)))
-            print("b "+str(asizeof.asizeof(b)))
-            print("C_sum "+str(asizeof.asizeof(C_sum)))
-            print("program "+str(asizeof.asizeof(program)))
             
             print("Matrix A ", A)
             print("Vector b ", b)
             print("Vector C ", C_sum)
 
+        objective_offset = float(indep_terms_c.sum())
+
         if args.linprog:
 
-            x, objective, status, solver_info = solver_scipy(A, b, C_sum, name_tuples)
+            x, objective, status, solver_info = solver_scipy(A, b, C_sum, objective_offset, name_tuples)
         elif args.clp:
 
-            x, objective, status, solver_info = solver_clp(A, b, C_sum, name_tuples)
+            x, objective, status, solver_info = solver_clp(A, b, C_sum, objective_offset, name_tuples)
         elif args.cplex:
 
-            x, objective, status, solver_info = solver_cplex(A, b, C_sum, name_tuples)
+            x, objective, status, solver_info = solver_cplex(A, b, C_sum, objective_offset, name_tuples)
         elif args.gurobi:
 
-            x, objective, status, solver_info = solver_gurobi(A, b, C_sum, name_tuples)
+            x, objective, status, solver_info = solver_gurobi(A, b, C_sum, objective_offset, name_tuples)
         else:
 
             print("No solver was chosen")
@@ -111,7 +109,7 @@ if __name__ == '__main__':
             filename = filename + "_"+time_str
         if args.json:
 
-            dictionary = generate_json(program, name_tuples, solver_info, status, x, objective, C, objective_map)
+            dictionary = generate_json(program, name_tuples, solver_info, status, x, objective, C, indep_terms_c, objective_map)
             try:
                 with open(filename+".json", 'w') as outfile:
 

@@ -2,7 +2,8 @@ import pandas as pd
 from version import __version__
 
 
-def generate_json(program, variable_names, solver_data, status, solution, objective, c_matrix, objective_map):
+def generate_json(program, variable_names, solver_data, status, solution, objective, c_matrix, indep_terms_c,
+                  objective_map):
 
     data = dict()
     # Add global data
@@ -12,18 +13,19 @@ def generate_json(program, variable_names, solver_data, status, solution, object
     horizon = program.time.get_value()
     model_data["horizon"] = horizon
     model_data["number_nodes"] = program.get_number_nodes()
+    model_data["global_parameters"] = program.get_global_parameters()
     nodes = {}
     for node in program.get_nodes():
 
         node_data = dict()
         node_data["number_parameters"] = node.get_number_parameters()
-        #node_data["number_variables"] = node.get_number_variables()
-        #node_data["number_constraints"] = node.get_number_constraints()
-        #node_data["number_expanded_constraints"] = node.get_number_expanded_constraints()
-        #node_data["number_objectives"] = node.get_number_objectives()
-        #node_data["number_expanded_objectives"] = node.get_number_expanded_objectives()
-        #node_data["parameters"] = node.get_parameter_dict()
-        #node_data["variables"] = node.get_variable_names()
+        node_data["number_variables"] = node.get_number_variables()
+        node_data["number_constraints"] = node.get_number_constraints()
+        node_data["number_expanded_constraints"] = node.get_number_expanded_constraints()
+        node_data["number_objectives"] = node.get_number_objectives()
+        node_data["number_expanded_objectives"] = node.get_number_expanded_objectives()
+        node_data["parameters"] = node.get_parameter_dict()
+        node_data["variables"] = node.get_variable_names()
         nodes[node.get_name()] = node_data
 
     model_data["nodes"] = nodes
@@ -36,9 +38,9 @@ def generate_json(program, variable_names, solver_data, status, solution, object
     solution_data["status"] = status
     solution_data["objective"] = objective
     var_dict = program.get_variables_dict()
-    if solution is not None:
 
-        product = c_matrix*solution
+    if solution is not None:
+        product = c_matrix*solution+indep_terms_c
         nodes = {}
         for node_name, variable_indexes in variable_names:
 
@@ -50,6 +52,19 @@ def generate_json(program, variable_names, solver_data, status, solution, object
 
                 var_obj = inner_node_vars[var_name]
                 variables[var_name] = solution[index:(index+var_obj.get_size())].flatten().tolist()
+            if node_name in objective_map:
+
+                objective_dict = objective_map[node_name]
+                for i in objective_dict.keys():
+
+                    obj = objective_dict[i]
+                    obj_type = obj["type"]
+                    obj_indexes = obj["indexes"]
+                    value = product[obj_indexes].sum()
+                    if obj_type == "max":
+
+                        value = -value
+                    all_obj.append(value)
             node_data["variables"] = variables
             node_data["objectives"] = all_obj
             nodes[node_name] = node_data
