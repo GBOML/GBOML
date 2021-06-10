@@ -76,8 +76,8 @@ reserved = {
     '#VARIABLES': 'VAR',
     '#OBJECTIVES': 'OBJ',
     '#TIMEHORIZON': 'TIME',
-    '#LINKS': 'LINKS',
-    "#GLOBAL": "GLOBAL"
+    "#GLOBAL": "GLOBAL",
+    "#HYPERLINK": "HYPERLINK"
     }
 
 # List of token names.   This is always required

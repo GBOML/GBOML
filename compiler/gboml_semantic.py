@@ -7,7 +7,7 @@
 # ------------
 
 
-from .classes import Expression, Attribute, Program, Node, Identifier, Factorize
+from .classes import Expression, Attribute, Program, Node, Identifier, Factorize, Hyperlink
 
 import numpy as np  # type: ignore
 from .utils import error_
@@ -28,7 +28,9 @@ def semantic(program: Program) -> Program:
     
     # Check if all nodes have different names
     node_list = program.get_nodes()
+    link_list = program.get_links()
     check_names_repetitions(node_list)
+    check_names_repetitions(link_list)
 
     # Check if an objective function is defined
     program.check_objective_existence()
@@ -100,22 +102,48 @@ def semantic(program: Program) -> Program:
         free_non_useful_information_in_node(node)
         print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
 
+    for link in link_list:
+
+        name = link.get_name()
+        start_time = t.time()
+
+        # Copy dictionary of global parameters
+
+        parameter_dictionary = definitions.copy()
+
+        # Retrieve node parameter dictionary
+        link_param = link.get_dictionary_parameters()
+
+        # Add evaluated parameters to the dictionary of defined parameters
+
+        parameter_dictionary = parameter_evaluation(link.get_parameters(), parameter_dictionary)
+
+        # Store parameter dictionary
+        link.set_parameter_dict(parameter_dictionary)
+
+        link_param["global"] = global_dict_object
+
+        # Check constraints and objectives expressions
+        # Retrieve list of factor objects
+
+        list_constraints_factors = check_link(link, external_variables, link_param, parameter_dictionary)
+        link.set_constraint_factors(list_constraints_factors)
+        free_non_useful_information_in_hyperlink(link)
+        print("Check hyperlink %s : --- %s seconds ---" % (name, t.time() - start_time))
     program.set_nb_var_index(global_index)
     program.set_variables_dict(program_variables)
-
-    # Global dict of objects
-
-    dict_objects = dict()
-    dict_objects["global"] = global_dict_object
-    dict_objects["T"] = [time_value]
-
-    # LINK checking
-
-    list_links_factors = check_link(program, external_variables, dict_objects, definitions)
-    program.set_link_factors(list_links_factors)
     program.set_global_parameters(global_dict)
-
     return program
+
+
+def free_non_useful_information_in_hyperlink(hyperlink):
+    constraints = hyperlink.get_constraints()
+
+    for constraint in constraints:
+        constraint.rhs.free()
+        constraint.rhs = None
+        constraint.lhs.free()
+        constraint.lhs = None
 
 
 def free_non_useful_information_in_node(node):
@@ -184,14 +212,14 @@ def check_names_repetitions(elements_list: list) -> None:
 #
 
 
-def check_link(program: Program, variables: dict, parameters_obj: dict, parameter_val: dict) -> list:
+def check_link(hyperlink: Hyperlink, variables: dict, parameters_obj: dict, parameter_val: dict) -> list:
     """
     check_link function : Takes program object and checks its links
     INPUT:  program -> Program object
     OUTPUT: list of input output pairs 
     """
 
-    links = program.get_links()
+    links = hyperlink.get_constraints()
     list_factor = []
     for link in links:
         index_id = link.get_index_var()

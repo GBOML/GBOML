@@ -68,7 +68,12 @@ class Factorize:
         self.children = []
         self.mult_expr = None
         self.extension = []
-        # self.variables = []
+        self.variables = []
+        self.line = obj.get_line()
+
+    def get_line(self):
+
+        return self.line
 
     def add_coef_var_tuples(self, coef_var):
 
@@ -132,7 +137,7 @@ class Factorize:
 
                     var = variables[id_name]
                     var_leaves.append([-1, leaf, identifier, var.get_index(), var.get_size()])
-
+                    self.variables.append(id_name)
             if type(inner_expr) == Attribute:
 
                 attribute = inner_expr
@@ -146,12 +151,14 @@ class Factorize:
 
                         var = dict_var_node[id_name]
                         var_leaves.append([-1, leaf, attr_id, var.get_index(), var.get_size()])
+                        self.variables.append([attr_node, id_name])
             elif l_type == "sum":
 
                 fct_constr = Factorize(leaf)
                 is_var = fct_constr.factorize_sum(variables, constants, self.index_list)
                 if is_var is True:
                     self.add_child([-1, fct_constr])
+                self.variables += fct_constr.variables
 
         for leaf in leaves_lhs:
 
@@ -165,6 +172,7 @@ class Factorize:
 
                     var = variables[id_name]
                     var_leaves.append([1, leaf, identifier, var.get_index(), var.get_size()])
+                    self.variables.append(id_name)
             if type(inner_expr) == Attribute:
 
                 attribute = inner_expr
@@ -178,6 +186,7 @@ class Factorize:
 
                         var = dict_var_node[id_name]
                         var_leaves.append([1, leaf, attr_id, var.get_index(), var.get_size()])
+                        self.variables.append([attr_node, id_name])
             elif l_type == "sum":
 
                 fct_constr = Factorize(leaf)
@@ -185,6 +194,7 @@ class Factorize:
                 if is_var is True:
 
                     self.add_child([1, fct_constr])
+                    self.variables += fct_constr.variables
         coef_var = []
         for rhs_bool, leaf, identifier, index, var_size in var_leaves:
 
@@ -274,6 +284,7 @@ class Factorize:
                     var = variables[id_name]
                     var_leaves.append([leaf, var.get_index(), var.get_size()])
                     is_var = True
+                    self.variables.append(id_name)
             elif type(inner_expr) == Attribute:
 
                 attribute = inner_expr
@@ -288,6 +299,7 @@ class Factorize:
                         var = dict_var_node[id_name]
                         var_leaves.append([leaf, var.get_index(), var.get_size()])
                         is_var = True
+                        self.variables.append([attr_node, id_name])
             if l_type == "sum":
 
                 fct_constr = Factorize(leaf)
@@ -296,6 +308,7 @@ class Factorize:
 
                     self.add_child(fct_constr)
                     is_var = True
+                    self.variables += fct_constr.variables
         expr = Expression('literal', 1, line=expression_sum.get_line())
         parent = expression_sum.get_parent()
         expr_coef, _ = self.compute_factor(expr, False, parent, expression_sum, constants)

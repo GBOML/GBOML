@@ -14,5 +14,6 @@ min:x[t];
 external : y[T];
 external : w[T];
 
-#LINKS
-A.x[t] == B.y[t] + B.w[t] for t in [0:5]; 
+#HYPERLINK link
+#CONSTRAINTS
+A.x[i] == B.y[i] + B.w[i] for i in [0:5];

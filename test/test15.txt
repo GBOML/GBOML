@@ -20,7 +20,8 @@ external : d;
 external: h;
 external : ff;
 
-#LINKS
+#HYPERLINK links
+#CONSTRAINTS
 A.b == R.f;
 A.b == R.ff;
 R.h == A.a;

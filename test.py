@@ -287,7 +287,10 @@ class TestErrors(unittest.TestCase):
         with open("test/test15.json", 'r') as j:
             contents = json.loads(j.read())
             model = contents["model"]
-            links = model["links"]
+            links = [[["A", "b"], ["R", "f"]],
+                     [["A", "b"], ["R", "ff"]],
+                     [["R", "h"], ["A", "a"]],
+                     [["A", "c"], ["R", "d"]]]
             solution = contents["solution"]
             for [lhs_node, lhs_var], [rhs_node, rhs_var] in links:
                 all_nodes = solution["nodes"]

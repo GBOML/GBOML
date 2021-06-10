@@ -12,7 +12,7 @@ import ply.yacc as yacc  # type: ignore
 from .gboml_lexer import tokens
 
 from .classes import Time, Expression, Variable, Parameter, Attribute, Program, Objective, Node, Identifier, \
-    Constraint, Condition, TimeInterval
+    Constraint, Condition, TimeInterval, Hyperlink
 
 # precedence rules from least to highest priority with associativity also specified
 
@@ -31,9 +31,10 @@ precedence = (  # Unary minus operator
 # Start symbol
 
 def p_start(p):
-    """start : time global program links"""
+    """start : time global program"""
 
-    p[0] = Program(p[3], global_param=p[2], timescale=p[1], links=p[4])
+    list_node, list_hyperlink = p[3]
+    p[0] = Program(list_node, global_param=p[2], timescale=p[1], links=list_hyperlink)
 
 
 def p_global(p):
@@ -62,28 +63,32 @@ def p_time(p):
         print("WARNING: No timescale was defined ! Default : T = 1")
 
 
-def p_links(p):
-    """links : LINKS constraints_aux
-             | empty"""
-
-    if len(p) > 2:
-
-        p[0] = p[2]
-    else:
-
-        p[0] = []
-
-
 def p_program(p):
 
     """program : node program
+                | hyperlink program
                 | empty"""
 
     if p[1] is None:
-        p[0] = []
-    else:
-        p[2].append(p[1])
-        p[0] = p[2]
+
+        p[0] = [[], []]
+    if type(p[1]) == Node:
+
+        list_node, list_hyperlink = p[2]
+        list_node.append(p[1])
+        p[0] = [list_node, list_hyperlink]
+    elif type(p[1]) == Hyperlink:
+
+        list_node, list_hyperlink = p[2]
+        list_hyperlink.append(p[1])
+        p[0] = [list_node, list_hyperlink]
+
+
+def p_hyperlink(p):
+    """hyperlink : HYPERLINK ID parameters constraints"""
+
+    h_link = Hyperlink(p[2], p[3], p[4], line=p.lexer.lineno)
+    p[0] = h_link
 
 
 def p_node(p):

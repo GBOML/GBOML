@@ -1,6 +1,7 @@
 from .classes import Program
 import numpy as np  # type: ignore
 from scipy.sparse import coo_matrix  # type: ignore
+import itertools
 
 
 def extend_factor(root: Program) -> None:
@@ -23,14 +24,17 @@ def extend_factor(root: Program) -> None:
 			constr_acc += constr_matrix
 		node.set_constraints_matrix(constr_acc)
 		node.constr_factors = None
-	link_factors = root.get_link_factors()
-	link_acc = []
-	for link in link_factors:
 
-		link_constr = link.get_extension()
-		link_acc += link_constr
-	root.factor_links = None
-	root.set_link_constraints(link_acc)
+	hyperlinks = root.get_links()
+	for link in hyperlinks:
+
+		constr_fact_list = link.get_constraint_factors()
+		constr_acc = []
+		for constr_fact in constr_fact_list:
+			constr_matrix = constr_fact.get_extension()
+			constr_acc += constr_matrix
+		link.set_constraints_matrix(constr_acc)
+		link.constr_factors = None
 
 
 def matrix_generation_c(root: Program) -> tuple:
@@ -121,9 +125,11 @@ def matrix_generation_a_b(root: Program) -> tuple:
 	nb_constraints = 0
 
 	nodes = root.get_nodes()
-	for node in nodes:
+	hyperlinks = root.get_links()
 
-		constraints = node.get_constraints_matrix()
+	for obj in itertools.chain.from_iterable([nodes, hyperlinks]):
+
+		constraints = obj.get_constraints_matrix()
 		for [values, col_indexes], rhs, sign in constraints:
 
 			if sign == "==":
@@ -149,33 +155,7 @@ def matrix_generation_a_b(root: Program) -> tuple:
 			all_rows.append(row_indexes)
 			all_rhs.append(rhs)
 			nb_constraints = nb_constraints + 1
-		node.c_triplet_list = None
-	links = root.get_link_constraints()
-
-	for [values, col_indexes], rhs, sign in links:
-		if sign == "==":
-			# Do c<=b and -c<=-b
-			row_indexes = np.zeros(len(values))
-			row_indexes.fill(nb_constraints)
-			all_values.append(values)
-			all_columns.append(col_indexes)
-			all_rows.append(row_indexes)
-			all_rhs.append(rhs)
-			nb_constraints = nb_constraints + 1
-			sign = ">="
-
-		if sign == ">=":
-			# Do -c<=-b
-			values = - values
-			rhs = - rhs
-
-		row_indexes = np.zeros(len(values))
-		row_indexes.fill(nb_constraints)
-		all_values.append(values)
-		all_columns.append(col_indexes)
-		all_rows.append(row_indexes)
-		all_rhs.append(rhs)
-		nb_constraints = nb_constraints + 1
+		obj.c_triplet_list = None
 	root.link_constraints = None
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
