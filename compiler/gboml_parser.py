@@ -85,7 +85,7 @@ def p_program(p):
 
 
 def p_hyperlink(p):
-    """hyperlink : HYPERLINK ID parameters constraints"""
+    """hyperlink : HYPEREDGE ID parameters constraints"""
 
     h_link = Hyperlink(p[2], p[3], p[4], line=p.lexer.lineno)
     p[0] = h_link

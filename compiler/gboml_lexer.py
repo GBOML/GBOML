@@ -77,7 +77,7 @@ reserved = {
     '#OBJECTIVES': 'OBJ',
     '#TIMEHORIZON': 'TIME',
     "#GLOBAL": "GLOBAL",
-    "#HYPERLINK": "HYPERLINK"
+    "#HYPEREDGE": "HYPEREDGE"
     }
 
 # List of token names.   This is always required

@@ -25,6 +25,6 @@
     #VARIABLES
         external integer : y[T];
 
-#HYPERLINK l1
+#HYPEREDGE l1
     #CONSTRAINTS
         O.x[t] <= global.a *D.y[t];

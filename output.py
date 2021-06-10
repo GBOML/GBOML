@@ -29,7 +29,19 @@ def generate_json(program, variable_names, solver_data, status, solution, object
         nodes[node.get_name()] = node_data
 
     model_data["nodes"] = nodes
-    model_data["links"] = program.get_link_var()
+
+    hyperlinks = {}
+    for link in program.get_links():
+        link_data = dict()
+        link_data["number_parameters"] = link.get_number_parameters()
+        link_data["number_constraints"] = link.get_number_constraints()
+        link_data["number_expanded_constraints"] = link.get_number_expanded_constraints()
+        link_data["parameters"] = link.get_parameter_dict()
+        link_data["variables_used"] = link.get_variables_used()
+        hyperlinks[link.get_name()] = link_data
+
+    model_data["hyperedges"] = hyperlinks
+
     data["model"] = model_data
     # Add solver data dictionary
     data["solver"] = solver_data

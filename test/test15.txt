@@ -20,7 +20,7 @@ external : d;
 external: h;
 external : ff;
 
-#HYPERLINK links
+#HYPEREDGE links
 #CONSTRAINTS
 A.b == R.f;
 A.b == R.ff;
