@@ -2,16 +2,17 @@
 T=43800;
 
 #GLOBAL
+wacc = 0.07;
 number_years_horizon = T/8760;
 
 #NODE SOLAR_PV_PLANTS
 #PARAMETERS
 full_capex = 380.0;
 lifetime = 25.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 7.25; // MEur/year
 vom = 0.0;
-capacity_factor_PV = import "pv_capacity_factors_5y.csv"; // Dimensionless
+capacity_factor_PV = import "pv_capacity_factors.csv"; // Dimensionless
 max_capacity = 500.0; // GW
 #VARIABLES
 internal: capacity;
@@ -29,10 +30,10 @@ min: vom * electricity[t];
 #PARAMETERS
 full_capex = 1040.0;
 lifetime = 30.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 12.6; // MEur/year
 vom = 0.00135; // MEur/GWh
-capacity_factor_wind = import "wind_capacity_factors_5y.csv"; // Dimensionless
+capacity_factor_wind = import "wind_capacity_factors.csv"; // Dimensionless
 max_capacity = 500.0; // GW
 #VARIABLES
 internal: capacity;
@@ -52,8 +53,8 @@ full_capex_stock = 142.0;
 full_capex_flow = 160.0;
 lifetime_stock = 10.0;
 lifetime_flow = 10.0;
-annualised_capex_stock = full_capex_stock / lifetime_stock; // MEur
-annualised_capex_flow = full_capex_flow / lifetime_flow; // MEur
+annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
 fom_stock = 0.0;
 fom_flow = 0.5;
 vom_stock = 0.0018;
@@ -89,12 +90,12 @@ full_capex_lines = 0.25*1000;
 full_capex_stations = 2*115.0;
 lifetime_lines = 40.0;
 lifetime_stations = 40.0;
-annualised_capex_lines = full_capex_lines / lifetime_lines; // MEur
-annualised_capex_stations = full_capex_stations / lifetime_stations; // MEur
+annualised_capex_lines = full_capex_lines * global.wacc * (1 + global.wacc)**lifetime_lines / ((1 + global.wacc)**lifetime_lines - 1); // MEur
+annualised_capex_stations = full_capex_stations * global.wacc * (1 + global.wacc)**lifetime_stations / ((1 + global.wacc)**lifetime_stations - 1); // MEur
 annualised_capex = annualised_capex_lines + annualised_capex_stations; // MEur/GW-year (Lines + Stations)
 fom = 2.5 + 4.6; // MEur/year
 vom = 0.0;
-efficiency_HVDC = 0.949859;
+efficiency_HVDC = 0.9499;
 #VARIABLES
 internal: capacity;
 external: electricity_in[T];
@@ -113,7 +114,7 @@ min: vom * electricity_in[t];
 #PARAMETERS
 full_capex = 600.0;
 lifetime = 15.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 30.0; // MEur/year
 vom = 0.0;
 conversion_factor_electricity = 50.6;
@@ -141,7 +142,7 @@ min: vom * electricity[t];
 #PARAMETERS
 full_capex = 28.08;
 lifetime = 20.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 0.0; // MEur/year
 vom = 0.000315;
 conversion_factor_electricity = 0.004;
@@ -169,7 +170,7 @@ min: vom * water[t];
 #PARAMETERS
 full_capex = 4801.4;
 lifetime = 30.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 0.0; // MEur/year
 vom = 0.0207; // MEur/kt
 conversion_factor_electricity = 0.1091;
@@ -207,8 +208,8 @@ full_capex_stock = 45.0;
 full_capex_flow = 0.0;
 lifetime_stock = 30.0;
 lifetime_flow = 30.0;
-annualised_capex_stock = full_capex_stock / lifetime_stock; // MEur
-annualised_capex_flow = full_capex_flow / lifetime_flow; // MEur
+annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
 fom_stock = 2.25;
 fom_flow = 0.0;
 vom_stock = 0.0;
@@ -246,8 +247,8 @@ full_capex_stock = 1.35;
 full_capex_flow = 32.4+16.2;
 lifetime_stock = 30.0;
 lifetime_flow = 30.0;
-annualised_capex_stock = full_capex_stock / lifetime_stock; // MEur
-annualised_capex_flow = full_capex_flow / lifetime_flow; // MEur
+annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
 fom_stock = 0.0675;
 fom_flow = 1.62 + 0.81; // MEur/(kt/h)-year (carbon dioxide liquefaction + regasification)
 vom_stock = 0.0;
@@ -283,8 +284,8 @@ full_capex_stock = 0.065;
 full_capex_flow = 1.55923;
 lifetime_stock = 30.0;
 lifetime_flow = 30.0;
-annualised_capex_stock = full_capex_stock / lifetime_stock; // MEur
-annualised_capex_flow = full_capex_flow / lifetime_flow; // MEur
+annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
 fom_stock = 0.0013;
 fom_flow = 0.0312;
 vom_stock = 0.0;
@@ -317,9 +318,9 @@ min: vom_stock * water_stored[t] + vom_flow * water_in[t];
 #NODE METHANATION_PLANTS
 #PARAMETERS
 HHV_CH4 = 15.441;
-full_capex = 735.0 * HHV_CH4; // to obtain cost in MEur/kt/h
+full_capex = 735.0 * HHV_CH4; // to obtain cost in MEur/(kt/h)
 lifetime = 20.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 29.4 * HHV_CH4; // MEur/year
 vom = 0.;
 conversion_factor_hydrogen = 0.5;
@@ -355,7 +356,7 @@ min: vom * methane[t];
 #PARAMETERS
 full_capex = 5913.0;
 lifetime = 30.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 147.825; // MEur/year
 vom = 0.0;
 conversion_factor_electricity = 0.616;
@@ -386,11 +387,11 @@ min: vom * liquefied_methane[t];
 #NODE LIQUEFIED_METHANE_STORAGE_HUB
 #PARAMETERS
 full_capex_stock = 2.641;
-full_capex_flow = 0.0;
+full_capex_flow = 0.001;
 lifetime_stock = 30.0;
 lifetime_flow = 30.0;
-annualised_capex_stock = full_capex_stock / lifetime_stock; // MEur
-annualised_capex_flow = full_capex_flow / lifetime_flow; // MEur
+annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
 fom_stock = 0.05282;
 fom_flow = 0.0;
 vom_stock = 0.0;
@@ -421,10 +422,10 @@ min: vom_stock * liquefied_methane_stored[t] + vom_flow * liquefied_methane_in[t
 number_carriers = 7;
 full_capex = 2.537;
 lifetime = 30.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 0.12685; // MEur/year
 vom = 0.0;
-schedule = import "carrier_schedule_5y.csv";
+schedule = import "carrier_schedule.csv";
 loading_time = 24;
 travel_time = 116;
 conversion_factor = 0.994;
@@ -446,11 +447,11 @@ min: vom * liquefied_methane_in[t];
 #NODE LIQUEFIED_METHANE_STORAGE_DESTINATION
 #PARAMETERS
 full_capex_stock = 2.641;
-full_capex_flow = 0.0;
+full_capex_flow = 0.001;
 lifetime_stock = 30.0;
 lifetime_flow = 30.0;
-annualised_capex_stock = full_capex_stock / lifetime_stock; // MEur
-annualised_capex_flow = full_capex_flow / lifetime_flow; // MEur
+annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
 fom_stock = 0.05282;
 fom_flow = 0.0;
 vom_stock = 0.0;
@@ -480,7 +481,7 @@ min: vom_stock * liquefied_methane_stored[t] + vom_flow * liquefied_methane_in[t
 #PARAMETERS
 full_capex = 1248.3;
 lifetime = 30.0;
-annualised_capex = full_capex / lifetime; // MEur
+annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
 fom = 24.97; // MEur/year
 vom = 0.0;
 conversion_factor = 0.98;
@@ -498,44 +499,40 @@ liquefied_methane[t] >= 0;
 min: global.number_years_horizon * (annualised_capex + fom) * capacity;
 min: vom * liquefied_methane[t];
 
-#NODE DEMAND_DESTINATION
-#PARAMETERS
-cost_unserved_demand = 100.0;
-demand = import "gas_demand_5y.csv";
-#VARIABLES
-internal: unserved_demand[T];
-external: methane[T];
+#HYPEREDGE INLAND_POWER_BALANCE
 #CONSTRAINTS
-methane[t] + unserved_demand[t] == demand[t];
-methane[t] >= 0;
-unserved_demand[t] >= 0;
-#OBJECTIVES
-min: cost_unserved_demand * unserved_demand[t];
-
-#LINKS
-// Inland Power Balance
 SOLAR_PV_PLANTS.electricity[t] + WIND_PLANTS.electricity[t] + BATTERY_STORAGE.electricity_out[t] == BATTERY_STORAGE.electricity_in[t] + HVDC.electricity_in[t];
 
-// Coastal Power Balance
+#HYPEREDGE COASTAL_POWER_BALANCE
+#CONSTRAINTS
 HVDC.electricity_out[t] == ELECTROLYSIS_PLANTS.electricity[t] + HYDROGEN_STORAGE.electricity[t] + DESALINATION_PLANTS.electricity[t] + WATER_STORAGE.electricity[t] + DIRECT_AIR_CAPTURE_PLANTS.electricity[t] + CARBON_DIOXIDE_STORAGE.electricity[t] + METHANE_LIQUEFACTION_PLANTS.electricity[t];
 
-// Coastal Hydrogen Balance
+#HYPEREDGE COASTAL_HYDROGEN_BALANCE
+#CONSTRAINTS
 ELECTROLYSIS_PLANTS.hydrogen[t] + HYDROGEN_STORAGE.hydrogen_out[t] == HYDROGEN_STORAGE.hydrogen_in[t] + DIRECT_AIR_CAPTURE_PLANTS.hydrogen[t] + METHANATION_PLANTS.hydrogen[t];
 
-// Coastal Water Balance
+#HYPEREDGE COASTAL_WATER_BALANCE
+#CONSTRAINTS
 DESALINATION_PLANTS.water[t] + METHANATION_PLANTS.water[t] + WATER_STORAGE.water_out[t] == WATER_STORAGE.water_in[t] + ELECTROLYSIS_PLANTS.water[t] + DIRECT_AIR_CAPTURE_PLANTS.water[t];
 
-// Coastal Carbon Dioxide Balance
+#HYPEREDGE COASTAL_CARBON_DIOXIDE_BALANCE
+#CONSTRAINTS
 DIRECT_AIR_CAPTURE_PLANTS.carbon_dioxide[t] + CARBON_DIOXIDE_STORAGE.carbon_dioxide_out[t] == CARBON_DIOXIDE_STORAGE.carbon_dioxide_in[t] + METHANATION_PLANTS.carbon_dioxide[t];
 
-// Coastal Methane Balance
+#HYPEREDGE COASTAL_METHANE_BALANCE
+#CONSTRAINTS
 METHANATION_PLANTS.methane[t] == METHANE_LIQUEFACTION_PLANTS.methane[t];
 
-// Coastal Liquefied Methane Balance
+#HYPEREDGE COASTAL_LIQUEFIED_METHANE_BALANCE
+#CONSTRAINTS
 METHANE_LIQUEFACTION_PLANTS.liquefied_methane[t] + LIQUEFIED_METHANE_STORAGE_HUB.liquefied_methane_out[t] == LIQUEFIED_METHANE_STORAGE_HUB.liquefied_methane_in[t] + LIQUEFIED_METHANE_CARRIERS.liquefied_methane_in[t];
 
-// Destination Liquefied Methane Balance
+#HYPEREDGE DESTINATION_LIQUEFIED_METHANE_BALANCE
+#CONSTRAINTS
 LIQUEFIED_METHANE_CARRIERS.liquefied_methane_out[t] + LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_out[t] == LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_in[t] + LIQUEFIED_METHANE_REGASIFICATION.liquefied_methane[t];
 
-// Destination Methane Balance
-LIQUEFIED_METHANE_REGASIFICATION.methane[t] == DEMAND_DESTINATION.methane[t];
+#HYPEREDGE DESTINATION_METHANE_BALANCE
+#PARAMETERS
+demand = import "gas_demand.csv";
+#CONSTRAINTS
+LIQUEFIED_METHANE_REGASIFICATION.methane[t] == demand[t];
