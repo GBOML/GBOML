@@ -498,20 +498,6 @@ liquefied_methane[t] >= 0;
 min: global.number_years_horizon * (annualised_capex + fom) * capacity;
 min: vom * liquefied_methane[t];
 
-#NODE DEMAND_DESTINATION
-#PARAMETERS
-cost_unserved_demand = 100.0;
-demand = import "gas_demand.csv";
-#VARIABLES
-internal: unserved_demand[T];
-external: methane[T];
-#CONSTRAINTS
-methane[t] + unserved_demand[t] == demand[t];
-methane[t] >= 0;
-unserved_demand[t] >= 0;
-#OBJECTIVES
-min: cost_unserved_demand * unserved_demand[t];
-
 #HYPEREDGE INLAND_POWER_BALANCE
 #CONSTRAINTS
 SOLAR_PV_PLANTS.electricity[t] + WIND_PLANTS.electricity[t] + BATTERY_STORAGE.electricity_out[t] == BATTERY_STORAGE.electricity_in[t] + HVDC.electricity_in[t];
