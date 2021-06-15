@@ -31,20 +31,21 @@ Then,
 pip install cplex
 ```
 
-### Cbc
+### CBC/CLP
 To be able to use Cbc please install :
->https://projects.coin-or.org/Cbc
+>https://projects.coin-or.org/Clp
 
 Then,
 
 ```
-pip install cbcpy
+pip install cylp
 ```
 ### Communicating with solver APIs
 In order to pass arguments to solvers, they can be written in an auxiliary input file with the following naming convention :
 ```
 solver_name.opt
 ```
+
 ## Usage
 The command line goes as follows,
 ```
@@ -104,4 +105,53 @@ List of optional arguments
 
 ```
 --json
+```
+
+-**OUTPUT** Set the output name and directory
+
+```
+--output path/filename
+```
+
+### Changes from V0.0.1 to V0.0.2
+V0.0.2 comes with large range of additional functionalities. First, the more fundamental changes are:
+
+- The keywords input/output have been replaced by the keyword external.
+
+- Variables have sizes. (Note : Referring to vector variables by name is not allowed anymore)
+
+- the keyword #LINKS does not exist anymore and has been replaced by #HYPEREDGE definitions
+
+The new functionalities are : 
+
+- The sum operator
+
+- Hyperlink definitions with its set of parameters and constraints
+
+- Mixed-Integer Linear Programming
+
+- Global parameters
+
+For more informations, please refer to the tutorial http://hdl.handle.net/2268/256705.
+
+###Citation
+To cite this repository : 
+```
+@misc{GBOML,
+  title={{GBOML} {R}epository: {G}raph-{B}ased {O}ptimization {M}odeling {L}anguage},
+  author={Miftari, Bardhyl and Berger, Mathias and Bolland, Adrien and Djelassi, Hatim and Ernst, Damien},
+  institution={ULiege Smart Grids Lab},
+  year={2021},
+  note={URL : https://gitlab.uliege.be/smart\_grids/public/gboml}
+}
+```
+To cite the tutorial : 
+```
+@misc{GBOMLtutorial,
+author={Berger, Mathias and Bolland, Adrien and Miftari, Bardhyl and Djelassi, Hatim and Ernst, Damien},
+title={{G}raph-{B}ased {O}ptimization {M}odelling {L}anguage: A {T}utorial},
+institution={University of Li{\e`}ge},
+year={2021},
+note={URL : http://hdl.handle.net/2268/256705}
+}
 ```
