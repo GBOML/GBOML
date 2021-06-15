@@ -114,11 +114,11 @@ List of optional arguments
 ```
 
 ### Changes from V0.0.1 to V0.0.2
-V0.0.2 comes with large range of additional functionalities. First, the more fundamental changes are:
+V0.0.2 comes with a broad range of additional functionalities. First, the more fundamental changes are:
 
 - The keywords input/output have been replaced by the keyword external.
 
-- Variables have sizes. (Note : Referring to vector variables by name is not allowed anymore)
+- Variables have sizes. (note that vector variables must be indexed wherever they appear and may no longer be referred to by their identifier alone)
 
 - the keyword #LINKS does not exist anymore and has been replaced by #HYPEREDGE definitions
 
