@@ -33,7 +33,7 @@ pip install cplex
 
 ### CBC/CLP
 To be able to use Cbc please install :
->https://projects.coin-or.org/Clp
+>https://projects.coin-or.org/Cbc
 
 Then,
 
