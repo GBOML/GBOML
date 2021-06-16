@@ -23,7 +23,7 @@ import numpy as np
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(description='Compiler and solver for the generic system model language')
+    parser = argparse.ArgumentParser(allow_abbrev=False, description='Compiler and solver for the generic system model language')
     parser.add_argument("input_file", type=str)
     # Compiling info
     parser.add_argument("--lex", help="Prints all tokens found in input file", action='store_const', const=True)
@@ -50,11 +50,11 @@ if __name__ == '__main__':
                                                                                        args.lex, args.parse)
 
         print("All --- %s seconds ---" % (time() - start_time))
-        
+
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
         if args.matrix:
-            
+
             print("Matrix A ", A)
             print("Vector b ", b)
             print("Vector C ", C_sum)
