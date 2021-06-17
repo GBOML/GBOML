@@ -16,7 +16,7 @@ class Identifier(Symbol):
 
     def __init__(self, type_id: str, name_id: str, expression=None, line: int = 0):
 
-        assert type(name_id) == str, "Internal error: expected string for identifier name" 
+        assert type(name_id) == str, "Internal error: expected string for identifier name"
         assert type_id == "basic" or type_id == "assign", "Internal error: unknown type for identifier"
         Symbol.__init__(self, name_id, type_id, line)
         self.expression = expression
@@ -25,11 +25,10 @@ class Identifier(Symbol):
         self.option = None
 
     def __str__(self):
-        
+
         string = str(self.name)
         if self.expression is not None:
-
-            string += "["+str(self.expression)+']'
+            string += "[" + str(self.expression) + ']'
 
         return string
 
@@ -42,7 +41,7 @@ class Identifier(Symbol):
     def set_option(self, option):
 
         self.option = option
-    
+
     def get_option(self):
 
         return self.option
@@ -56,8 +55,7 @@ class Identifier(Symbol):
 
             size = self.expression.evaluate_expression(dictionary)
         if size <= 0:
-
-            error_('ERROR : wrong size for variable : '+str(self) + " at line : "+str(self.get_line()))
+            error_('ERROR : wrong size for variable : ' + str(self) + " at line : " + str(self.get_line()))
         self.size = size
 
     def get_size(self):
@@ -65,36 +63,34 @@ class Identifier(Symbol):
         return self.size
 
     def name_compare(self, identifier_i) -> bool:
-        
+
         # a == a[t] ! NO ANYMORE
         equal = False
         if type(identifier_i) == type(self):
 
             if self.name == identifier_i.name:
-
                 equal = True
         elif type(identifier_i) == str:
 
             if self.name == identifier_i:
-
                 equal = True
 
         return equal
 
     def set_expression(self, expr):
-        
+
         self.expression = expr
 
     def get_expression(self):
-        
+
         return self.expression
 
     def set_index(self, value):
-        
+
         self.index = value
 
-        return value+self.size
-        
+        return value + self.size
+
     def get_index(self):
-        
+
         return self.index 
