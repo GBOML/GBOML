@@ -165,24 +165,36 @@ def p_variables(p):
 
 
 def p_define_variables(p):
-    """define_variables : INTERNAL option_var COLON id SEMICOLON var_aux
-                        | EXTERNAL option_var COLON id SEMICOLON var_aux"""
+    """define_variables : INTERNAL type_var option_var COLON id SEMICOLON var_aux
+                        | EXTERNAL type_var option_var COLON id SEMICOLON var_aux"""
 
-    p[4].set_option(p[2])
-    var = Variable(p[4], p[1], line=p.lineno(1))
-    p[6].insert(0, var)
-    p[0] = p[6]
+    p[5].set_option(p[2])
+    var = Variable(p[5], p[1], v_option=p[3], line=p.lineno(1))
+    p[7].insert(0, var)
+    p[0] = p[7]
 
 
-def p_option_var(p):
-    """option_var : BINARY
-                  | CONTINUOUS
-                  | INTEGER
-                  | empty"""
+def p_type_var(p):
+    """type_var : BINARY
+                | CONTINUOUS
+                | INTEGER
+                | empty"""
 
     if p[1] is None:
 
         p[1] = "continuous"
+    p[0] = p[1]
+
+
+def p_option_var(p):
+    """option_var : AUX
+                  | ACTION
+                  | SIZING
+                  | STATE
+                  | empty"""
+    if p[1] is None:
+
+        p[1] = "auxiliary"
     p[0] = p[1]
 
 

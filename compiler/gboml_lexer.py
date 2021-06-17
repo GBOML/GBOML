@@ -67,6 +67,10 @@ keywords = {
     'or': 'OR',
     'not': 'NOT',
     "sum": 'SUM',
+    "auxiliary": "AUX",
+    "action": "ACTION",
+    "state": "STATE",
+    "sizing": "SIZING"
     }
 
 reserved = {

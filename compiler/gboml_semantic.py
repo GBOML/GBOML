@@ -69,9 +69,10 @@ def semantic(program: Program) -> Program:
 
         # Retrieve a dictionary of [name,identifier object] tuple of variables
 
-        node_variables = node.get_dictionary_variables()
+        node_variables = node.get_dictionary_variables(get_id=False)
+        node_variables_id = node.get_dictionary_variables(get_id=True)
         program_variables[name] = node_variables
-        external_variables[name] = node.get_dictionary_variables("external")
+        external_variables[name] = node.get_dictionary_variables("external", get_id=False)
 
         # Check if variables and parameters share names
 
@@ -93,12 +94,10 @@ def semantic(program: Program) -> Program:
         # Check constraints and objectives expressions
         # Retrieve list of factor objects
 
-        list_constraints_factors, list_objectives_factors = check_expressions_dependancy(node, node_variables,
-                                                                                         node_parameters,
-                                                                                         parameter_dictionary)
+        check_expressions_dependancy_rl(node, node_variables, node_variables_id, node_parameters, parameter_dictionary)
 
-        node.set_constraint_factors(list_constraints_factors)
-        node.set_objective_factors(list_objectives_factors)
+        # node.set_constraint_factors(list_constraints_factors)
+        # node.set_objective_factors(list_objectives_factors)
         free_non_useful_information_in_node(node)
         print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
 
@@ -259,10 +258,185 @@ def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int)
     """
     start_index = index
     for k in dictionary_var.keys():
-        identifier = dictionary_var[k]
+        var = dictionary_var[k]
+        identifier = var.get_identifier()
         identifier.set_size(dictionary_param)
+        v_size = var.get_size()
+        v_type = var.get_option()
+
+        if v_type == "auxiliary" and v_size != dictionary_param["T"][0]:
+            error_("ERROR: auxiliary variables must have a size of T at line "+str(var.get_line()))
+
+        elif v_type == "state" and v_size != dictionary_param["T"][0]:
+            error_("ERROR: state variables must have a size of T at line "+str(var.get_line()))
+
+        elif v_type == "sizing" and v_size != 1:
+            error_("ERROR: sizing variables must have a size of 1 at line "+str(var.get_line()))
+
         start_index = identifier.set_index(start_index)
     return start_index
+
+
+def check_expressions_dependancy_rl(node: Node, var_obj: dict, var_id: dict, parameters_obj: dict, parameter_val: dict)\
+        -> tuple:
+    constraints = node.get_constraints()
+    for constraint in constraints:
+        if constraint.get_time_interval() or constraint.get_condition():
+            error_("ERROR: adding a time range is not allowed in MDP definition at line "+constraint.get_line())
+
+        rhs = constraint.get_rhs()
+        lhs = constraint.get_lhs()
+        constr_type = constraint.get_type()
+        if constr_type == "==":
+            # Either auxiliary assignment of auxiliary or a dynamic definition
+
+            var_in_right = variables_in_expression(rhs, var_id, parameters_obj, check_size=True)
+            var_in_left = variables_in_expression(lhs, var_id, parameters_obj, check_size=True)
+            variable, time_dep = check_lhs_equality(lhs, var_obj)
+            var_option = variable.get_option()
+            if var_option == "state":
+                if time_dep != 2:
+                    error_("ERROR: can not assign a state at another timestep than 't+1' at line "
+                           + str(constraint.get_line()))
+                check_rhs_equality_states(rhs, var_obj, time_dep, variable)
+
+    exit()
+
+
+def check_rhs_equality_states(rhs: Expression, var_dict: dict, lhs_level, variable):
+    leaves = rhs.get_leafs()
+    var_name = variable.get_name()
+    time_dep = None
+    is_state = False
+    is_action = False
+    is_auxiliary = False
+    previous_step = False
+
+    for leaf in leaves:
+
+        seed = leaf.get_name()
+        if type(seed) == Identifier:
+            l_name = seed.get_name()
+            if l_name in var_dict:
+                variable = var_dict[l_name]
+                option = variable.get_option()
+                if option == "action":
+                    is_action = True
+                elif option == "auxiliary":
+                    is_auxiliary = True
+                elif option == "state":
+                    is_state = True
+                    if l_name == var_name:
+                        previous_step = True
+
+                time_dep = check_time_dependancy(seed)
+                if time_dep != 1:
+                    error_("ERROR: term "+str(seed)+" at that timestep is not allowed for the definition of "
+                                                    "dynamics at line "+str(seed.get_line()))
+
+            else:
+                error_("ERROR: not allowed to use anything but variables in the left-hand-side "
+                       "of equality constraints at line " + str(lhs.get_line()))
+
+    if previous_step is not True:
+        error_("There should be a previous step")
+
+    return variable, time_dep
+
+
+def check_lhs_equality(lhs: Expression, var_dict: dict):
+    leaves = lhs.get_leafs()
+    variable = None
+    time_dep = None
+    if len(leaves) != 1:
+        error_("ERROR: not only a single left-hand-side variable is allowed in constraints "
+               "at line " + str(lhs.get_line()))
+
+    for leaf in leaves:
+        seed = leaf.get_name()
+        if type(seed) == Identifier:
+            l_name = seed.get_name()
+            if l_name in var_dict:
+                variable = var_dict[l_name]
+                option = variable.get_option()
+                time_dep = check_time_dependancy(seed)
+
+            else:
+                error_("ERROR: not allowed to use anything but variables in the left-hand-side "
+                       "of equality constraints at line "+str(lhs.get_line()))
+
+    return variable, time_dep
+
+
+def check_time_dependancy(seed):
+
+    seed_type = seed.get_type()
+    return_value = 0
+    if seed_type == "basic":
+        return_value = -1
+
+    elif seed_type == "assign":
+        expr = seed.get_expression()
+        expr_type = expr.get_type()
+        if expr_type == "literal":
+            identifier = expr.get_name()
+            if type(identifier) == int or type(identifier) == float:
+                value = identifier
+                if value != 0:
+                    error_("ERROR : constants other than 0 are not allowed as in bracket expression at line "
+                           + str(expr.get_line()))
+
+            elif identifier.get_name() != "t":
+
+                error_("ERROR : the in bracket expression can not be a parameter" + str(identifier.get_name()))
+
+            else:
+                return_value = 1
+
+        elif expr_type == "+":
+            child_1, child_2 = expr.get_children()
+            child_1_type = child_1.get_type()
+            child_2_type = child_2.get_type()
+            child_1_identifier = child_1.get_name()
+            child_2_identifier = child_2.get_name()
+            rhs_number = False
+            lhs_number = False
+
+            if child_1_type != "literal" or child_2_type != "literal":
+                error_('ERROR: the assignment '+str(expr)+' is not allowed at line '+str(expr.get_line()))
+
+            if type(child_1_identifier) == int or type(child_1_identifier) == float:
+                value = child_1_identifier
+                if value != 1:
+                    error_("ERROR : constants other than 0 are not allowed as in bracket expression at line "
+                           + str(expr.get_line()))
+                lhs_number = True
+
+            elif child_1_identifier.get_name() != "t":
+
+                error_("ERROR : the in bracket expression can not be a parameter" + str(child_1_identifier.get_name()))
+
+            if (type(child_2_identifier) == int or type(child_2_identifier) == float) and not rhs_number:
+                value = child_2_identifier
+                if value != 1:
+                    error_("ERROR : constants other than 0 are not allowed as in bracket expression at line "
+                           + str(expr.get_line()))
+                rhs_number = True
+
+            elif child_2_identifier.get_name() != "t":
+
+                error_("ERROR : the in bracket expression can not be a parameter" + str(child_2_identifier.get_name()))
+
+            if (lhs_number or rhs_number) and not (lhs_number and rhs_number):
+
+                return_value = 2
+
+            else:
+                error_('ERROR: the assignment '+str(expr)+' is not allowed at line '+str(expr.get_line()))
+
+        else:
+            error_('ERROR: the assignment '+str(expr)+' is not allowed at line '+str(expr.get_line()))
+    return return_value
 
 
 def check_expressions_dependancy(node: Node, variables: dict, parameters_obj: dict, parameter_val: dict) -> tuple:
