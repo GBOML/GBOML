@@ -10,6 +10,8 @@ from compiler.classes.objective import Objective
 from compiler.classes.node import Node
 from compiler.classes.condition import Condition
 from compiler.classes.factor import Factorize
+from compiler.classes.mdp import MDP, State, Action, Auxiliary, Sizing
 
 __all__ = ["Constraint", "Expression", "Identifier", "Node", "Parameter", "Program", "Time", "TimeInterval", "Variable",
-           "Objective", "Condition", "Factorize", "Attribute", "Hyperlink"]
+           "Objective", "Condition", "Factorize", "Attribute", "Hyperlink",
+           "MDP", "State", "Sizing", "Action", "Auxiliary"]
