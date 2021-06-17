@@ -394,3 +394,196 @@ class Expression(Symbol):
                 error_("INTERNAL ERROR : unexpected e_type "+str(e_type)+" check internal parser")
 
         return value
+
+    def evaluate_python_string(self,definitions:dict):
+        # Discard precedence information before returning
+        prec, value = self.evaluate_python_string_impl(definitions)
+        return value
+
+    def evaluate_python_string_impl(self,definitions:dict):
+        # Return value is a pair of an int indicating precedence level and a string representing the expression
+        # Precedence levels are used to decide when a subexpression must be put in parentheses
+        # Parentheses are always required when a subexpression has strictly lower precedence than the current operation
+        # Precedence levels:
+        # 0 - addition, binary minus
+        # 1 - multiplications, division, modulo
+        # 2 - unary minus
+        # 3 - exponentiation
+        # 4 - terminals
+
+        # Get type, children and nb_children
+        e_type = self.get_type()
+        nb_child = self.get_nb_children()
+        children = self.get_children()
+
+        # if expression type is unary minus
+        if e_type == 'u-':
+            if nb_child != 1:
+                error_("INTERNAL ERROR : unary minus must have one child, got "+str(nb_child)+" check internal parser")
+
+            # evaluate the children
+            prec1, term1 = children[0].evaluate_python_string_impl(definitions)
+            if prec1 < 2:
+                value = '-(' + term1 + ')'
+            else:
+                value = '-' + term1
+            prec = 2
+
+        # if type is literal (leaf without child)
+        elif e_type == 'literal':
+            if nb_child != 0:
+                error_("INTERNAL ERROR : literal must have zero child, got "+str(nb_child)+" check internal parser")
+
+            # get identifier can either be a INT FLOAT ID or ID[expr]
+            identifier = self.get_name()
+
+            # retreive value directly if FLOAT or INT
+            if type(identifier)==float or type(identifier)==int:
+                value = str(identifier)
+                prec = 4
+
+            elif type(identifier)==Attribute:
+                key = identifier.get_node_field()
+                if key not in definitions:
+                    error_("Unknown Identifier "+str(identifier)+" at line "+str(self.get_line()))
+
+                inner_dict = definitions[key]
+                inner_identifier = identifier.get_attribute()
+
+                id_type = inner_identifier.get_type()
+                id_name = inner_identifier.get_name()
+                id_expr = inner_identifier.get_expression()
+
+                if id_name not in inner_dict:
+                    error_("Unknown Identifier "+str(identifier)+" at line "+str(self.get_line()))
+
+                if id_type == "basic" :
+                    value_vect = inner_dict[id_name]
+                    if len(value_vect)!=1:
+                        error_("INTERNAL error basic type should have one value : "+str(identifier)+" at line "+str(self.get_line()))
+                    value = str(value_vect[0])
+                    prec = 4
+
+                elif id_type == "assign" :
+                    value_vect = inner_dict[id_name]
+                    index = id_expr.evaluate_expression(definitions)
+                    if len(value_vect)<=index:
+                        error_("Wrong indexing in Identifier '"+ str(identifier)+ "' at line, "+str(self.get_line()))
+                    value = str(value_vect[index])
+                    prec = 4
+
+            # else it is either ID or ID[expr]
+            else:
+                # get id type and set found to false
+                id_type = identifier.get_type()
+                id_name = identifier.get_name()
+                id_expr = identifier.get_expression()
+
+                if not(id_name in definitions):
+                    error_('Identifier "'+ str(identifier)+ '" used but not previously defined, at line '+str(self.get_line()))
+
+                vector_value = definitions[id_name]
+                nb_values = len(vector_value)
+
+                if id_type == "basic" and nb_values==1:
+                    value = str(vector_value[0])
+                    prec = 4
+
+                elif id_type == "assign":
+                    index = id_expr.evaluate_expression(definitions)
+
+                    if type(index) == float:
+                        if index.is_integer()==False:
+                            error_("Error: an index is a float: '" + str(identifier) + "' at line " + str(identifier.get_line()))
+                        index = int(round(index))
+
+                    if index >= nb_values or index < 0:
+                        error_("Wrong indexing in Identifier '" + str(identifier) + "' at line, " + str(self.get_line()))
+
+                    value = str(vector_value[index])
+                    prec = 4
+
+                else:
+                    error_("Wrong time indexing in Identifier '" + str(identifier) + "' at line, " + str(self.get_line()))
+
+        elif e_type == 'sum':
+            error_("DEBUG ERROR: Python string conversion for sum not implemented")
+
+        # MORE THAN one child
+        else:
+
+            if nb_child != 2:
+                error_("INTERNAL ERROR : binary operators must have two children, got "+str(nb_child)+" check internal parser")
+
+            prec1, term1 = children[0].evaluate_python_string_impl(definitions)
+            prec2, term2 = children[1].evaluate_python_string_impl(definitions)
+            if e_type == '+':
+                if prec1 < 0:
+                    value = '(' + term1 + ')'
+                else:
+                    value = term1
+                value = value + '+'
+                if prec2 < 0:
+                    value = value +'(' + term2 + ')'
+                else:
+                    value = value + term2
+                prec = 0
+            elif e_type == '-':
+                if prec1 < 0:
+                    value = '(' + term1 + ')'
+                else:
+                    value = term1
+                value = value + '-'
+                if prec2 < 0:
+                    value = value +'(' + term2 + ')'
+                else:
+                    value = value + term2
+                prec = 0
+            elif e_type =='*':
+                if prec1 < 1:
+                    value = '(' + term1 + ')'
+                else:
+                    value = term1
+                value = value + '*'
+                if prec2 < 1:
+                    value = value +'(' + term2 + ')'
+                else:
+                    value = value + term2
+                prec = 1
+            elif e_type == '/':
+                if prec1 < 1:
+                    value = '(' + term1 + ')'
+                else:
+                    value = term1
+                value = value + '/'
+                if prec2 < 1:
+                    value = value +'(' + term2 + ')'
+                else:
+                    value = value + term2
+                prec = 1
+            elif e_type == "mod":
+                if prec1 < 1:
+                    value = '(' + term1 + ')'
+                else:
+                    value = term1
+                value = value + '%'
+                if prec2 < 1:
+                    value = value +'(' + term2 + ')'
+                else:
+                    value = value + term2
+                prec = 1
+            elif e_type == '**':
+                if prec1 < 3:
+                    value = '(' + term1 + ')'
+                else:
+                    value = term1
+                value = value + '**'
+                if prec2 < 3:
+                    value = value +'(' + term2 + ')'
+                else:
+                    value = value + term2
+                prec = 3
+            else:
+                error_("INTERNAL ERROR : unexpected e_type "+str(e_type)+" check internal parser")
+
+        return prec, value

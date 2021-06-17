@@ -4,8 +4,11 @@
 # Writer : MIFTARI B - BERGER M - DJELASSI H
 # ------------
 
-# COMPILER import
-from compiler import compile_gboml
+#COMPILER import
+from compiler import compile_gboml, parameter_evaluation
+
+#CONVERTER import
+from convert import convert_simulation
 
 # SOLVER import
 from solver import solver_scipy, solver_clp,\
@@ -42,9 +45,13 @@ if __name__ == '__main__':
 
     parser.add_argument("--output", help="Output filename", type=str)
 
-    args = parser.parse_args()
-    start_time = time()
-    if args.input_file:
+    parser.add_argument("--lex",help="Prints all tokens found in input file",action='store_const',const=True)
+    parser.add_argument("--parse",help="Prints the AST",action='store_const',const=True)
+    parser.add_argument("--matrix",help="Prints matrix representation",action='store_const',const=True)
+    parser.add_argument("--convert",help = "Convert to simulation code",action='store_const',const=True)
+
+    parser.add_argument("--json", help="Convert results to JSON format",action='store_const',const=True)
+    parser.add_argument("--csv", help="Convert results to CSV format",action='store_const',const=True)
 
         program, A, b, C, indep_terms_c, T, name_tuples, objective_map = compile_gboml(args.input_file, args.log,
                                                                                        args.lex, args.parse)
@@ -60,6 +67,9 @@ if __name__ == '__main__':
             print("Vector C ", C_sum)
 
         objective_offset = float(indep_terms_c.sum())
+
+        if args.convert:
+            convert_simulation(program)
 
         if args.linprog:
 
