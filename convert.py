@@ -1,7 +1,67 @@
 from compiler import parameter_evaluation, check_names_repetitions, match_dictionaries
 from compiler.classes import Program
+# TODO: recheck required imports
+from compiler.classes.mdp import MDP, State, Action, Auxiliary, Sizing
 
 import json
+
+def convert_mdp(mdp:MDP):
+    states = mdp.get_states_variables()
+    nb_states = len(states)
+    actions = mdp.get_actions_variables()
+    nb_actions = len(actions)
+
+    # Build definitions dictionary
+    # TODO: get parameter values and add to dictionary
+    # TODO: adjust variable names for functions besides dynamics()
+    definitions = {}
+    for i in range(nb_states):
+        definitions[states[i].get_name()] = ['previous_states[..., ' + str(i) +']']
+
+    for i in range(nb_actions):
+        definitions[actions[i].get_name()] = ['actions[..., ' + str(i) +']']
+
+    # TODO: clamp actions to their bounds (vectorize if possible)
+    tabs = '        '
+    dynamics_body = tabs + 'states = torch.empty(previous_states.size())\n'
+    for i in range(nb_states):
+        dynamics_body += tabs + 'states[...,' + str(i) + '] = ' \
+            + states[i].get_dynamic().evaluate_python_string(definitions) + '\n'
+
+    initial_body = tabs + 'states = torch.empty((number_trajectories, ' + str(nb_states) + '))\n'
+    for i in range(nb_states):
+        initial_body += tabs + 'states[...,' + str(i) + '] = ' \
+            + states[i].get_init().evaluate_python_string(definitions) + '\n'
+
+    # Write python source file
+    filename = 'convert/GBOMLSystem.py'
+
+    print('Writing DESGA system to file "' + filename + '"')
+    with open(filename, 'w') as outfile:
+        # imports
+        outfile.write('import torch\n')
+        outfile.write('from system.GBOMLSystem import GBOMLBaseSystem\n')
+
+        # class header
+        outfile.write('\n')
+        outfile.write('class GBOMLSystem(GBOMLBaseSystem.GBOMLBaseSystem):\n')
+
+        # dynamics function
+        outfile.write('\n')
+        outfile.write('    def dynamics(self, previous_states, actions, disturbances):\n')
+        outfile.write(dynamics_body)
+        outfile.write('        return states\n')
+
+        # initial_state function
+        outfile.write('\n')
+        outfile.write('    def initial_state(self, number_trajectories=1):\n')
+        outfile.write(initial_body)
+        outfile.write('        return states\n')
+
+        # reward function
+        outfile.write('\n')
+        outfile.write('    def reward(self, states, actions, disturbances):\n')
+        outfile.write('        return states + self.parameters[0] - self.parameters[0]\n')
 
 def convert_simulation(program:Program):
     print('Converting input to DESGA format')
