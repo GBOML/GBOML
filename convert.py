@@ -13,24 +13,32 @@ def convert_mdp(mdp:MDP):
 
     # Build definitions dictionary
     # TODO: get parameter values and add to dictionary
-    # TODO: adjust variable names for functions besides dynamics()
     definitions = {}
     for i in range(nb_states):
-        definitions[states[i].get_name()] = ['previous_states[..., ' + str(i) +']']
+        definitions[states[i].get_name()] = ['states[..., ' + str(i) +']']
 
     for i in range(nb_actions):
-        definitions[actions[i].get_name()] = ['actions[..., ' + str(i) +']']
+        definitions[actions[i].get_name()] = ['clamp_actions[..., ' + str(i) +']']
 
-    # TODO: clamp actions to their bounds (vectorize if possible)
     tabs = '        '
-    dynamics_body = tabs + 'states = torch.empty(previous_states.size())\n'
+
+    member_body = ''
+    member_body += tabs + 'self.actions_lower = torch.empty(' + str(nb_actions) + ')\n'
+    member_body += tabs + 'self.actions_upper = torch.empty(' + str(nb_actions) + ')\n'
+    for i in range(nb_actions):
+        member_body += tabs + 'self.actions_lower[' + str(i) + '] = ' + str(actions[i].get_lower_bound()) + '\n'
+        member_body += tabs + 'self.actions_upper[' + str(i) + '] = ' + str(actions[i].get_upper_bound()) + '\n'
+
+    dynamics_body = ''
+    dynamics_body += tabs + 'clamp_actions = self.clamp_max(self.clamp_min(actions, self.actions_lower), self.actions_upper)\n'
+    dynamics_body += tabs + 'next_states = torch.empty(states.size())\n'
     for i in range(nb_states):
-        dynamics_body += tabs + 'states[...,' + str(i) + '] = ' \
+        dynamics_body += tabs + 'next_states[...,' + str(i) + '] = ' \
             + states[i].get_dynamic().evaluate_python_string(definitions) + '\n'
 
-    initial_body = tabs + 'states = torch.empty((number_trajectories, ' + str(nb_states) + '))\n'
+    initial_body = tabs + 'init_states = torch.empty((number_trajectories, ' + str(nb_states) + '))\n'
     for i in range(nb_states):
-        initial_body += tabs + 'states[...,' + str(i) + '] = ' \
+        initial_body += tabs + 'init_states[...,' + str(i) + '] = ' \
             + states[i].get_init().evaluate_python_string(definitions) + '\n'
 
     # Write python source file
@@ -46,19 +54,26 @@ def convert_mdp(mdp:MDP):
         outfile.write('\n')
         outfile.write('class GBOMLSystem(GBOMLBaseSystem.GBOMLBaseSystem):\n')
 
+        # member definitions
+        outfile.write('\n')
+        outfile.write('    def __init__(self, horizon, feasible_set, device="cpu"):\n')
+        outfile.write('        super(GBOMLSystem, self).__init__(horizon=horizon, device=device, feasible_set=feasible_set)\n')
+        outfile.write(member_body)
+
         # dynamics function
         outfile.write('\n')
-        outfile.write('    def dynamics(self, previous_states, actions, disturbances):\n')
+        outfile.write('    def dynamics(self, states, actions, disturbances):\n')
         outfile.write(dynamics_body)
-        outfile.write('        return states\n')
+        outfile.write('        return next_states\n')
 
         # initial_state function
         outfile.write('\n')
         outfile.write('    def initial_state(self, number_trajectories=1):\n')
         outfile.write(initial_body)
-        outfile.write('        return states\n')
+        outfile.write('        return init_states\n')
 
         # reward function
+        # TODO: get reward function in MDP class and convert
         outfile.write('\n')
         outfile.write('    def reward(self, states, actions, disturbances):\n')
         outfile.write('        return states + self.parameters[0] - self.parameters[0]\n')
