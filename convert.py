@@ -6,6 +6,9 @@ from compiler.classes.mdp import MDP, State, Action, Auxiliary, Sizing
 import json
 
 def convert_mdp(mdp:MDP):
+    # TODO: Extend to respect sizing decisions
+    # TODO: Extend to respect auxiliary variables
+
     states = mdp.get_states_variables()
     nb_states = len(states)
     actions = mdp.get_actions_variables()
@@ -30,38 +33,13 @@ def convert_mdp(mdp:MDP):
             definitions[node_name] = {}
         definitions[node_name][name] = ['clamp_actions[..., ' + str(i) +']']
 
-    tabs = '        '
-
-    member_body = ''
-    member_body += tabs + 'self.actions_lower = torch.empty(' + str(nb_actions) + ')\n'
-    member_body += tabs + 'self.actions_upper = torch.empty(' + str(nb_actions) + ')\n'
-    for i in range(nb_actions):
-        member_body += tabs + 'self.actions_lower[' + str(i) + '] = ' + str(actions[i].get_lower_bound()) + '\n'
-        member_body += tabs + 'self.actions_upper[' + str(i) + '] = ' + str(actions[i].get_upper_bound()) + '\n'
-
-    dynamics_body = ''
-    dynamics_body += tabs + 'clamp_actions = self.clamp_max(self.clamp_min(actions, self.actions_lower), self.actions_upper)\n'
-    dynamics_body += tabs + 'next_states = torch.empty(states.size())\n'
-    for i in range(nb_states):
-        dynamics_body += tabs + 'next_states[...,' + str(i) + '] = ' \
-            + states[i].get_dynamic().evaluate_python_string(definitions) + '\n'
-
-    initial_body = tabs + 'init_states = torch.empty((number_trajectories, ' + str(nb_states) + '))\n'
-    for i in range(nb_states):
-        initial_body += tabs + 'init_states[...,' + str(i) + '] = ' \
-            + states[i].get_init().evaluate_python_string(definitions) + '\n'
-
-    # Initialize reward_body to avoid error in DESGA if reward is independent of parameters
-    reward_body = tabs + 'reward = (self.parameters[0]-self.parameters[0])'
-    for i in range(nb_objectives):
-        reward_body += '+(' + objectives[i].get_expression().evaluate_python_string(definitions) + ')'
-    reward_body += '\n'
-
     # Write python source file
     filename = 'convert/GBOMLSystem.py'
 
     print('Writing DESGA system to file "' + filename + '"')
     with open(filename, 'w') as outfile:
+        tabs = '        '
+
         # imports
         outfile.write('import torch\n')
         outfile.write('from system.GBOMLSystem import GBOMLBaseSystem\n')
@@ -71,25 +49,49 @@ def convert_mdp(mdp:MDP):
         outfile.write('class GBOMLSystem(GBOMLBaseSystem.GBOMLBaseSystem):\n')
 
         # member definitions
+        member_body = ''
+        member_body += tabs + 'self.actions_lower = torch.empty(' + str(nb_actions) + ')\n'
+        member_body += tabs + 'self.actions_upper = torch.empty(' + str(nb_actions) + ')\n'
+        for i in range(nb_actions):
+            member_body += tabs + 'self.actions_lower[' + str(i) + '] = ' + str(actions[i].get_lower_bound()) + '\n'
+            member_body += tabs + 'self.actions_upper[' + str(i) + '] = ' + str(actions[i].get_upper_bound()) + '\n'
+
         outfile.write('\n')
         outfile.write('    def __init__(self, horizon, feasible_set, device="cpu"):\n')
         outfile.write('        super(GBOMLSystem, self).__init__(horizon=horizon, device=device, feasible_set=feasible_set)\n')
         outfile.write(member_body)
 
         # dynamics function
+        dynamics_body = ''
+        dynamics_body += tabs + 'clamp_actions = self.clamp_max(self.clamp_min(actions, self.actions_lower), self.actions_upper)\n'
+        dynamics_body += tabs + 'next_states = torch.empty(states.size())\n'
+        for i in range(nb_states):
+            dynamics_body += tabs + 'next_states[...,' + str(i) + '] = ' \
+                + states[i].get_dynamic().evaluate_python_string(definitions) + '\n'
+
         outfile.write('\n')
         outfile.write('    def dynamics(self, states, actions, disturbances):\n')
         outfile.write(dynamics_body)
         outfile.write('        return next_states\n')
 
         # initial_state function
+        initial_body = tabs + 'init_states = torch.empty((number_trajectories, ' + str(nb_states) + '))\n'
+        for i in range(nb_states):
+            initial_body += tabs + 'init_states[...,' + str(i) + '] = ' \
+                + states[i].get_init().evaluate_python_string(definitions) + '\n'
+
         outfile.write('\n')
         outfile.write('    def initial_state(self, number_trajectories=1):\n')
         outfile.write(initial_body)
         outfile.write('        return init_states\n')
 
         # reward function
-        # TODO: get reward function in MDP class and convert
+        # Initialize reward_body to avoid error in DESGA if reward is independent of parameters
+        reward_body = tabs + 'reward = (self.parameters[0]-self.parameters[0])'
+        for i in range(nb_objectives):
+            reward_body += '+(' + objectives[i].get_expression().evaluate_python_string(definitions) + ')'
+        reward_body += '\n'
+
         outfile.write('\n')
         outfile.write('    def reward(self, states, actions, disturbances):\n')
         outfile.write(reward_body)
