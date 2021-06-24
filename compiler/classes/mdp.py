@@ -10,6 +10,10 @@ class State:
         self.dynamic = dynamic
         self.initial = initial
 
+    def get_node_name(self) -> str:
+
+        return self.node_name
+
     def get_name(self) -> str:
 
         return self.name
@@ -30,6 +34,10 @@ class Action:
         self.node_name = node_name
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
+
+    def get_node_name(self) -> str:
+
+        return self.node_name
 
     def get_name(self) -> str:
 

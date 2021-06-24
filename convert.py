@@ -15,10 +15,18 @@ def convert_mdp(mdp:MDP):
     # TODO: get parameter values and add to dictionary
     definitions = {}
     for i in range(nb_states):
-        definitions[states[i].get_name()] = ['states[..., ' + str(i) +']']
+        node_name = states[i].get_node_name()
+        name = states[i].get_name()
+        if not node_name in definitions:
+            definitions[node_name] = {}
+        definitions[node_name][name] = ['states[..., ' + str(i) +']']
 
     for i in range(nb_actions):
-        definitions[actions[i].get_name()] = ['clamp_actions[..., ' + str(i) +']']
+        node_name = actions[i].get_node_name()
+        name = actions[i].get_name()
+        if not node_name in definitions:
+            definitions[node_name] = {}
+        definitions[node_name][name] = ['clamp_actions[..., ' + str(i) +']']
 
     tabs = '        '
 
@@ -91,7 +99,7 @@ def write_system(program:Program):
     time = program.get_time()
     time.check()
     time_value = time.get_value()
-    
+
     #Check if all nodes have different names
     node_list = program.get_nodes()
     check_names_repetitions(node_list)
@@ -131,7 +139,7 @@ def write_system(program:Program):
         parameter_dictionary = definitions.copy()
 
         #Retrieve all the parameters'names in set
-        node_parameters = node.get_dictionary_parameters() 
+        node_parameters = node.get_dictionary_parameters()
 
         #Retrieve a dictionary of [name,identifier object] tuple
         node_variables = node.get_dictionary_variables()
