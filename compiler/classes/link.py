@@ -143,7 +143,7 @@ class Attribute:
     - a variable name 
     """
 
-    def __init__(self, name_node: str, name_variable: str = None, line: int = 0):
+    def __init__(self, name_node: str, name_variable = None, line: int = 0):
 
         assert type(name_node) == str, "Internal error: Attribute node name of unknown type"
         self.node = name_node

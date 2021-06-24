@@ -4,7 +4,8 @@ from compiler.classes.expression import Expression
 
 class State:
 
-    def __init__(self, name: str, dynamic: Expression, initial: Expression):
+    def __init__(self, name: str, node_name: str, dynamic: Expression, initial: Expression):
+        self.node_name = node_name
         self.name = name
         self.dynamic = dynamic
         self.initial = initial
@@ -22,21 +23,11 @@ class State:
         return self.initial
 
 
-class Sizing:
-
-    def __init__(self, name: str):
-
-        self.name = name
-
-    def get_name(self) -> str:
-
-        return self.name
-
-
 class Action:
 
-    def __init__(self, name: str, lower_bound: Expression, upper_bound: Expression):
+    def __init__(self, name: str, node_name: str, lower_bound: Expression, upper_bound: Expression):
         self.name = name
+        self.node_name = node_name
         self.lower_bound = lower_bound
         self.upper_bound = upper_bound
 
@@ -53,24 +44,41 @@ class Action:
         return self.upper_bound
 
 
+class Sizing(Action):
+
+    def __init__(self, name: str, node_name: str, lower_bound: Expression, upper_bound: Expression):
+
+        Action.__init__(self, name, node_name, lower_bound, upper_bound)
+
+
 class Auxiliary:
 
-    def __init__(self, name: str, definition: Expression):
+    def __init__(self, name: str, node_name: str, definition: Expression):
         self.name = name
+        self.node_name = node_name
         self.definition = definition
 
     def get_name(self) -> str:
 
         return self.name
 
-    def get_defintion(self) -> Expression:
+    def get_definition(self) -> Expression:
 
         return self.definition
 
 
+class MDPObjective:
+    def __init__(self, node_name: str, expression: Expression):
+        self.node_name = node_name
+        self.expression = expression
+
+    def get_node_name(self):
+        return self.node_name
+
+
 class MDP:
 
-    def __init__(self, states: list, actions: list, sizing: list, auxiliaries: list):
+    def __init__(self, states: list, actions: list, sizing: list, auxiliaries: list, objectives: list):
 
         # states -> list of State objects
         # actions -> list of Action objects
@@ -81,6 +89,10 @@ class MDP:
         self.states = states
         self.actions = actions
         self.auxiliaries = auxiliaries
+        self.objectives = objectives
+
+    def get_objectives(self) -> list:
+        return objectives
 
     def get_states_variables(self) -> list:
 

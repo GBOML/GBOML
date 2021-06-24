@@ -7,11 +7,13 @@
 # ------------
 
 
-from .classes import Expression, Attribute, Program, Node, Identifier, Factorize, Hyperlink
+from .classes import Expression, Attribute, Program, Node, Identifier, Factorize, Hyperlink, Variable, Sizing, State, \
+    Action, Auxiliary, MDPObjective, MDP
+from .classes.error import RedefinitionError
 
 import numpy as np  # type: ignore
 from .utils import error_
-import time as t 
+import time as t
 
 
 def semantic(program: Program) -> Program:
@@ -51,6 +53,7 @@ def semantic(program: Program) -> Program:
     # Variables of the whole program
     program_variables = {}
     external_variables = {}
+    external_variables_id = {}
 
     global_index = 0
 
@@ -73,7 +76,7 @@ def semantic(program: Program) -> Program:
         node_variables_id = node.get_dictionary_variables(get_id=True)
         program_variables[name] = node_variables
         external_variables[name] = node.get_dictionary_variables("external", get_id=False)
-
+        external_variables_id[name] = node.get_dictionary_variables("external", get_id=True)
         # Check if variables and parameters share names
 
         match_dictionaries(node_parameters, node_variables)
@@ -96,9 +99,6 @@ def semantic(program: Program) -> Program:
 
         check_expressions_dependancy_rl(node, node_variables, node_variables_id, node_parameters, parameter_dictionary)
 
-        # node.set_constraint_factors(list_constraints_factors)
-        # node.set_objective_factors(list_objectives_factors)
-        free_non_useful_information_in_node(node)
         print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
 
     for link in link_list:
@@ -125,14 +125,117 @@ def semantic(program: Program) -> Program:
         # Check constraints and objectives expressions
         # Retrieve list of factor objects
 
-        list_constraints_factors = check_link(link, external_variables, link_param, parameter_dictionary)
-        link.set_constraint_factors(list_constraints_factors)
-        free_non_useful_information_in_hyperlink(link)
+        check_link_rl(link, external_variables, external_variables_id, link_param, parameter_dictionary)
+
         print("Check hyperlink %s : --- %s seconds ---" % (name, t.time() - start_time))
-    program.set_nb_var_index(global_index)
-    program.set_variables_dict(program_variables)
-    program.set_global_parameters(global_dict)
-    return program
+
+    check_all_variables(program_variables)
+    mdp = convert_to_mdp(program_variables)
+    return mdp
+
+
+def convert_to_mdp(program_variables_dict):
+    list_states = []
+    list_auxiliaries = []
+    list_actions = []
+    list_sizing = []
+    list_mdpobjectives = []
+
+    for node_name in program_variables_dict.keys():
+        node_variables_dict = program_variables_dict[node_name]
+        for variable_name in node_variables_dict.keys():
+            variable = node_variables_dict[variable_name]
+            var_option = variable.get_option()
+            if var_option == "state":
+                state_var = State(variable_name, node_name, variable.get_dynamic(), variable.get_initial_constraint())
+                list_states.append(state_var)
+
+            elif var_option == "sizing":
+                sizing_var = Sizing(variable_name, node_name, variable.get_lower_constraint(),
+                                    variable.get_upper_constraint())
+                list_sizing.append(sizing_var)
+
+            elif var_option == "action":
+                action_var = Action(variable_name, node_name, variable.get_lower_constraint(),
+                                    variable.get_upper_constraint())
+                list_actions.append(action_var)
+
+            elif var_option == "auxiliary":
+                aux_var = Auxiliary(variable_name, node_name, variable.get_assignment())
+                list_auxiliaries.append(aux_var)
+
+
+
+
+
+def check_all_variables(program_variables_dict):
+    error_message = ""
+    raised_error = False
+    for node_name in program_variables_dict.keys():
+        node_variables_dict = program_variables_dict[node_name]
+        for variable_name in node_variables_dict.keys():
+            variable = node_variables_dict[variable_name]
+            var_option = variable.get_option()
+            if var_option == "state":
+                dynamic = variable.get_dynamic()
+                initial = variable.get_initial_constraint()
+                if dynamic is None or initial is None:
+                    error_message += "\nERROR: State variable "+str(variable_name) + " in node "+str(node_name) + \
+                                    " is not properly defined : "
+
+                    if dynamic is None:
+                        error_message += "\n- the dynamic is missing"
+                    if initial is None:
+                        error_message += "\n- the initial condition is missing"
+
+                    raised_error = True
+
+            elif var_option == "action" or var_option == "sizing":
+                lower_bound = variable.get_lower_constraint()
+                upper_bound = variable.get_upper_constraint()
+                if lower_bound is None or upper_bound is None:
+                    error_message += "\nWarning: "+str(var_option).title()+ " variable "\
+                                     + str(variable_name) + " in node "+str(node_name) + " is not properly defined : "
+
+                    if lower_bound is None:
+                        error_message += "\n- A lower bound is missing"
+
+                    if upper_bound is None:
+                        error_message += "\n- An upper bound is missing"
+
+            elif var_option == "auxiliary":
+                assignment = variable.get_assignment()
+                if assignment is None:
+                    error_message += "\nERROR: Auxiliary variable " + str(variable_name) + " in node " \
+                                     + str(node_name) + " is not properly defined : "
+                    error_message += "\n- An assignment is missing"
+                    raised_error = True
+                circular_ref = check_circular_ref(variable, list())
+                if circular_ref:
+                    error_message += "\nERROR: Auxiliary variable " + str(variable_name) \
+                                     + "'s definition contains a circular reference"
+                    raised_error = True
+
+    if raised_error:
+        error_(error_message)
+    else:
+        print(error_message)
+
+
+def check_circular_ref(variable: Variable, set_explored: list):
+    list_aux = variable.get_dependencies()
+    set_explored.append(variable)
+    circular_ref = False
+    for aux_var in list_aux:
+        if aux_var in set_explored:
+            circular_ref = True
+        else:
+            circular_ref = check_circular_ref(aux_var, set_explored)
+
+        if circular_ref:
+            break
+    element = set_explored.pop()
+    return circular_ref
 
 
 def free_non_useful_information_in_hyperlink(hyperlink):
@@ -211,7 +314,7 @@ def check_names_repetitions(elements_list: list) -> None:
 #
 
 
-def check_link(hyperlink: Hyperlink, variables: dict, parameters_obj: dict, parameter_val: dict) -> list:
+def check_link_rl(hyperlink: Hyperlink, var_obj: dict, var_id: dict, parameters_obj: dict, parameter_val: dict) -> list:
     """
     check_link function : Takes program object and checks its links
     INPUT:  program -> Program object
@@ -221,26 +324,71 @@ def check_link(hyperlink: Hyperlink, variables: dict, parameters_obj: dict, para
     links = hyperlink.get_constraints()
     list_factor = []
     for link in links:
-        index_id = link.get_index_var()
-        if index_id in variables or index_id in parameters_obj:
-            error_("Redefinition of " + str(index_id) + " at line : " + str(link.get_line()))
-        else:
-            parameters_obj[index_id] = [0]
+        if link.get_time_interval() or link.get_condition():
+            error_("ERROR: adding a time range is not allowed in MDP definition at line " + link.get_line())
+
         rhs = link.get_rhs()
         lhs = link.get_lhs()
+        link_type = link.get_type()
+        var_in_right = variables_in_expression(rhs, var_id, parameters_obj, check_size=True)
+        var_in_left = variables_in_expression(lhs, var_id, parameters_obj, check_size=True)
 
-        var_in_right = variables_in_expression(rhs, variables, parameters_obj, check_size=True)
-        var_in_left = variables_in_expression(lhs, variables, parameters_obj, check_size=True)
+        if link_type == "==":
+            # Either auxiliary assignment of auxiliary or a dynamic definition
+            if not var_in_left:
+                error_("The left-hand-side should contain a variable at line "+str(link.get_line()))
+            variable, time_dep, node_name = check_lhs_equality(lhs, var_obj)
+            var_option = variable.get_option()
+            if var_option == "state":
+                if time_dep != 2:
+                    error_("ERROR: can not assign a state at another timestep than 't+1' at line "
+                           + str(constraint.get_line()))
+                check_rhs_equality_states(rhs, var_obj, time_dep, variable, node_name)
+                try:
+                    variable.set_dynamic(rhs)
+                except RedefinitionError:
+                    error_("Error: redefinition of dynamic for variable " + str(variable) +
+                           " at line " + str(link.get_line()))
+            elif var_option == "auxiliary":
+                if time_dep != 1:
+                    error_("ERROR : An auxiliary variable can only be assigned at index t at line "
+                           + str(link.get_line()))
+                list_aux = check_rhs_equality_auxiliary(rhs, var_obj, variable, node_name)
+                try:
+                    variable.set_assignment(rhs)
+                    variable.set_dependencies(list_aux)
+                except RedefinitionError:
+                    error_("Error: redefinition of dynamic for variable " + str(variable) +
+                           " at line " + str(link.get_line()))
 
-        if var_in_right is False and var_in_left is False:
-            error_('No variable in linking constraint at line '+str(link.get_line()))
+        elif link_type == "<=" or link_type == ">=":
+            if var_in_right and var_in_left:
+                error_("ERROR : the left and right hand-side of an inequality can not contain variables at line "
+                       + str(link.get_line()))
+            elif var_in_right:
+                variable, _ = check_variable_inequality(rhs, var_obj)
+                try:
+                    if link_type == "<=":
+                        variable.set_lower_constraint(lhs)
+                    if link_type == ">=":
+                        variable.set_upper_constraint(lhs)
+                except RedefinitionError:
+                    error_("Error: redefinition of lower-bound for variable " + str(variable) +
+                           " at line " + str(link.get_line()))
 
-        check_linear(rhs, variables, parameters_obj)
-        check_linear(lhs, variables, parameters_obj)
-        factor = Factorize(link)
-        factor.factorize_constraint(variables, parameter_val, [])
-        list_factor.append(factor)
-        parameters_obj.pop(index_id)
+            elif var_in_left:
+                var, _ = check_variable_inequality(lhs, var_obj)
+                try:
+                    if link_type == "<=":
+                        variable.set_upper_constraint(rhs)
+                    if link_type == ">=":
+                        variable.set_lower_constraint(rhs)
+                except RedefinitionError:
+                    error_("Error: redefinition of lower-bound for variable " + str(variable) +
+                           " at line " + str(link.get_line()))
+
+            else:
+                error_("ERROR: No variable in constraint at line "+str(constraint.get_line()))
     return list_factor
 
 #
@@ -280,6 +428,7 @@ def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int)
 def check_expressions_dependancy_rl(node: Node, var_obj: dict, var_id: dict, parameters_obj: dict, parameter_val: dict)\
         -> tuple:
     constraints = node.get_constraints()
+    objectives = node.get_objectives()
     for constraint in constraints:
         if constraint.get_time_interval() or constraint.get_condition():
             error_("ERROR: adding a time range is not allowed in MDP definition at line "+constraint.get_line())
@@ -287,25 +436,143 @@ def check_expressions_dependancy_rl(node: Node, var_obj: dict, var_id: dict, par
         rhs = constraint.get_rhs()
         lhs = constraint.get_lhs()
         constr_type = constraint.get_type()
+        var_in_right = variables_in_expression(rhs, var_id, parameters_obj, check_size=True)
+        var_in_left = variables_in_expression(lhs, var_id, parameters_obj, check_size=True)
+
         if constr_type == "==":
             # Either auxiliary assignment of auxiliary or a dynamic definition
 
-            var_in_right = variables_in_expression(rhs, var_id, parameters_obj, check_size=True)
-            var_in_left = variables_in_expression(lhs, var_id, parameters_obj, check_size=True)
-            variable, time_dep = check_lhs_equality(lhs, var_obj)
+            variable, time_dep, _ = check_lhs_equality(lhs, var_obj)
             var_option = variable.get_option()
             if var_option == "state":
                 if time_dep != 2:
                     error_("ERROR: can not assign a state at another timestep than 't+1' at line "
                            + str(constraint.get_line()))
                 check_rhs_equality_states(rhs, var_obj, time_dep, variable)
+                try:
+                    variable.set_dynamic(rhs)
+                except RedefinitionError:
+                    error_("Error: redefinition of dynamic for variable "+str(variable) +
+                           " at line "+str(constraint.get_line()))
+            elif var_option == "auxiliary":
+                if time_dep != 1:
+                    error_("ERROR: can not assign an auxiliary at another timestep than 't' at line "
+                           + str(constraint.get_line()))
+                list_aux = check_rhs_equality_auxiliary(rhs, var_obj, variable)
+                try:
+                    variable.set_assignment(rhs)
+                    variable.set_dependencies(list_aux)
+                except RedefinitionError:
+                    error_("Error: redefinition of dynamic for variable "+str(variable) +
+                           " at line "+str(constraint.get_line()))
 
-    exit()
+        elif constr_type == "<=" or constr_type == ">=":
+            if var_in_right and var_in_left:
+                error_("ERROR : the left and right hand-side of an inequality can not contain variables at line "
+                       + str(constraint.get_line()))
+            elif var_in_right:
+                variable, _ = check_variable_inequality(rhs, var_obj)
+                try:
+                    if constr_type == "<=":
+                        variable.set_lower_constraint(lhs)
+                    if constr_type == ">=":
+                        variable.set_upper_constraint(lhs)
+                except RedefinitionError:
+                    error_("Error: redefinition of lower-bound for variable " + str(variable) +
+                           " at line " + str(constraint.get_line()))
+
+            elif var_in_left:
+                var, _ = check_variable_inequality(lhs, var_obj)
+                try:
+                    if constr_type == "<=":
+                        variable.set_upper_constraint(rhs)
+                    if constr_type == ">=":
+                        variable.set_lower_constraint(rhs)
+                except RedefinitionError:
+                    error_("Error: redefinition of lower-bound for variable " + str(variable) +
+                           " at line " + str(constraint.get_line()))
+
+            else:
+                error_("ERROR: No variable in constraint at line "+str(constraint.get_line()))
+
+    for objective in objectives:
+        expr = objective.get_expression()
+        check_objective(expr, var_obj)
 
 
-def check_rhs_equality_states(rhs: Expression, var_dict: dict, lhs_level, variable):
+def check_objective(expression: Expression, var_dict:dict):
+    leaves = expression.get_leafs()
+    list_var = []
+
+    for leaf in leaves:
+
+        seed = leaf.get_name()
+        if type(seed) == Identifier:
+            l_name = seed.get_name()
+
+            if l_name in var_dict:
+                variable_leaf = var_dict[l_name]
+                option = variable_leaf.get_option()
+                time_dep = check_time_dependancy(seed)
+                if time_dep != 1 and time_dep != -1:
+                    error_("ERROR: term " + str(seed) + " at that timestep is not allowed for the definition of "
+                                                        "auxiliaries at line " + str(seed.get_line()))
+
+                list_var.append(variable_leaf)
+
+    return list_var
+
+
+def check_rhs_equality_auxiliary(rhs: Expression, var_dict: dict, variable: Variable, var_node_name=""):
     leaves = rhs.get_leafs()
-    var_name = variable.get_name()
+    list_aux = []
+    var_id = variable.get_identifier()
+    var_name = var_id.get_name()
+
+    for leaf in leaves:
+
+        seed = leaf.get_name()
+        identifier = None
+        id_name = ""
+        node_var = var_dict
+        node_name = ""
+
+        if type(seed) == Identifier:
+            identifier = seed
+            id_name = identifier.get_name()
+
+        elif type(seed) == Attribute:
+            node_name = seed.get_node_field()
+            identifier = seed.get_attribute()
+            id_name = identifier.get_name()
+            if node_name in var_dict:
+                node_var = var_dict[node_name]
+
+        if id_name in node_var:
+            variable_leaf = node_var[id_name]
+            option = variable_leaf.get_option()
+            time_dep = check_time_dependancy(identifier)
+            if time_dep != 1 and time_dep != -1:
+                error_("ERROR: term " + str(seed) + " at that timestep is not allowed for the definition of "
+                                                    "auxiliaries at line " + str(seed.get_line()))
+
+            if option == "auxiliary":
+                if id_name == var_name and node_name == var_node_name:
+                    error_("ERROR: left-hand-side and right-hand-side contain the same term at line "
+                           + str(seed.get_line()))
+
+                list_aux.append(variable_leaf)
+
+    return list_aux
+
+
+def check_rhs_equality_states(rhs: Expression, var_dict: dict, lhs_level, variable, var_node_name=""):
+    leaves = rhs.get_leafs()
+    is_attribute = False
+
+    var_id = variable.get_name()
+    var_name = var_id.get_name()
+
     time_dep = None
     is_state = False
     is_action = False
@@ -315,31 +582,48 @@ def check_rhs_equality_states(rhs: Expression, var_dict: dict, lhs_level, variab
     for leaf in leaves:
 
         seed = leaf.get_name()
+        identifier_name = ""
+        node_dict = var_dict
+        node_name = ""
+        identifier = None
         if type(seed) == Identifier:
-            l_name = seed.get_name()
-            if l_name in var_dict:
-                variable = var_dict[l_name]
-                option = variable.get_option()
-                if option == "action":
-                    is_action = True
-                elif option == "auxiliary":
-                    is_auxiliary = True
-                elif option == "state":
-                    is_state = True
-                    if l_name == var_name:
-                        previous_step = True
+            identifier_name = seed.get_name()
+            identifier = seed
 
-                time_dep = check_time_dependancy(seed)
-                if time_dep != 1:
-                    error_("ERROR: term "+str(seed)+" at that timestep is not allowed for the definition of "
-                                                    "dynamics at line "+str(seed.get_line()))
+        elif type(seed) == Attribute:
+            identifier = seed.get_attribute()
+            node_name = seed.get_node_field()
+            identifier_name = identifier.get_name()
+            if node_name in var_dict:
+                node_dict = var_dict[node_name]
 
-            else:
-                error_("ERROR: not allowed to use anything but variables in the left-hand-side "
-                       "of equality constraints at line " + str(lhs.get_line()))
+        if identifier_name in node_dict:
+            variable = node_dict[identifier_name]
+            option = variable.get_option()
+            if option == "action":
+                is_action = True
+            elif option == "auxiliary":
+                is_auxiliary = True
+            elif option == "state":
+                is_state = True
+                if identifier_name == var_name and node_name == var_node_name:
+                    previous_step = True
 
-    if previous_step is not True:
-        error_("There should be a previous step")
+            time_dep = check_time_dependancy(identifier)
+            if time_dep != 1:
+                error_("ERROR: term "+str(seed)+" at that timestep is not allowed for the definition of "
+                                                "dynamics at line "+str(seed.get_line()))
+
+    if is_action is not True or previous_step is not True:
+        error_message = "ERROR : dynamic at line: " + str(rhs.get_line()) + " is ill-defined :"
+
+        if is_action is not True:
+            error_message += "\n- an action is missing"
+        if previous_step is not True:
+            error_message += "\n- the previous state is missing"
+        if is_state is not True:
+            error_message += "\n- No state is used"
+        error_(error_message)
 
     return variable, time_dep
 
@@ -348,6 +632,7 @@ def check_lhs_equality(lhs: Expression, var_dict: dict):
     leaves = lhs.get_leafs()
     variable = None
     time_dep = None
+    node_name = ""
     if len(leaves) != 1:
         error_("ERROR: not only a single left-hand-side variable is allowed in constraints "
                "at line " + str(lhs.get_line()))
@@ -364,6 +649,64 @@ def check_lhs_equality(lhs: Expression, var_dict: dict):
             else:
                 error_("ERROR: not allowed to use anything but variables in the left-hand-side "
                        "of equality constraints at line "+str(lhs.get_line()))
+        elif type(seed) == Attribute:
+            identifier = seed.get_attribute()
+            node_name = seed.get_node_field()
+            node_variables = var_dict[node_name]
+            l_name = identifier.get_name()
+            if l_name in node_variables:
+                variable = node_variables[l_name]
+                time_dep = check_time_dependancy(identifier)
+            else:
+                error_("ERROR: not allowed to use anything but variables in the left-hand-side "
+                       "of equality constraints at line " + str(lhs.get_line()))
+        else:
+            error_("ERROR: not allowed to use anything but variables in the left-hand-side "
+                   "of equality constraints at line " + str(lhs.get_line()))
+
+    return variable, time_dep, node_name
+
+
+def check_variable_inequality(expr: Expression, var_dict: dict):
+    leaves = expr.get_leafs()
+    variable = None
+    time_dep = None
+
+    if len(leaves) != 1:
+        error_("ERROR: only a single variable is allowed in constraints "
+               "at line " + str(expr.get_line()))
+
+    for leaf in leaves:
+
+        seed = leaf.get_name()
+        node_dict = var_dict
+        id_name = ""
+
+        if type(seed) == Identifier:
+            identifier = seed
+            id_name = identifier.get_name()
+
+        elif type(seed) == Attribute:
+            identifier = seed.get_attribute()
+            node_name = seed.get_node_field()
+            id_name = identifier.get_name()
+            if node_name in var_dict:
+                node_dict = var_dict[node_name]
+
+        if id_name in node_dict:
+            variable = node_dict[id_name]
+            option = variable.get_option()
+            if option != "sizing" and option != "action":
+                error_("ERROR: only action and sizing variables can be concerned with inequality constraints")
+            time_dep = check_time_dependancy(identifier)
+            if option == "sizing" and time_dep != -1:
+                error_("Error: sizing variables "+str(leaf)+" must be not indexed at line "+str(leaf.get_line()))
+            if option == "action" and time_dep != 1:
+                error_("Error: action variables "+str(leaf)+" must be indexed at t at line "+str(leaf.get_line()))
+
+        else:
+            error_("ERROR: not allowed to use anything but variables in the inequality "
+                   "constraints at line " + str(expr.get_line()))
 
     return variable, time_dep
 
@@ -514,10 +857,9 @@ def variables_in_expression(expression: Expression, variables: dict, parameters:
 
     leaves = expression.get_leafs()
     is_variable: bool = False
-    defined = False
 
     for expr_id in leaves:
-        
+        defined = False
         if expr_id.get_type() == 'sum':
 
             time_int = expr_id.get_time_interval()
