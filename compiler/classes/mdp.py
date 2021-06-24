@@ -83,6 +83,8 @@ class MDPObjective:
     def get_node_name(self):
         return self.node_name
 
+    def get_expression(self):
+        return self.expression
 
 class MDP:
 
@@ -100,7 +102,7 @@ class MDP:
         self.objectives = objectives
 
     def get_objectives(self) -> list:
-        return objectives
+        return self.objectives
 
     def get_states_variables(self) -> list:
 

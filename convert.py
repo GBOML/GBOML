@@ -10,6 +10,8 @@ def convert_mdp(mdp:MDP):
     nb_states = len(states)
     actions = mdp.get_actions_variables()
     nb_actions = len(actions)
+    objectives = mdp.get_objectives()
+    nb_objectives = len(objectives)
 
     # Build definitions dictionary
     # TODO: get parameter values and add to dictionary
@@ -49,6 +51,12 @@ def convert_mdp(mdp:MDP):
         initial_body += tabs + 'init_states[...,' + str(i) + '] = ' \
             + states[i].get_init().evaluate_python_string(definitions) + '\n'
 
+    # Initialize reward_body to avoid error in DESGA if reward is independent of parameters
+    reward_body = tabs + 'reward = (self.parameters[0]-self.parameters[0])'
+    for i in range(nb_objectives):
+        reward_body += '+(' + objectives[i].get_expression().evaluate_python_string(definitions) + ')'
+    reward_body += '\n'
+
     # Write python source file
     filename = 'convert/GBOMLSystem.py'
 
@@ -84,7 +92,8 @@ def convert_mdp(mdp:MDP):
         # TODO: get reward function in MDP class and convert
         outfile.write('\n')
         outfile.write('    def reward(self, states, actions, disturbances):\n')
-        outfile.write('        return states + self.parameters[0] - self.parameters[0]\n')
+        outfile.write(reward_body)
+        outfile.write('        return reward\n')
 
 def convert_simulation(program:Program):
     print('Converting input to DESGA format')
