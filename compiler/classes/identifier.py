@@ -14,12 +14,14 @@ class Identifier(Symbol):
       if it is a variable
     """
 
-    def __init__(self, type_id: str, name_id: str, expression=None, line: int = 0):
+    def __init__(self, type_id: str, name_id: str, node_name: str = '', expression=None, line: int = 0):
 
         assert type(name_id) == str, "Internal error: expected string for identifier name"
         assert type_id == "basic" or type_id == "assign", "Internal error: unknown type for identifier"
         Symbol.__init__(self, name_id, type_id, line)
         self.expression = expression
+        self.node = None
+        self.node_name = node_name
         self.index = 0  # GLOBAL INDEX inside the Ax <= b matrix
         self.size = None
         self.option = None
@@ -27,8 +29,13 @@ class Identifier(Symbol):
     def __str__(self):
 
         string = str(self.name)
+        if self.node_name != "":
+            string = str(self.node_name) + "," + string
+
         if self.expression is not None:
-            string += "[" + str(self.expression) + ']'
+            string += str(self.expression)
+
+        string = '['+string+']'
 
         return string
 
@@ -37,6 +44,16 @@ class Identifier(Symbol):
         expr = copy.copy(self.expression)
 
         return Identifier(self.type, self.name, expression=expr)
+
+    def set_node(self, node):
+        self.node = node
+        self.node_name = node.get_name()
+
+    def get_node(self):
+        return self.node
+
+    def get_node_name(self):
+        return self.node_name
 
     def set_option(self, option):
 

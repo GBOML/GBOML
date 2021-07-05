@@ -30,6 +30,14 @@ class Time:
 
         return string
 
+    def get_name(self):
+
+        return self.time
+
+    def set_value(self, value):
+
+        self.value = value
+
     def get_value(self) -> float:
 
         return self.value

@@ -27,6 +27,7 @@ class Parameter(Symbol):
             type_para = "expression"
         Symbol.__init__(self, name, type_para, line)
         self.expression = expression
+        self.value = None
 
     def __str__(self):
         
@@ -38,6 +39,12 @@ class Parameter(Symbol):
         string += ']'
         
         return string
+
+    def get_value(self):
+        return self.value
+
+    def set_value(self, value):
+        self.value = value
 
     def get_values_from_file(self, expression):
         

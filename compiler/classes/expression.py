@@ -2,6 +2,7 @@ from compiler.classes.parent import Symbol
 from compiler.utils import error_, list_to_string
 from compiler.classes.link import Attribute
 from compiler.classes.identifier import Identifier
+from compiler.classes.error import WrongUsage
 import copy
 
 
@@ -192,6 +193,51 @@ class Expression(Symbol):
         
         return expr_copy
 
+    def replace_basic_parameters(self, definitions):
+
+        expr_type = self.get_type()
+        name = self.get_name()
+
+        if expr_type == "literal":
+
+            if type(name) == Identifier:
+
+                identifier = name
+                id_node_name = identifier.get_node_name()
+                id_name = identifier.get_name()
+                id_type = identifier.get_type()
+                parameter_type = ""
+                to_replace = False
+                value = 0
+
+                if id_type != "basic":
+                    WrongUsage("function replace basic parameters can only be used for basic parameters")
+
+                if id_node_name == "" and id_name in definitions:
+                    parameter = definitions[id_name]
+                    parameter_type = parameter.get_type()
+                    value = parameter.get_value()
+                    to_replace = True
+
+                elif id_node_name in definitions and id_name in definitions[id_node_name]:
+                    parameter = definitions[id_node_name][id_name]
+                    parameter_type = parameter.get_type()
+                    value = parameter.get_value()
+                    to_replace = True
+
+                if to_replace:
+                    if parameter_type != 'expression':
+                        WrongUsage("function replace basic parameters can only be used for basic parameters")
+
+                    value = value[0]
+                    self.name = value
+
+        else:
+
+            children = self.get_children()
+            for child in children:
+                child.replace_basic_parameters(definitions)
+
     def replace(self, name_index, value, definitions):
 
         expr_type = self.get_type()
@@ -302,7 +348,8 @@ class Expression(Symbol):
                     error_('Identifier "' + str(identifier)
                            + '" used but not previously defined, at line '+str(self.get_line()))
 
-                vector_value = definitions[id_name]
+                parameter = definitions[id_name]
+                vector_value = parameter.get_value()
                 nb_values = len(vector_value)
 
                 if id_type == "basic" and nb_values == 1:
@@ -395,7 +442,7 @@ class Expression(Symbol):
 
         return value
 
-    def evaluate_python_string(self,definitions:dict):
+    def evaluate_python_string(self, definitions:dict):
         # Discard precedence information before returning
         prec, value = self.evaluate_python_string_impl(definitions)
         return value

@@ -11,7 +11,7 @@ import ply.yacc as yacc  # type: ignore
 
 from .gboml_lexer import tokens
 
-from .classes import Time, Expression, Variable, Parameter, Attribute, Program, Objective, Node, Identifier, \
+from .classes import Time, Expression, Variable, Parameter, Program, Objective, Node, Identifier, \
     Constraint, Condition, TimeInterval, Hyperlink
 
 # precedence rules from least to highest priority with associativity also specified
@@ -310,7 +310,7 @@ def p_define_objectives(p):
                          | MAX COLON expr time_loop condition SEMICOLON obj_aux"""
 
     obj = Objective(p[1], p[3], p[4], p[5], line=p.lineno(1))
-    p[7].insert(0,obj)
+    p[7].insert(0, obj)
     p[0] = p[7]
 
 
@@ -327,15 +327,29 @@ def p_obj_aux(p):
 
 
 def p_id(p):
-    """id : ID LBRAC expr RBRAC
-          | ID"""
+    """id : ID
+          | ID DOT ID
+          | ID LBRAC expr RBRAC
+          | ID DOT ID LBRAC expr RBRAC"""
 
     if len(p) == 2:
-
+        # Rule ID
         p[0] = Identifier('basic', p[1], line=p.lineno(1))
+
+    elif len(p) == 4:
+
+        # Rule ID DOT ID
+        p[0] = Identifier('basic', p[3], node_name=p[1], line=p.lineno(1))
+
     elif len(p) == 5:
 
+        # Rule ID LBRAC expr RBRAC
         p[0] = Identifier('assign', p[1], expression=p[3], line=p.lineno(1))
+
+    elif len(p) == 7:
+
+        # Rule ID DOT ID LBRAC expr RBRAC
+        p[0] = Identifier('assign', p[3], node_name=p[1], expression=p[5], line=p.lineno(1))
 
 
 def p_expr(p):
@@ -393,18 +407,11 @@ def p_expr(p):
 def p_term(p):
     """term : INT
             | FLOAT
-            | id
-            | attribute"""
+            | id"""
 
     p[0] = Expression('literal', p[1], line=p.lineno(1))
-    if type(p[1]) == Identifier or type(p[1]) == Attribute:
+    if type(p[1]) == Identifier:
         p[0].set_line(p[1].get_line())
-
-
-def p_attribute(p):
-    '''attribute : ID DOT id '''
-
-    p[0] = Attribute(p[1], p[3], line=p.lineno(1))
 
 
 def p_empty(p):
