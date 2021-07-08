@@ -320,7 +320,10 @@ class Factorize:
             expr = Expression('literal', 1, line=leaf.get_line())
             expr_coef, _ = self.compute_factor(expr, False, parent, leaf, constants, stop_expr=expression_sum)
             identifier = leaf.get_name()
+            if type(identifier) == Attribute:
+                identifier = identifier.get_attribute()
             expr = identifier.get_expression()
+
             coef_var.append([expr_coef, index, expr, var_size])
         self.coef_var_tuples = coef_var
 
