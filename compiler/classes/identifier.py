@@ -42,8 +42,13 @@ class Identifier(Symbol):
     def __copy__(self):
 
         expr = copy.copy(self.expression)
+        identifier = Identifier(self.type, self.name, expression=expr)
+        if self.node is not None:
+            identifier.set_node(self.node)
+        elif self.node_name != "":
+            identifier.node_name = self.node_name
 
-        return Identifier(self.type, self.name, expression=expr)
+        return identifier
 
     def set_node(self, node):
         self.node = node

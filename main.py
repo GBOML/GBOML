@@ -1,14 +1,10 @@
-
 # main.py
 #
 # Writer : MIFTARI B - BERGER M - DJELASSI H
 # ------------
 
-#COMPILER import
-from compiler import compile_gboml, parameter_evaluation
-
-#CONVERTER import
-from convert import convert_simulation
+# COMPILER import
+from compiler import compile_gboml
 
 # SOLVER import
 from solver import solver_scipy, solver_clp,\
@@ -26,24 +22,30 @@ import numpy as np
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser(allow_abbrev=False, description='Compiler and solver for the generic system model language')
+    parser = argparse.ArgumentParser(allow_abbrev=False,
+                                     description='Compiler and solver for the generic system model language')
     parser.add_argument("input_file", type=str)
+    # Compiling info
+    parser.add_argument("--lex", help="Prints all tokens found in input file", action='store_const', const=True)
+    parser.add_argument("--parse", help="Prints the AST", action='store_const', const=True)
+    parser.add_argument("--matrix", help="Prints matrix representation", action='store_const', const=True)
+    # Output format
+    parser.add_argument("--json", help="Convert results to JSON format", action='store_const', const=True)
+    parser.add_argument("--csv", help="Convert results to CSV format", action='store_const', const=True)
+    # Solver
+    parser.add_argument("--linprog", help="Scipy linprog solver", action='store_const', const=True)
+    parser.add_argument("--gurobi", help="Gurobi solver", action='store_const', const=True)
+    parser.add_argument("--clp", help="CLP solver", action='store_const', const=True)
+    parser.add_argument("--cplex", help="Cplex solver", action='store_const', const=True)
     # Save log
     parser.add_argument("--log", help="Get log in a file", action="store_const", const=True)
-
+    parser.add_argument("--convert", help="convert to mdp", action="store_const", const=True)
     parser.add_argument("--output", help="Output filename", type=str)
-
-    parser.add_argument("--lex",help="Prints all tokens found in input file",action='store_const',const=True)
-    parser.add_argument("--parse",help="Prints the AST",action='store_const',const=True)
-    parser.add_argument("--matrix",help="Prints matrix representation",action='store_const',const=True)
-    parser.add_argument("--convert",help = "Convert to simulation code",action='store_const',const=True)
-
-    parser.add_argument("--json", help="Convert results to JSON format",action='store_const',const=True)
-    parser.add_argument("--csv", help="Convert results to CSV format",action='store_const',const=True)
 
     args = parser.parse_args()
     start_time = time()
     if args.input_file:
+
         program, A, b, C, indep_terms_c, T, name_tuples, objective_map = compile_gboml(args.input_file, args.log,
                                                                                        args.lex, args.parse)
 
@@ -58,9 +60,6 @@ if __name__ == '__main__':
             print("Vector C ", C_sum)
 
         objective_offset = float(indep_terms_c.sum())
-
-        if args.convert:
-            convert_simulation(program)
 
         if args.linprog:
 

@@ -3,6 +3,8 @@
 #
 # Writer : MIFTARI B
 # ------------
+import sys
+
 
 def list_to_string(list_e: list) -> str:
     """
@@ -22,4 +24,5 @@ def error_(message: str) -> None:
     INPUT : message -> error message
     """
     print(message)
+
     exit(-1)

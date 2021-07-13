@@ -184,6 +184,7 @@ class Expression(Symbol):
 
         copy_name = copy.copy(self.get_name())
         copy_type = copy.copy(self.get_type())
+
         expr_copy = Expression(copy_type, copy_name, self.get_line())
         children = self.get_children()
         new_children = [copy.copy(child) for child in children]
@@ -339,25 +340,29 @@ class Expression(Symbol):
             else:
 
                 # get id type and set found to false
-                id_type = identifier.get_type()
-                id_name = identifier.get_name()
-                id_expr = identifier.get_expression()
+                identifier_type = identifier.get_type()
+                identifier_name = identifier.get_name()
+                identifier_expr = identifier.get_expression()
+                identifier_node_name = identifier.get_node_name()
+                dictionary_definitions = definitions
 
-                if not(id_name in definitions):
+                if identifier_node_name in definitions:
+                    dictionary_definitions = definitions[identifier_node_name]
 
+                if identifier_name not in dictionary_definitions:
                     error_('Identifier "' + str(identifier)
                            + '" used but not previously defined, at line '+str(self.get_line()))
 
-                parameter = definitions[id_name]
+                parameter = dictionary_definitions[identifier_name]
                 vector_value = parameter.get_value()
                 nb_values = len(vector_value)
 
-                if id_type == "basic" and nb_values == 1:
+                if identifier_type == "basic" and nb_values == 1:
 
                     value = vector_value[0]
-                elif id_type == "assign":
+                elif identifier_type == "assign":
 
-                    index = id_expr.evaluate_expression(definitions)
+                    index = identifier_expr.evaluate_expression(definitions)
                     if type(index) == float:
 
                         if index.is_integer() is False:

@@ -4,14 +4,14 @@ from scipy.sparse import coo_matrix  # type: ignore
 import itertools
 
 
-def extend_factor(root: Program) -> None:
+def extend_factor(root: Program, definitions) -> None:
 	nodes = root.get_nodes()
 	for node in nodes:
 
 		obj_fact_list = node.get_objective_factors()
 		obj_acc = []
 		for i, object_fact in enumerate(obj_fact_list):
-
+			object_fact.extend(definitions)
 			obj_matrix = object_fact.get_extension()
 			obj_acc.append([i, obj_matrix])
 
@@ -19,7 +19,7 @@ def extend_factor(root: Program) -> None:
 		constr_fact_list = node.get_constraint_factors()
 		constr_acc = []
 		for constr_fact in constr_fact_list:
-
+			constr_fact.extend(definitions)
 			constr_matrix = constr_fact.get_extension()
 			constr_acc += constr_matrix
 		node.set_constraints_matrix(constr_acc)
@@ -31,6 +31,7 @@ def extend_factor(root: Program) -> None:
 		constr_fact_list = link.get_constraint_factors()
 		constr_acc = []
 		for constr_fact in constr_fact_list:
+			constr_fact.extend(definitions)
 			constr_matrix = constr_fact.get_extension()
 			constr_acc += constr_matrix
 		link.set_constraints_matrix(constr_acc)

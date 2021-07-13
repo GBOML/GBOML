@@ -2,6 +2,14 @@ import pandas as pd
 from version import __version__
 
 
+def convert_parameter_dict_to_values(parameter_dict: dict) -> dict:
+    value_dict = {}
+    if type(parameter_dict) == dict:
+        for parameter_name in parameter_dict.keys():
+            value_dict[parameter_name] = parameter_dict[parameter_name].get_value()
+    return value_dict
+
+
 def generate_json(program, variable_names, solver_data, status, solution, objective, c_matrix, indep_terms_c,
                   objective_map):
 
@@ -13,7 +21,7 @@ def generate_json(program, variable_names, solver_data, status, solution, object
     horizon = program.time.get_value()
     model_data["horizon"] = horizon
     model_data["number_nodes"] = program.get_number_nodes()
-    model_data["global_parameters"] = program.get_global_parameters()
+    model_data["global_parameters"] = convert_parameter_dict_to_values(program.get_global_parameters())
     nodes = {}
     for node in program.get_nodes():
 
@@ -24,7 +32,7 @@ def generate_json(program, variable_names, solver_data, status, solution, object
         node_data["number_expanded_constraints"] = node.get_number_expanded_constraints()
         node_data["number_objectives"] = node.get_number_objectives()
         node_data["number_expanded_objectives"] = node.get_number_expanded_objectives()
-        node_data["parameters"] = node.get_parameter_dict()
+        node_data["parameters"] = convert_parameter_dict_to_values(node.get_parameter_dict())
         node_data["variables"] = node.get_variable_names()
         nodes[node.get_name()] = node_data
 
@@ -36,7 +44,7 @@ def generate_json(program, variable_names, solver_data, status, solution, object
         link_data["number_parameters"] = link.get_number_parameters()
         link_data["number_constraints"] = link.get_number_constraints()
         link_data["number_expanded_constraints"] = link.get_number_expanded_constraints()
-        link_data["parameters"] = link.get_parameter_dict()
+        link_data["parameters"] = convert_parameter_dict_to_values(link.get_parameter_dict())
         link_data["variables_used"] = link.get_variables_used()
         hyperlinks[link.get_name()] = link_data
 
@@ -86,11 +94,31 @@ def generate_json(program, variable_names, solver_data, status, solution, object
     return data
 
 
-def generate_pandas(x, horizon, name_tuples):
+def generate_pandas(program, x, horizon, name_tuples):
 
     ordered_values = []
     columns = []
-    for node_name, variable_indexes in name_tuples:
+    nodes = program.get_nodes()
+
+    dict_name_tuple = {name_tuples[i]: name_tuples[i + 1] for i in range(0, len(name_tuples), 2)}
+
+    global_param = program.get_global_parameters()
+    for param in global_param.get_keys():
+        values = global_param[param]
+        full_name = "global." + str(param)
+        columns.append(full_name)
+        ordered_values.append(values)
+
+    for node in nodes:
+        n_name = node.get_name()
+        parameters = node.get_parameters()
+        variable_indexes = dict_name_tuple[n_name]
+
+        for param in parameters.get_keys():
+            values = parameters[param]
+            full_name = str(node_name)+"."+str(param)
+            columns.append(full_name)
+            ordered_values.append(values)
 
         for index, var_name, _, var_size in variable_indexes:
 
@@ -98,6 +126,7 @@ def generate_pandas(x, horizon, name_tuples):
             values = x[index:(index+var_size)].flatten()
             columns.append(full_name)
             ordered_values.append(values)
+
     df = pd.DataFrame(ordered_values, index=columns)
 
     return df.T

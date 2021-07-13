@@ -176,9 +176,10 @@ class Program:
             node_var_dict = self.var_dict[node_name]
             all_tuples = []
             for var_name in node_var_dict.keys():
-
-                name_index = [node_var_dict[var_name].get_index(), var_name, node_var_dict[var_name].get_option(),
-                              node_var_dict[var_name].get_size()]
+                variable = node_var_dict[var_name]
+                identifier = variable.get_identifier()
+                name_index = [identifier.get_index(), var_name, identifier.get_option(),
+                              identifier.get_size()]
                 all_tuples.append(name_index)
             tuple_names.append([node_name, all_tuples])
 

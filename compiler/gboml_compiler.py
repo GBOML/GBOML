@@ -1,6 +1,6 @@
 from .gboml_lexer import tokenize_file
 from .gboml_parser import parse_file
-from .gboml_semantic import new_semantic
+from .gboml_semantic import semantic, check_mdp, convert_to_mdp, check_linearity, factorize
 from .gboml_matrix_generation import matrix_generation_a_b,\
     matrix_generation_c, extend_factor
 
@@ -22,7 +22,7 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
              b -> Vector of independant terms for each constraint
              C -> objective sparse matrix
              T -> Timehorizon
-             name_tuples -> Mapping to convert the flat x solution to a graph strucure
+             name_tuples -> Mapping to convert the flat x solution to a graph structure
              objective_belonging -> Mapping to check which objectif relates to which node
     """
 
@@ -50,10 +50,13 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
     if parse is True:
         print(ast.to_string())
 
-    program = new_semantic(ast)
-    
-    extend_factor(program)
-    
+    program, program_variables_dict, definitions = semantic(ast)
+
+    # check_mdp(program, program_variables_dict, definitions)
+    # mdp = convert_to_mdp(program, program_variables_dict)
+    check_linearity(program, program_variables_dict, definitions),
+    factorize(program, program_variables_dict, definitions)
+    extend_factor(program, definitions)
     matrix_a, vector_b = matrix_generation_a_b(program)
     vector_c, indep_terms_c, objective_map = matrix_generation_c(program)
 

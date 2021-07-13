@@ -16,8 +16,12 @@ from .utils import error_
 import time as t
 
 
-def new_semantic(program: Program) -> Program:
+def semantic(program: Program) -> Program:
 
+    # CHECKS to do -> Check if there are constraints
+    # Check before append in matrix ab
+    # check for objectives
+    # ...
     time = program.get_time()
     check_time_horizon(time)
     time_value = time.get_value()
@@ -38,6 +42,9 @@ def new_semantic(program: Program) -> Program:
 
     global_index = 0
 
+    if not node_list:
+        error_("ERROR: No node defined")
+
     for node in node_list:
         name = node.get_name()
 
@@ -46,38 +53,273 @@ def new_semantic(program: Program) -> Program:
         node_variables = node.get_dictionary_variables(get_id=False)
         match_dictionaries(node_parameters, node_variables)
         parameter_evaluation(node_parameters, global_param)
+        node.set_parameter_dict(node_parameters)
         definitions[name] = node_parameters
         program_variables_dict[name] = node_variables
         global_index = set_size_variables(node_variables, definitions, global_index)
+
+    program.set_nb_var_index(global_index)
 
     for link in link_list:
         name = link.get_name()
         link_parameters = link.get_dictionary_parameters()
         parameter_evaluation(link_parameters, global_param)
+        link.set_parameter_dict(link_parameters)
         definitions[name] = link_parameters
 
     for node in node_list:
-        name = node.get_name()
-        start_time = t.time()
+
         add_node_names(node)
         check_definition(node, program_variables_dict, definitions)
-        replace_parameters_node(node, definitions)
-        check_expressions_dependancy_rl(node, variables_dict=program_variables_dict)
-        print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
 
     for link in link_list:
-        name = link.get_name()
-        start_time = t.time()
+
         add_link_names(link)
         check_definition_link(link, program_variables_dict, definitions)
-        replace_parameters_hyperlinks(link, definitions)
-        check_link_rl(link, program_variables_dict)
+
+    program.set_nb_var_index(global_index)
+    program.set_variables_dict(program_variables_dict)
+    program.set_global_parameters(global_param)
+
+    return program, program_variables_dict, definitions
+
+
+def check_linearity(program, variables: dict, definitions: dict):
+    nodes = program.get_nodes()
+    hyperlinks = program.get_links()
+
+    for node in nodes:
+        # name = node.get_name()
+        # start_time = t.time()
+        check_expressions_dependency(node, variables, definitions)
+        # print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
+
+    for link in hyperlinks:
+        # name = link.get_name()
+        # start_time = t.time()
+        check_expressions_dependency_link(link, variables, definitions)
+        # print("Check hyperlink %s : --- %s seconds ---" % (name, t.time() - start_time))
+
+
+def factorize(program, variables: dict, definitions: dict):
+    nodes = program.get_nodes()
+    hyperlinks = program.get_links()
+    for node in nodes:
+
+        name = node.get_name()
+        start_time = t.time()
+        constraints = node.get_constraints()
+        objectives = node.get_objectives()
+        check_expressions_dependency(node, variables, definitions)
+        constraint_factors = []
+        for constraint in constraints:
+
+            factor = Factorize(constraint)
+            factor.factorize_constraint(variables, definitions, [])
+            constraint_factors.append(factor)
+
+        node.set_constraint_factors(constraint_factors)
+
+        objective_factors = []
+        for objective in objectives:
+
+            factor = Factorize(objective)
+            factor.factorize_objective(variables, definitions, [])
+            objective_factors.append(factor)
+        node.set_objective_factors(objective_factors)
+
+        print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
+
+    for link in hyperlinks:
+
+        name = link.get_name()
+        constraints = link.get_constraints()
+        check_expressions_dependency_link(link, variables, definitions)
+        constraint_factors = []
+
+        for constraint in constraints:
+
+            factor = Factorize(constraint)
+            factor.factorize_constraint(variables, definitions, [])
+            constraint_factors.append(factor)
+        link.set_constraint_factors(constraint_factors)
+        start_time = t.time()
         print("Check hyperlink %s : --- %s seconds ---" % (name, t.time() - start_time))
 
-    check_all_variables(program_variables_dict)
-    mdp = convert_to_mdp(program, program_variables_dict)
-    exit()
-    return program
+
+def check_expressions_dependency_link(link: Hyperlink, variables: dict, parameters_obj: dict):
+    constraints = link.get_constraints()
+    for cons in constraints:
+
+        rhs = cons.get_rhs()
+        lhs = cons.get_lhs()
+
+        var_in_right = predicate_variables_in_expression(rhs, variables)
+        var_in_left = predicate_variables_in_expression(lhs, variables)
+
+        if var_in_right is False and var_in_left is False:
+            error_('No variable in constraint at line ' + str(cons.get_line()))
+
+        check_linear(rhs, variables, parameters_obj)
+        check_linear(lhs, variables, parameters_obj)
+
+
+def check_expressions_dependency(node: Node, variables: dict, parameters_obj: dict):
+    """
+    check_expressions_dependancy function : checks the expressions inside a node
+    INPUT:  node -> Node object
+            variables -> dictionary of <name,identifier> objects
+            parameters -> dictionary of <name,array> objects
+    OUTPUT: None
+    """
+    constraints = node.get_constraints()
+    for cons in constraints:
+
+        rhs = cons.get_rhs()
+        lhs = cons.get_lhs()
+
+        var_in_right = predicate_variables_in_expression(rhs, variables)
+        var_in_left = predicate_variables_in_expression(lhs, variables)
+
+        if var_in_right is False and var_in_left is False:
+            error_('No variable in constraint at line ' + str(cons.get_line()))
+
+        check_linear(rhs, variables, parameters_obj)
+        check_linear(lhs, variables, parameters_obj)
+
+    objectives = node.get_objectives()
+    for obj in objectives:
+
+        expr = obj.get_expression()
+
+        contains_var = predicate_variables_in_expression(expr, variables)
+
+        if contains_var is False:
+            error_('Objective only depends on constants not on variable at line ' + str(expr.get_line()))
+        check_linear(expr, variables, parameters_obj)
+
+
+def check_linear(expression: Expression, variables: dict, parameters: dict) -> bool:
+    """
+    check_linear function : checks if an expression is linear with respect
+                            with respect to the variables
+    INPUT:  expression -> expression object to check
+            variables -> dictionary of <name,identifier> objects
+            parameters -> dictionary of <name,array> objects
+    OUTPUT: bool -> boolean value if it depends on a variable
+    """
+
+    e_type = expression.get_type()
+    nb_child = expression.get_nb_children()
+    children = expression.get_children()
+
+    if e_type == 'literal':
+
+        if nb_child != 0:
+            error_("INTERNAL ERROR : literal expression must have zero child, got " + str(nb_child) +
+                   " check internal parser")
+    elif e_type == 'u-':
+        if nb_child != 1:
+            error_("INTERNAL ERROR : unary minus operator must have one child, got " + str(nb_child) +
+                   " check internal parser")
+        lin1 = check_linear(children[0], variables, parameters)
+        if lin1 is False:
+            error_("Non linearity in expression : " + str(children[0]) + " only linear problems are accepted at line "
+                   + str(children[0].get_line()))
+    elif e_type == 'sum':
+
+        if nb_child != 1:
+            error_("INTERNAL ERROR : sum operator must have one child, got " + str(nb_child) + " check internal parser")
+        time_int = expression.get_time_interval()
+        time_var = time_int.get_index_name()
+        if time_var in parameters:
+            error_("Redefinition of " + str(time_int) + " at line : " + str(expression.get_line()))
+        parameters[time_var] = None
+
+        lin1 = check_linear(children[0], variables, parameters)
+        parameters.pop(time_var)
+        if lin1 is False:
+            error_("Non linearity in expression : " + str(children[0]) + " only linear problems are accepted at line "
+                   + str(children[0].get_line()))
+    else:
+
+        if nb_child != 2:
+            error_("INTERNAL ERROR : binary operators must have two children, got " + str(nb_child) +
+                   " check internal parser")
+        term1 = predicate_variables_in_expression(children[0], variables)
+        term2 = predicate_variables_in_expression(children[1], variables)
+        if e_type == "-" or e_type == '+':
+
+            if term1 is True:
+
+                lin1 = check_linear(children[0], variables, parameters)
+                if lin1 is False:
+                    error_("Non linearity in expression : " + str(children[0]) +
+                           " only linear problems are accepted at line " + str(children[0].get_line()))
+            if term2 is True:
+
+                lin2 = check_linear(children[1], variables, parameters)
+                if lin2 is False:
+                    error_("Non linearity in expression : " + str(children[1]) +
+                           " only linear problems are accepted at line " + str(children[0].get_line()))
+        elif e_type == "*" or e_type == "/":
+
+            if term2 is True and term1 is True:
+                string = "Operation '" + str(e_type) + \
+                         "' between two expressions containing variables leading to a non linearity at line " \
+                         + str(children[0].get_line()) + "\n"
+                string += "Namely Expression 1 : " + str(children[0]) + " and Expression 2 : " + str(children[1])
+                error_(string)
+            if term2 is True and e_type == "/":
+                string = "A variable in the denominator of a division leads to a Non linearity at line " \
+                         + str(children[0].get_line())
+                error_(string)
+            if term1 is True:
+
+                lin1 = check_linear(children[0], variables, parameters)
+                if lin1 is False:
+                    error_("Non linearity in expression : " + str(children[0]) +
+                           " only linear problems are accepted at line " + str(children[0].get_line()))
+        elif e_type == "**":
+
+            if term1 is True or term2 is True:
+                string = "Operation '" + str(e_type) + \
+                         "' between one expression containing variables leading to a non linearity at line " \
+                         + str(children[0].get_line()) + "\n"
+                string += "Namely Expression 1 : " + str(children[0]) + " and Expression 2 : " + str(children[1])
+                error_(string)
+        elif e_type == "mod":
+
+            string = "Non linearity, modulo operator is not allowed on variables at line " \
+                     + str(children[0].get_line()) + "\n"
+            error_(string)
+        else:
+
+            error_("INTERNAL ERROR : unknown type '" + str(e_type) + "' check internal parser")
+    return True
+
+
+def check_mdp(program, variables: dict, definitions: dict):
+
+    nodes = program.get_nodes()
+    hyperlinks = program.get_links()
+    check_variables_type_sizes(variables, definitions)
+
+    for node in nodes:
+        name = node.get_name()
+        start_time = t.time()
+        replace_parameters_node(node, definitions)
+        check_expressions_dependancy_rl(node, variables_dict=variables)
+        print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
+
+    for link in hyperlinks:
+        name = link.get_name()
+        start_time = t.time()
+        replace_parameters_hyperlinks(link, definitions)
+        check_link_rl(link, variables)
+        print("Check hyperlink %s : --- %s seconds ---" % (name, t.time() - start_time))
+
+    check_all_variables(variables)
 
 
 def replace_parameters_hyperlinks(hyperlink: Hyperlink, definitions):
@@ -104,16 +346,23 @@ def replace_parameters_node(node: Node, definitions):
 
 
 def check_definition_link(link: Hyperlink, variables_dict: dict, parameters_dict: dict):
+
     constraints_list = link.get_constraints()
     link_name = link.get_name()
 
     for constraint in constraints_list:
         index_var = constraint.get_index_var()
+        if link_name in parameters_dict and index_var in parameters_dict[link_name]:
+            error_("ERROR: index name "+str(index_var)+" at line "+str(constraint.get_line())
+                   + " is already used to define parameter "+str(parameters_dict[link_name][index_var]))
+
         reserved = [index_var]
         lhs = constraint.get_lhs()
-        check_definition_expression(lhs, variables_dict, parameters_dict, reserved, in_node_name_parameter=link_name)
+        check_definition_expression(lhs, variables_dict, parameters_dict, reserved, in_node_name_parameter=link_name,
+                                    variable_type="external")
         rhs = constraint.get_rhs()
-        check_definition_expression(rhs, variables_dict, parameters_dict, reserved, in_node_name_parameter=link_name)
+        check_definition_expression(rhs, variables_dict, parameters_dict, reserved, in_node_name_parameter=link_name,
+                                    variable_type="external")
 
 
 def check_definition(node: Node, variables_dict: dict, parameters_dict: dict):
@@ -123,6 +372,15 @@ def check_definition(node: Node, variables_dict: dict, parameters_dict: dict):
 
     for constraint in constraints_list:
         index_var = constraint.get_index_var()
+
+        if node_name in parameters_dict and index_var in parameters_dict[node_name]:
+            error_("ERROR: index name "+str(index_var)+" at line "+str(constraint.get_line())
+                   + " is already used to define parameter "+str(parameters_dict[node_name][index_var]))
+
+        elif node_name in variables_dict and index_var in variables_dict[node_name]:
+            error_("ERROR: index name " + str(index_var) + " at line " + str(constraint.get_line())
+                   + " is already used to define parameter " + str(variables_dict[node_name][index_var]))
+
         reserved = [index_var]
         lhs = constraint.get_lhs()
         check_definition_expression(lhs, variables_dict, parameters_dict, reserved,
@@ -134,18 +392,30 @@ def check_definition(node: Node, variables_dict: dict, parameters_dict: dict):
     for objective in objectives_list:
         expr = objective.get_expression()
         index_var = objective.get_index_var()
+
+        if node_name in parameters_dict and index_var in parameters_dict[node_name]:
+            error_("ERROR: index name "+str(index_var)+" at line "+str(objective.get_line())
+                   + " is already used to define parameter "+str(parameters_dict[node_name][index_var]))
+
+        elif node_name in variables_dict and index_var in variables_dict[node_name]:
+            error_("ERROR: index name " + str(index_var) + " at line " + str(objective.get_line())
+                   + " is already used to define parameter " + str(variables_dict[node_name][index_var]))
+
         reserved = [index_var]
         check_definition_expression(expr, variables_dict, parameters_dict, reserved,
                                     in_node_name_variable=node_name, in_node_name_parameter=node_name)
 
 
 def check_definition_expression(expr: Expression, variables_dict: dict, parameters_dict: dict, reserved=[],
-                                variables_allowed=True, in_node_name_variable="", in_node_name_parameter=""):
+                                variables_allowed=True, in_node_name_variable="", in_node_name_parameter="",
+                                variable_type=""):
     leaves = expr.get_leafs()
+
     for leaf in leaves:
         in_node_name = ""
         is_reserved = False
         seed = leaf.get_name()
+
         if type(seed) == Identifier:
             defined = False
             seed_identifier: Identifier = seed
@@ -155,18 +425,25 @@ def check_definition_expression(expr: Expression, variables_dict: dict, paramete
             if seed_node_name == "" and (seed_id_name in reserved or seed_id_name == "T"):
                 defined = True
                 is_reserved = True
+
             elif seed_node_name in variables_dict and seed_id_name in variables_dict[seed_node_name]:
                 defined = True
                 in_node_name = in_node_name_variable
                 variable_referenced: Variable = variables_dict[seed_node_name][seed_id_name]
+                variable_referenced_type = variable_referenced.get_type()
                 identifier_referenced = variable_referenced.get_identifier()
                 identifier_referenced_type = identifier_referenced.get_type()
+
                 if not variables_allowed:
                     error_("ERROR: variables are not allowed in brackets at line "+str(leaf.get_line()))
 
                 if seed_identifier.get_type() != identifier_referenced_type:
                     error_("ERROR: Unmatching type between definition of "+str(identifier_referenced) +
                            " and usage "+str(seed_identifier)+" at line "+str(seed.get_line()))
+
+                if variable_type != "" and variable_type != variable_referenced_type:
+                    error_("ERROR: Only "+str(variable_type)+" are accepted at line : "+str(seed.get_line())
+                           + " got "+str(variable_referenced)+" of type "+str(variable_referenced_type))
 
             elif seed_node_name in parameters_dict and seed_id_name in parameters_dict[seed_node_name]:
                 parameter_referenced: Parameter = parameters_dict[seed_node_name][seed_id_name]
@@ -198,7 +475,7 @@ def check_definition_expression(expr: Expression, variables_dict: dict, paramete
             if expression_in_brackets is not None:
                 check_definition_expression(expression_in_brackets, variables_dict, parameters_dict, reserved,
                                             variables_allowed=False, in_node_name_variable=in_node_name_variable,
-                                            in_node_name_parameter=in_node_name_parameter)
+                                            in_node_name_parameter=in_node_name_parameter, variable_type=variable_type)
 
         if leaf.get_type() == "sum":
             sum_expr: Expression = leaf
@@ -217,7 +494,8 @@ def check_definition_expression(expr: Expression, variables_dict: dict, paramete
             reserved_sum = reserved + [index_name]
             for child in sum_children:
                 check_definition_expression(child, variables_dict, parameters_dict, reserved_sum,
-                                            variables_allowed, in_node_name_variable, in_node_name_parameter)
+                                            variables_allowed, in_node_name_variable, in_node_name_parameter,
+                                            variable_type)
 
 
 def add_link_names(link: Hyperlink):
@@ -245,7 +523,6 @@ def add_node_names(node: Node):
         add_node_names_expression(lhs, node, reserved)
         rhs = constraint.get_rhs()
         add_node_names_expression(rhs, node, reserved)
-
     for objective in objectives_list:
         expr = objective.get_expression()
         index_var = objective.get_index_var()
@@ -586,7 +863,26 @@ def check_link_rl(hyperlink: Hyperlink, var_obj: dict) -> list:
 #
 
 
-def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int) -> int:
+def check_variables_type_sizes(dictionary_var: dict, dictionary_param: dict):
+
+    timehorizon = dictionary_param["T"].get_value()[0]
+    for node_name in dictionary_var.keys():
+        for variable_name in dictionary_var[node_name].keys():
+            var = dictionary_var[node_name][variable_name]
+            v_size = var.get_size()
+            v_type = var.get_option()
+
+            if v_type == "auxiliary" and v_size != timehorizon:
+                error_("ERROR: auxiliary variables must have a size of T at line "+str(var.get_line()))
+
+            elif v_type == "state" and v_size != timehorizon:
+                error_("ERROR: state variables must have a size of T at line "+str(var.get_line()))
+
+            elif v_type == "sizing" and v_size != 1:
+                error_("ERROR: sizing variables must have a size of 1 at line "+str(var.get_line()))
+
+
+def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int, size_check=False) -> int:
     """
     Initializes the index of variable object inside a dictionary
     """
@@ -596,18 +892,6 @@ def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int)
         var = dictionary_var[k]
         identifier = var.get_identifier()
         identifier.set_size(dictionary_param)
-        v_size = var.get_size()
-        v_type = var.get_option()
-
-        if v_type == "auxiliary" and v_size != timehorizon:
-            error_("ERROR: auxiliary variables must have a size of T at line "+str(var.get_line()))
-
-        elif v_type == "state" and v_size != timehorizon:
-            error_("ERROR: state variables must have a size of T at line "+str(var.get_line()))
-
-        elif v_type == "sizing" and v_size != 1:
-            error_("ERROR: sizing variables must have a size of 1 at line "+str(var.get_line()))
-
         start_index = identifier.set_index(start_index)
     return start_index
 
@@ -623,6 +907,9 @@ def check_expressions_dependancy_rl(node: Node, variables_dict: dict):
         rhs = constraint.get_rhs()
         lhs = constraint.get_lhs()
         constr_type = constraint.get_type()
+        no_sum_in_expression(rhs)
+        no_sum_in_expression(lhs)
+
         var_in_right = predicate_variables_in_expression(rhs, variables_dict)
         var_in_left = predicate_variables_in_expression(lhs, variables_dict)
 
@@ -697,7 +984,23 @@ def check_expressions_dependancy_rl(node: Node, variables_dict: dict):
 
     for objective in objectives:
         expr = objective.get_expression()
+        no_sum_in_expression(expr)
         check_objective(expr, variables_dict)
+
+
+def no_sum_in_expression(expression: Expression):
+    leaves = expression.get_leafs()
+    for leaf in leaves:
+        leaf_type = leaf.get_type()
+        seed = leaf.get_name()
+        if leaf_type == "sum":
+            error_("ERROR: sum operators are not allowed for MDP definition at line "+str(leaf.get_line()))
+        elif type(seed) == Identifier:
+            identifier: Identifier = seed
+            identifier_type = identifier.get_type()
+            if identifier_type == "assign":
+                identifier_expression = identifier.get_expression()
+                no_sum_in_expression(identifier_expression)
 
 
 def check_objective(expression: Expression, var_dict: dict):

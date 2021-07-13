@@ -3,6 +3,7 @@ from compiler.classes.objective import Objective
 from compiler.classes.constraint import Constraint
 from compiler.classes.expression import Expression
 from compiler.classes.identifier import Identifier
+from compiler.classes.parameter import Parameter
 from compiler.classes.link import Attribute
 import copy
 import numpy as np
@@ -111,6 +112,14 @@ class Factorize:
 
             return self.factorize_sum(variables, constants, indexes)
 
+    def free(self):
+        for child in self.children:
+            child.coef_var_tuples = None
+            child.obj = None
+
+        self.children = None
+        self.coef_var_tuples = None
+
     def factorize_constraint(self, variables, constants, indexes):
 
         constraint = self.obj
@@ -131,13 +140,16 @@ class Factorize:
             l_type = leaf.get_type()
             if type(inner_expr) == Identifier:
 
-                identifier = inner_expr
-                id_name = identifier.get_name()
-                if id_name in variables:
+                identifier: Identifier = inner_expr
+                identifier_name = identifier.get_name()
+                identifier_node_name = identifier.get_node_name()
+                if identifier_node_name in variables and identifier_name in variables[identifier_node_name]:
 
-                    var = variables[id_name]
-                    var_leaves.append([-1, leaf, identifier, var.get_index(), var.get_size()])
-                    self.variables.append(id_name)
+                    var = variables[identifier_node_name][identifier_name]
+                    identifier_var = var.get_identifier()
+                    var_leaves.append([-1, leaf, identifier, identifier_var.get_index(), identifier_var.get_size()])
+                    self.variables.append([identifier_node_name, identifier_name])
+
             if type(inner_expr) == Attribute:
 
                 attribute = inner_expr
@@ -166,13 +178,14 @@ class Factorize:
             l_type = leaf.get_type()
             if type(inner_expr) == Identifier:
 
-                identifier = inner_expr
-                id_name = identifier.get_name()
-                if id_name in variables:
-
-                    var = variables[id_name]
-                    var_leaves.append([1, leaf, identifier, var.get_index(), var.get_size()])
-                    self.variables.append(id_name)
+                identifier: Identifier = inner_expr
+                identifier_name = identifier.get_name()
+                identifier_node_name = identifier.get_node_name()
+                if identifier_node_name in variables and identifier_name in variables[identifier_node_name]:
+                    var = variables[identifier_node_name][identifier_name]
+                    identifier_var = var.get_identifier()
+                    var_leaves.append([1, leaf, identifier, identifier_var.get_index(), identifier_var.get_size()])
+                    self.variables.append([identifier_node_name, identifier_name])
             if type(inner_expr) == Attribute:
 
                 attribute = inner_expr
@@ -204,14 +217,6 @@ class Factorize:
             expr = identifier.get_expression()
             coef_var.append([rhs_bool, expr_coef, index, expr, var_size])
         self.coef_var_tuples = coef_var
-        self.extension = self.extend(constants)
-
-        for value, child in self.children:
-            child.coef_var_tuples = None
-
-            child.obj = None
-        self.children = None
-        self.coef_var_tuples = None
 
     def factorize_objective(self, variables, constants, indexes):
 
@@ -229,12 +234,14 @@ class Factorize:
             l_type = leaf.get_type()
             if type(inner_expr) == Identifier:
 
-                identifier = inner_expr
-                id_name = identifier.get_name()
-                if id_name in variables:
+                identifier: Identifier = inner_expr
+                identifier_node_name = identifier.get_node_name()
+                identifier_name = identifier.get_name()
+                if identifier_node_name in variables and identifier_name in variables[identifier_node_name]:
 
-                    var = variables[id_name]
-                    var_leaves.append([leaf, var.get_index(), var.get_size()])
+                    var = variables[identifier_node_name][identifier_name]
+                    var_identifier = var.get_identifier()
+                    var_leaves.append([leaf, var_identifier.get_index(), var_identifier.get_size()])
             if l_type == "sum":
 
                 fct_constr = Factorize(leaf)
@@ -252,13 +259,6 @@ class Factorize:
             expr = identifier.get_expression()
             coef_var.append([expr_coef, index, expr, var_size])
         self.coef_var_tuples = coef_var
-        self.extension = self.extend(constants)
-
-        for child in self.children:
-            child.coef_var_tuples = None
-            child.obj = None
-        self.children = None
-        self.coef_var_tuples = None
 
     def factorize_sum(self, variables, constants, indexes):
 
@@ -277,14 +277,16 @@ class Factorize:
             l_type = leaf.get_type()
             if type(inner_expr) == Identifier:
 
-                identifier = inner_expr
-                id_name = identifier.get_name()
-                if id_name in variables:
+                identifier: Identifier = inner_expr
+                identifier_node_name = identifier.get_node_name()
+                identifier_name = identifier.get_name()
+                if identifier_node_name in variables and identifier_name in variables[identifier_node_name]:
 
-                    var = variables[id_name]
-                    var_leaves.append([leaf, var.get_index(), var.get_size()])
+                    var = variables[identifier_node_name][identifier_name]
+                    variable_identifier = var.get_identifier()
+                    var_leaves.append([leaf, variable_identifier.get_index(), variable_identifier.get_size()])
                     is_var = True
-                    self.variables.append(id_name)
+                    self.variables.append(identifier_name)
             elif type(inner_expr) == Attribute:
 
                 attribute = inner_expr
@@ -340,9 +342,10 @@ class Factorize:
                 expr_acc = copy.copy(expr)
             elif type(seed) == Identifier:
 
-                identifier = seed
-                expr_name = identifier.get_name()
-                if expr_name in variables:
+                identifier: Identifier = seed
+                identifier_name = identifier.get_name()
+                identifier_node_name = identifier.get_node_name()
+                if identifier_node_name in variables and identifier_name in variables[identifier_node_name]:
 
                     is_var = True
                 else:
@@ -527,10 +530,11 @@ class Factorize:
 
     def extend(self, definitions):
 
-        time_horizon = definitions["T"][0]
+        time_horizon_parameter = definitions["T"]
+        time_horizon = time_horizon_parameter.get_value()[0]
 
         unique_evaluation = False
-        coef_var_tuples = self.coef_var_tuples 
+        coef_var_tuples = self.coef_var_tuples
         nb_coef_var = len(coef_var_tuples)
         flag_out_of_bounds = False
         explicit_time_range = False
@@ -560,8 +564,9 @@ class Factorize:
 
                 unique_evaluation = True
             for k in time_range:
-
-                definitions[name_index] = [k]
+                index_parameter = Parameter(name_index, Expression("literal", k))
+                index_parameter.set_value([k])
+                definitions[name_index] = index_parameter
                 flag_out_of_bounds = False
                 if constraint.check_time(definitions) is False:
                     ignored_times_list.append(k)
@@ -596,9 +601,9 @@ class Factorize:
 
                     for sign_mult, child in children_sums:
 
-                        tuple_val_col = child.extend(definitions)
+                        child.extend(definitions)
+                        tuple_val_col = child.get_extension()
                         if not tuple_val_col:
-
                             error_("Out of bounds sum at line "+str(constraint.get_line()))
                         child_values, child_columns = tuple_val_col
                         child_values = sign_mult * child_values
@@ -646,7 +651,9 @@ class Factorize:
                 unique_evaluation = True
             for k in obj_range:
 
-                definitions[name_index] = [k]
+                index_parameter = Parameter(name_index, Expression("literal", k))
+                index_parameter.set_value([k])
+                definitions[name_index] = index_parameter
                 flag_out_of_bounds = False
                 if objective.check_time(definitions) is False:
 
@@ -683,9 +690,9 @@ class Factorize:
 
                     for child in children_sums:
 
-                        tuple_val_col = child.extend(definitions)
+                        child.extend(definitions)
+                        tuple_val_col = child.get_extension()
                         if not tuple_val_col:
-
                             error_("Out of bounds sum at line "+str(objective.get_line()))
                         child_values, child_columns = tuple_val_col
                         new_values = np.append(new_values, child_values)
@@ -718,7 +725,9 @@ class Factorize:
             i = 0
             for k in range_index:
 
-                definitions[name_index] = [k]
+                index_parameter = Parameter(name_index, Expression("literal", k))
+                index_parameter.set_value([k])
+                definitions[name_index] = index_parameter
                 if expr_sum.check_time(definitions) is False:
                     continue
 
@@ -747,9 +756,9 @@ class Factorize:
                     for k in range_index: 
 
                         definitions[name_index] = [k]
-                        tuple_val_col = child.extend(definitions)
+                        child.extend(definitions)
+                        tuple_val_col = child.get_extension()
                         if not tuple_val_col:
-
                             error_("Out of bounds sum at line "+str(expr_sum.get_line()))
                         child_values, child_columns = tuple_val_col
                         new_values = np.append(new_values, child_values)
@@ -759,5 +768,4 @@ class Factorize:
             if name_index in definitions:
 
                 definitions.pop(name_index)
-        
-        return list_values_columns
+        self.extension = list_values_columns
