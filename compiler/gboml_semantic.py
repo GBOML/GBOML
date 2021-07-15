@@ -19,9 +19,6 @@ import time as t
 def semantic(program: Program) -> Program:
 
     # CHECKS to do -> Check if there are constraints
-    # Check before append in matrix ab
-    # check for objectives
-    # ...
     time = program.get_time()
     check_time_horizon(time)
     time_value = time.get_value()
@@ -44,6 +41,8 @@ def semantic(program: Program) -> Program:
 
     if not node_list:
         error_("ERROR: No node defined")
+
+    check_objective_exists(node_list)
 
     for node in node_list:
         name = node.get_name()
@@ -82,6 +81,28 @@ def semantic(program: Program) -> Program:
     program.set_global_parameters(global_param)
 
     return program, program_variables_dict, definitions
+
+
+def check_constraint_exists(node_list: list, hyperlink_list: list):
+    constraint_exist = False
+    for element in node_list+hyperlink_list:
+        constraints = element.get_constraints()
+        if constraints:
+            constraint_exist = True
+            break
+    if not constraint_exist:
+        error_("ERROR: There is no constraint defined")
+
+
+def check_objective_exists(node_list: list):
+    objective_exist = False
+    for node in node_list:
+        objectives = node.get_objectives()
+        if objectives:
+            objective_exist = True
+            break
+    if not objective_exist:
+        error_("ERROR: There is no objective defined")
 
 
 def check_linearity(program, variables: dict, definitions: dict):

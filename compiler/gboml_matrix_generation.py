@@ -2,6 +2,7 @@ from .classes import Program
 import numpy as np  # type: ignore
 from scipy.sparse import coo_matrix  # type: ignore
 import itertools
+from .utils import error_
 
 
 def extend_factor(root: Program, definitions) -> None:
@@ -158,9 +159,24 @@ def matrix_generation_a_b(root: Program) -> tuple:
 			nb_constraints = nb_constraints + 1
 		obj.c_triplet_list = None
 	root.link_constraints = None
-	rows = np.concatenate(all_rows)
-	columns = np.concatenate(all_columns)
-	values = np.concatenate(all_values)
+
+	if len(all_rows) == 0:
+		error_("ERROR: no valid constraint defined")
+	elif len(all_rows) == 1:
+		rows = np.array(all_rows[0])
+	else:
+		rows = np.concatenate(all_rows)
+
+	if len(all_rows) == 1:
+		columns = np.array(all_columns[0])
+	else:
+		columns = np.concatenate(all_columns)
+
+	if len(all_values) == 1:
+		values = np.array(all_values[0])
+	else:
+		values = np.concatenate(all_values)
+
 	rhs_vector = np.array(all_rhs, dtype=float)
 	sparse_matrix = coo_matrix((values, (rows, columns)), shape=(nb_constraints, nb_variables))
 	sparse_matrix.sum_duplicates()

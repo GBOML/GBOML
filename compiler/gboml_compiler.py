@@ -8,6 +8,30 @@ import sys
 import os
 
 
+def move_to_directory(input_file: str):
+    if os.path.isfile(input_file) is False:
+        print("No such file as "+str(input_file))
+        exit(-1)
+
+    curr_dir = os.getcwd()
+    dir_path = os.path.dirname(input_file)
+    filename = os.path.basename(input_file)
+    if dir_path != "":
+        os.chdir(dir_path)
+
+    return curr_dir, filename
+
+
+def compile_gboml_mdp(input_file: str):
+    curr_dir, filename = move_to_directory(input_file)
+    ast = parse_file(filename)
+    program, program_variables_dict, definitions = semantic(ast)
+    check_mdp(program, program_variables_dict, definitions)
+    mdp = convert_to_mdp(program, program_variables_dict)
+    os.chdir(curr_dir)
+    return mdp
+
+
 def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: bool = False) -> tuple:
 
     """
@@ -26,15 +50,7 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
              objective_belonging -> Mapping to check which objectif relates to which node
     """
 
-    if os.path.isfile(input_file) is False:
-        print("No such file as "+str(input_file))
-        exit(-1)
-
-    curr_dir = os.getcwd()
-    dir_path = os.path.dirname(input_file)
-    filename = os.path.basename(input_file)
-    if dir_path != "":
-        os.chdir(dir_path)
+    curr_dir, filename = move_to_directory(input_file)
 
     if log is True:
         filename_split = filename.rsplit('.', 1)
