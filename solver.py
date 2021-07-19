@@ -2,6 +2,67 @@ import numpy as np
 from scipy.sparse import coo_matrix
 
 
+def solver_xpress(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray, objective_offset: float,
+                  name_tuples: list) -> tuple:
+    try:
+
+        import xpress as xp
+    except ImportError:
+
+        print("Warning: Did not find the CyLP package")
+        exit(0)
+    print("hi")
+
+    model = xp.problem()
+    matrix_a = matrix_a.astype(float)
+
+    var_list = []
+    for _, variable_indexes in name_tuples:
+
+        for index, _, var_type, var_size in variable_indexes:
+
+            if var_type == "integer":
+
+                for _ in range(var_size):
+                    var_list.append(xp.var(vartype=xp.integer, lb=float('-inf')))
+            elif var_type == "binary":
+                for _ in range(var_size):
+                    var_list.append(xp.var(vartype=xp.binary))
+            else:
+                for _ in range(var_size):
+                    var_list.append(xp.var(vartype=xp.continuous, lb=float('-inf')))
+    var_array = np.array(var_list)
+    model.addVariable(var_array)
+    data, row, col = matrix_a.data, matrix_a.row, matrix_a.col
+    nb_constraints, nb_vars = matrix_a.shape
+    for index_constraint in range(nb_constraints):
+        indexes = np.where(row == index_constraint)
+        columns = col[indexes]
+        lhs_constraint = xp.Dot(data[indexes], var_array[columns])
+        print(lhs_constraint)
+        model.addConstraint(lhs_constraint <= vector_b[index_constraint])
+
+    objective = xp.Dot(vector_c, var_array) + objective_offset
+    model.setObjective(objective)
+    model.solve()
+    solution = model.getSolution()
+    objective = model.getObjVal()
+
+    status = model.getProbStatus()
+    if status == 1:
+        status = "optimal"
+    elif status == 2:
+        status = "infeasible"
+    else:
+        status = "unknown"
+    print(model.getProbStatusString())
+    print(model.getProbStatus())
+    print(status)
+    solver_info = {}
+
+    return solution, objective, status, solver_info
+
+
 def solver_clp(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray, objective_offset: float,
                name_tuples: list) -> tuple:
     """
@@ -39,7 +100,7 @@ def solver_clp(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
     variables = model.addVariable('variables', nvars, isInt=False)
     model.addConstraint(matrix_a * variables <= vector_b)
     model.objective = c * variables
-    print("model object " +str(type(model.objective)))
+    print("model object " + str(type(model.objective)))
     # Solve model
     s = CyClpSimplex(model)
     for _, variable_indexes in name_tuples:

@@ -8,7 +8,7 @@ from compiler import compile_gboml
 
 # SOLVER import
 from solver import solver_scipy, solver_clp,\
-    solver_cplex, solver_gurobi
+    solver_cplex, solver_gurobi, solver_xpress
 
 # OUTPUT import
 from output import generate_json, generate_pandas
@@ -37,6 +37,7 @@ if __name__ == '__main__':
     parser.add_argument("--gurobi", help="Gurobi solver", action='store_const', const=True)
     parser.add_argument("--clp", help="CLP solver", action='store_const', const=True)
     parser.add_argument("--cplex", help="Cplex solver", action='store_const', const=True)
+    parser.add_argument("--xpress", help="Xpress solver", action='store_const', const=True)
     # Save log
     parser.add_argument("--log", help="Get log in a file", action="store_const", const=True)
     parser.add_argument("--convert", help="convert to mdp", action="store_const", const=True)
@@ -60,6 +61,7 @@ if __name__ == '__main__':
             print("Vector C ", C_sum)
 
         objective_offset = float(indep_terms_c.sum())
+        status = None
 
         if args.linprog:
 
@@ -73,6 +75,9 @@ if __name__ == '__main__':
         elif args.gurobi:
 
             x, objective, status, solver_info = solver_gurobi(A, b, C_sum, objective_offset, name_tuples)
+        elif args.xpress:
+
+            x, objective, status, solver_info = solver_xpress(A, b, C_sum, objective_offset, name_tuples)
         else:
 
             print("No solver was chosen")
