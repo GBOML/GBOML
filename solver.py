@@ -17,15 +17,17 @@ def solver_xpress(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarr
     matrix_a = matrix_a.astype(float)
 
     var_list = []
+    is_milp = False
     for _, variable_indexes in name_tuples:
 
         for index, _, var_type, var_size in variable_indexes:
 
             if var_type == "integer":
-
+                is_milp = True
                 for _ in range(var_size):
                     var_list.append(xp.var(vartype=xp.integer, lb=float('-inf')))
             elif var_type == "binary":
+                is_milp = True
                 for _ in range(var_size):
                     var_list.append(xp.var(vartype=xp.binary))
             else:
@@ -39,27 +41,66 @@ def solver_xpress(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarr
         indexes = np.where(row == index_constraint)
         columns = col[indexes]
         lhs_constraint = xp.Dot(data[indexes], var_array[columns])
-        print(lhs_constraint)
         model.addConstraint(lhs_constraint <= vector_b[index_constraint])
 
     objective = xp.Dot(vector_c, var_array) + objective_offset
     model.setObjective(objective)
+    option_info = {}
+    try:
+
+        with open('xpress.opt', 'r') as optfile:
+
+            lines = optfile.readlines()
+    except IOError:
+
+        print("Options file not found")
+    else:
+
+        for line in lines:
+
+            line = line.strip()
+            option = line.split(" ", 1)
+            if option[0] != "":
+                try:
+                    parinfo = getattr(model.controls, option[0])
+                except AttributeError as e:
+                    print("Skipping unknown option \'%s\'" % option[0])
+                    continue
+                if parinfo:
+
+                    if len(option) == 2:
+
+                        key = option[0]
+                        try:
+                            value = parinfo
+                        except ValueError as e:
+
+                            print("Skipping option \'%s\' with invalid given value \'%s\' (expected %s)"
+                                  % (option[0], option[1], parinfo[1]))
+                        else:
+
+                            model.setControl(key, value)
+                            option_info[key] = value
+                    else:
+
+                        print("Skipping option \'%s\' with no given value" % option[0])
+                else:
+
+                    print("Skipping unknown option \'%s\'" % option[0])
+
     model.solve()
-    solution = model.getSolution()
+    solution = np.array(model.getSolution())
     objective = model.getObjVal()
 
     status = model.getProbStatus()
-    if status == 1:
+    if (status == 1 and not is_milp) or (is_milp and status == 6):
         status = "optimal"
-    elif status == 2:
+    elif (status == 2 and not is_milp) or (is_milp and status == 5):
         status = "infeasible"
     else:
         status = "unknown"
-    print(model.getProbStatusString())
-    print(model.getProbStatus())
-    print(status)
-    solver_info = {}
 
+    solver_info = {"name": "xpress", "algorithm": "unknown", "status": status, "options": option_info}
     return solution, objective, status, solver_info
 
 
