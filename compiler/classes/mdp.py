@@ -86,6 +86,7 @@ class MDPObjective:
     def get_expression(self):
         return self.expression
 
+
 class MDP:
 
     def __init__(self, states: list, actions: list, sizing: list, auxiliaries: list, objectives: list):
