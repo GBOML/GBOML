@@ -598,6 +598,19 @@ def check_time_horizon(time_horizon: Time):
     time_horizon.set_value(time_value)
 
 
+def convert_expression_identifiers_to_basic(expression: Expression):
+    leaves = expression.get_leafs()
+    for leaf in leaves:
+        seed = leaf.get_name()
+        seed_type = type(seed)
+        if seed_type == Identifier:
+            identifier: Identifier = seed
+            identifier_type = identifier.get_type()
+            if identifier_type == "assign":
+                identifier.set_expression(None)
+                identifier.set_type("basic")
+
+
 def convert_to_mdp(program, program_variables_dict):
     list_states = []
     list_auxiliaries = []
@@ -612,21 +625,46 @@ def convert_to_mdp(program, program_variables_dict):
             variable = node_variables_dict[variable_name]
             var_option = variable.get_option()
             if var_option == "state":
-                state_var = State(variable_name, node_name, variable.get_dynamic(), variable.get_initial_constraint())
+                variable_dynamics = variable.get_dynamic()
+                variable_initial_constraint = variable.get_initial_constraint()
+
+                if variable_dynamics is not None:
+                    convert_expression_identifiers_to_basic(variable_dynamics)
+
+                if variable_initial_constraint is not None:
+                    convert_expression_identifiers_to_basic(variable_initial_constraint)
+
+                state_var = State(variable_name, node_name, variable_dynamics, variable_initial_constraint)
                 list_states.append(state_var)
 
             elif var_option == "sizing":
-                sizing_var = Sizing(variable_name, node_name, variable.get_lower_constraint(),
-                                    variable.get_upper_constraint())
+                variable_lower_constraint = variable.get_lower_constraint()
+                variable_upper_constraint = variable.get_upper_constraint()
+                if variable_lower_constraint is not None:
+                    convert_expression_identifiers_to_basic(variable_lower_constraint)
+                if variable_upper_constraint is not None:
+                    convert_expression_identifiers_to_basic(variable_upper_constraint)
+                sizing_var = Sizing(variable_name, node_name, variable_lower_constraint,
+                                    variable_upper_constraint)
                 list_sizing.append(sizing_var)
 
             elif var_option == "action":
-                action_var = Action(variable_name, node_name, variable.get_lower_constraint(),
-                                    variable.get_upper_constraint())
+                variable_lower_constraint = variable.get_lower_constraint()
+                variable_upper_constraint = variable.get_upper_constraint()
+                if variable_lower_constraint is not None:
+                    convert_expression_identifiers_to_basic(variable_lower_constraint)
+
+                if variable_upper_constraint is not None:
+                    convert_expression_identifiers_to_basic(variable_upper_constraint)
+                action_var = Action(variable_name, node_name, variable_lower_constraint,
+                                    variable_upper_constraint)
                 list_actions.append(action_var)
 
             elif var_option == "auxiliary":
-                aux_var = Auxiliary(variable_name, node_name, variable.get_assignment())
+                variable_assignment = variable.get_assignment()
+                if variable_assignment is not None:
+                    convert_expression_identifiers_to_basic(variable_assignment)
+                aux_var = Auxiliary(variable_name, node_name, variable_assignment)
                 list_auxiliaries.append(aux_var)
 
     for node in nodes:
