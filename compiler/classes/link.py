@@ -110,7 +110,6 @@ class Hyperlink:
         used_variables = {}
         for constr in fact_list:
             var_list = constr.variables
-            print(var_list)
             nodes_in_constraint = set()
             for node_name, var_name in var_list:
                 if node_name not in nodes_in_constraint:

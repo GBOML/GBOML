@@ -537,17 +537,49 @@ def add_node_names(node: Node):
     constraints_list = node.get_constraints()
 
     for constraint in constraints_list:
-        lhs = constraint.get_lhs()
-        index_var = constraint.get_index_var()
+        condition = constraint.get_condition()
+        time_interval = constraint.get_time_interval()
+        if time_interval is not None:
+            begin = time_interval.get_begin()
+            step = time_interval.get_step()
+            end = time_interval.get_end()
+            add_node_names_expression(begin, node, [])
+            add_node_names_expression(step, node, [])
+            add_node_names_expression(end, node, [])
 
+        index_var = constraint.get_index_var()
         reserved = [index_var]
+
+        if condition is not None:
+            condition_lhs, condition_rhs = condition.get_children()
+            add_node_names_expression(condition_lhs, node, reserved)
+            add_node_names_expression(condition_rhs, node, reserved)
+
+        lhs = constraint.get_lhs()
         add_node_names_expression(lhs, node, reserved)
         rhs = constraint.get_rhs()
         add_node_names_expression(rhs, node, reserved)
+
     for objective in objectives_list:
         expr = objective.get_expression()
+        condition = objective.get_condition()
+        time_interval = objective.get_time_interval()
+        if time_interval is not None:
+
+            begin = time_interval.get_begin()
+            step = time_interval.get_step()
+            end = time_interval.get_end()
+            add_node_names_expression(begin, node, [])
+            add_node_names_expression(step, node, [])
+            add_node_names_expression(end, node, [])
         index_var = objective.get_index_var()
         reserved = [index_var]
+        if condition is not None:
+
+            condition_lhs, condition_rhs = condition.get_children()
+            add_node_names_expression(condition_lhs, node, reserved)
+            add_node_names_expression(condition_rhs, node, reserved)
+
         add_node_names_expression(expr, node, reserved)
 
 
@@ -560,7 +592,8 @@ def add_node_names_expression(expr: Expression, node, reserved_identifiers=[]):
             identifier: Identifier = seed
             if identifier.get_node_name() == "" and identifier.get_name() not in reserved:
                 identifier.set_node(node)
-
+            if identifier.get_type() == "assign":
+                add_node_names_expression(identifier.get_expression(), node, reserved_identifiers)
         if leaf.get_type() == "sum":
             sum_expr: Expression = leaf
             sum_children = sum_expr.get_children()
