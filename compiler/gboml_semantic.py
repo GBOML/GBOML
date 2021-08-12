@@ -51,7 +51,7 @@ def semantic(program: Program) -> Program:
         node_parameters = node.get_dictionary_parameters()
         node_variables = node.get_dictionary_variables(get_id=False)
         match_dictionaries(node_parameters, node_variables)
-        parameter_evaluation(node_parameters, global_param)
+        parameter_evaluation(node_parameters, definitions)
         node.set_parameter_dict(node_parameters)
         definitions[name] = node_parameters
         program_variables_dict[name] = node_variables
@@ -62,7 +62,7 @@ def semantic(program: Program) -> Program:
     for link in link_list:
         name = link.get_name()
         link_parameters = link.get_dictionary_parameters()
-        parameter_evaluation(link_parameters, global_param)
+        parameter_evaluation(link_parameters, definitions)
         link.set_parameter_dict(link_parameters)
         definitions[name] = link_parameters
 
@@ -663,6 +663,7 @@ def convert_to_mdp(program, program_variables_dict):
 
                 if variable_dynamics is not None:
                     convert_expression_identifiers_to_basic(variable_dynamics)
+                    print(variable_dynamics)
 
                 if variable_initial_constraint is not None:
                     convert_expression_identifiers_to_basic(variable_initial_constraint)
@@ -704,6 +705,7 @@ def convert_to_mdp(program, program_variables_dict):
         node_name = node.get_name()
         node_obj = node.get_objectives()
         for objective in node_obj:
+
             mdp_objective = MDPObjective(node_name, objective.get_expression())
             list_mdpobjectives.append(mdp_objective)
 

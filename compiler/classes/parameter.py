@@ -1,5 +1,4 @@
 from compiler.classes.parent import Symbol
-from compiler.classes.expression import Expression
 from compiler.utils import error_, list_to_string
 import os
 
@@ -47,7 +46,8 @@ class Parameter(Symbol):
         self.value = value
 
     def get_values_from_file(self, expression):
-        
+        from compiler.classes.expression import Expression
+
         self.vector = []
         if type(expression) is str:
 

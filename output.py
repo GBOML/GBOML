@@ -1,22 +1,70 @@
+"""Output file, generates the different types of output.
+
+There are two possibilities of output, either json or csv. The two functions
+generate_json and generate_pandas generate datastructures that can be written
+into respectively a json and csv file.
+
+  Typical usage example:
+
+   json_output = generate_json(program, variable_names, solver_data,
+                              status, solution, objective, c_matrix, indep_terms_c,
+                              objective_map)
+   with open(filename+".json", 'w') as outfile:
+        json.dump(dictionary, outfile, indent=4)
+
+"""
+
+
 import pandas as pd
 from version import __version__
 
 
-def convert_parameter_dict_to_values(parameter_dict: dict) -> dict:
-    value_dict = {}
-    if type(parameter_dict) == dict:
-        for parameter_name in parameter_dict.keys():
-            value_dict[parameter_name] = parameter_dict[parameter_name].get_value()
-    return value_dict
+def convert_parameter_dict_to_values(parameter_name_object_dict: dict) -> dict:
+    """convert_parameter_dict_to_values
+
+        retrieves the values out of a dictionary of Parameter objects where
+        the keys are the parameter names and returns a similar dictionary where
+        the keys are the same parameter names with their value replaced by the
+        corresponding parameter value
+
+        Args:
+            parameter_name_object_dict (dict): dictionary of <parameter name, Parameter objects>
+
+        Returns:
+            parameter_name_value_dict: dictionary of <parameter name, list of values>
+
+    """
+
+    parameter_name_value_dict = {}
+    for parameter_name in parameter_name_object_dict.keys():
+        parameter_name_value_dict[parameter_name] = parameter_name_object_dict[parameter_name].get_value()
+    return parameter_name_value_dict
 
 
 def generate_json(program, variable_names, solver_data, status, solution, objective, c_matrix, indep_terms_c,
-                  objective_map):
+                  objective_map) -> dict:
+    """generate_json
 
-    data = dict()
-    # Add global data
-    data["version"] = __version__
-    # Build and add model data dictionary
+        Converts all the information contained in the inputs into one dictionary
+        that can be dumped in a json file
+
+        Args:
+            program (Program): program object containing the augmented abstract syntax tree
+            variable_names (dict): dictionary of <node_name, list of variables>
+            solver_data (dict): dictionary containing the solver data
+            status (str): status of the solver
+            solution (array): flat array containing the problem's solution
+            objective (float): value of the objective
+            c_matrix (array): matrix of all the objectives
+            indep_terms_c (array): array of all the independent terms of each objective
+            objective_map (dict): dictionary of the mapping between node, objective and index in matrix
+
+        Returns:
+            gathered_data: dictionary containing all the gathered information
+
+    """
+    gathered_data = dict()
+    gathered_data["version"] = __version__
     model_data = {}
     horizon = program.time.get_value()
     model_data["horizon"] = horizon
@@ -50,13 +98,13 @@ def generate_json(program, variable_names, solver_data, status, solution, object
 
     model_data["hyperedges"] = hyperlinks
 
-    data["model"] = model_data
-    # Add solver data dictionary
-    data["solver"] = solver_data
-    # Build and add solution data dictionary
+    gathered_data["model"] = model_data
+    gathered_data["solver"] = solver_data
+
     solution_data = dict()
     solution_data["status"] = status
     solution_data["objective"] = objective
+
     var_dict = program.get_variables_dict()
 
     if solution is not None:
@@ -89,33 +137,47 @@ def generate_json(program, variable_names, solver_data, status, solution, object
             node_data["objectives"] = all_obj
             nodes[node_name] = node_data
         solution_data["nodes"] = nodes
-    data["solution"] = solution_data
+    gathered_data["solution"] = solution_data
 
-    return data
+    return gathered_data
 
 
-def generate_pandas(program, x, horizon, name_tuples):
+def generate_pandas(program, solution, name_tuples) -> pd.DataFrame:
+    """generate_pandas
 
+        Converts all the information contained in the inputs into one pandas dataframe
+        that can be dumped in a csv file
+
+        Args:
+            program (Program): program object containing the augmented abstract syntax tree
+            solution (array): flat array containing the problem's solution
+            name_tuples (dict): dictionary of <node_name, list of variables>
+
+        Returns:
+            df: pandas dataframe containing all the gathered information
+
+    """
     ordered_values = []
     columns = []
     nodes = program.get_nodes()
+    dict_name_tuple = {}
+    for node_name, variables_info in name_tuples:
+        dict_name_tuple[node_name] = variables_info
 
-    dict_name_tuple = {name_tuples[i]: name_tuples[i + 1] for i in range(0, len(name_tuples), 2)}
-
-    global_param = program.get_global_parameters()
-    for param in global_param.get_keys():
-        values = global_param[param]
+    global_param: dict = program.get_global_parameters()
+    for param in global_param.keys():
+        values = global_param[param].get_value()
         full_name = "global." + str(param)
         columns.append(full_name)
         ordered_values.append(values)
 
     for node in nodes:
-        n_name = node.get_name()
-        parameters = node.get_parameters()
-        variable_indexes = dict_name_tuple[n_name]
+        node_name = node.get_name()
+        parameters = node.get_parameter_dict()
+        variable_indexes = dict_name_tuple[node_name]
 
-        for param in parameters.get_keys():
-            values = parameters[param]
+        for param in parameters.keys():
+            values = parameters[param].get_value()
             full_name = str(node_name)+"."+str(param)
             columns.append(full_name)
             ordered_values.append(values)
@@ -123,10 +185,9 @@ def generate_pandas(program, x, horizon, name_tuples):
         for index, var_name, _, var_size in variable_indexes:
 
             full_name = str(node_name)+"."+str(var_name)
-            values = x[index:(index+var_size)].flatten()
+            values = solution[index:(index+var_size)].flatten()
             columns.append(full_name)
             ordered_values.append(values)
 
     df = pd.DataFrame(ordered_values, index=columns)
-
     return df.T

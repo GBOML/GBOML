@@ -7,6 +7,7 @@ from compiler.classes.parameter import Parameter
 from compiler.classes.link import Attribute
 import copy
 import numpy as np
+from scipy.sparse import coo_matrix  # type: ignore
 
 
 def is_index_dependant_expression(expression, index) -> bool:
@@ -71,6 +72,9 @@ class Factorize:
         self.extension = []
         self.variables = []
         self.line = obj.get_line()
+        self.extension_type = ""
+        self.sparse = None
+        self.independent_terms = []
 
     def get_line(self):
 
@@ -541,12 +545,13 @@ class Factorize:
         children_sums = self.get_children()
         np_append = np.append
         list_values_columns = []
-        list_values_columns_append = list_values_columns.append
+
         if self.type_fact == "constraint":
 
             constraint = self.obj
             b_expr = self.get_indep_expr()
             sign = constraint.get_sign()
+            self.extension_type = sign
             time_range = constraint.get_time_range(definitions)
             name_index = constraint.get_index_var()
             ignored_times_list = []
@@ -563,6 +568,11 @@ class Factorize:
                     (not is_index_dependant_expression(constraint.get_lhs(), name_index)):
 
                 unique_evaluation = True
+            all_values = []
+            all_columns = []
+            all_rows = []
+            all_independent_terms = []
+            nb_completed_constraints = 0
             for k in time_range:
                 index_parameter = Parameter(name_index, Expression("literal", k))
                 index_parameter.set_value([k])
@@ -615,8 +625,17 @@ class Factorize:
                     else:
 
                         constant = 0
-                    matrix = [new_values, columns]
-                    list_values_columns_append([matrix, constant, sign])
+
+                    row_indexes = np.zeros(len(new_values))
+                    row_indexes.fill(nb_completed_constraints)
+                    all_rows.append(row_indexes)
+                    nb_completed_constraints += 1
+                    all_values.append(new_values)
+                    all_columns.append(columns)
+                    all_independent_terms.append(constant)
+
+                    # matrix = np.array([new_values, columns])
+
                     if unique_evaluation is True:
 
                         break
@@ -628,6 +647,18 @@ class Factorize:
 
                 print("Warning constraint : "+str(constraint) + " at line "+str(constraint.get_line()) +
                       " is ignored for "+str(name_index) + " equal to " + str(out_of_bounds))
+
+            if not all_rows:
+                self.sparse = None
+
+            else:
+
+                rows = np.concatenate(all_rows)
+                columns = np.concatenate(all_columns)
+                values = np.concatenate(all_values)
+                self.independent_terms = np.array(all_independent_terms, dtype=float)
+                self.sparse = coo_matrix((values, (rows, columns)), shape=(nb_completed_constraints,
+                                                                           int(max(columns))+1))
         elif self.type_fact == "objective":
 
             objective = self.obj
@@ -635,6 +666,7 @@ class Factorize:
             obj_range = objective.get_time_range(definitions)
             name_index = objective.get_index_var()
             obj_type = objective.get_type()
+            self.extension_type = obj_type
             b_expr = self.get_indep_expr()
             out_of_bounds = []
             ignored_times_list = []
@@ -649,6 +681,13 @@ class Factorize:
             if not is_index_dependant_expression(obj_expr, name_index):
 
                 unique_evaluation = True
+
+            all_values = []
+            all_columns = []
+            all_rows = []
+            all_independent_terms = []
+            nb_completed_objectives = 0
+
             for k in obj_range:
 
                 index_parameter = Parameter(name_index, Expression("literal", k))
@@ -699,8 +738,15 @@ class Factorize:
                         columns = np.append(columns, child_columns)
 
                     constant = b_expr.evaluate_expression(definitions)
-                    matrix = [new_values, columns]
-                    list_values_columns.append([matrix, constant, obj_type])
+
+                    row_indexes = np.zeros(len(new_values))
+                    row_indexes.fill(nb_completed_objectives)
+                    all_rows.append(row_indexes)
+                    nb_completed_objectives += 1
+                    all_values.append(new_values)
+                    all_columns.append(columns)
+                    all_independent_terms.append(constant)
+
                     if unique_evaluation is True:
 
                         break
@@ -711,6 +757,18 @@ class Factorize:
 
                 print("Warning objective : "+str(objective) + " at line "+str(objective.get_line()) +
                       " is ignored for "+str(name_index) + " equal to " + str(out_of_bounds))
+
+            if not all_rows:
+                self.sparse = None
+
+            else:
+
+                rows = np.concatenate(all_rows)
+                columns = np.concatenate(all_columns)
+                values = np.concatenate(all_values)
+                self.independent_terms = np.array(all_independent_terms, dtype=float)
+                self.sparse = coo_matrix((values, (rows, columns)), shape=(nb_completed_objectives,
+                                                                           int(max(columns))+1))
 
         elif self.type_fact == "sum":
 

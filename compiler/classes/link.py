@@ -50,6 +50,9 @@ class Hyperlink:
 
         return self.c_triplet_list
 
+    def free_factors_constraints(self):
+        self.constr_factors = None
+
     def get_number_expanded_constraints(self):
 
         return self.nb_constraints_expanded

@@ -64,6 +64,12 @@ class Node:
 
         return self.obj_factors
 
+    def free_factors_objectives(self):
+        self.obj_factors = None
+
+    def free_factors_constraints(self):
+        self.constr_factors = None
+
     def get_constraint_factors(self):
 
         return self.constr_factors

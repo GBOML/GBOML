@@ -63,6 +63,15 @@ class Program:
 
         self.factor_links = factor_list
 
+    def free_factors_objectives(self):
+        for node in self.vector_nodes:
+            node.free_factors_objectives()
+
+    def free_factors_constraints(self):
+        for node in self.vector_nodes:
+            node.free_factors_constraints()
+        self.factor_links = None
+
     def get_link_factors(self):
 
         return self.factor_links

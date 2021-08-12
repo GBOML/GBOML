@@ -260,7 +260,7 @@ class TestErrors(unittest.TestCase):
                                  universal_newlines=True)
         output_split = process.stdout.split("\n")
         self.assertEqual(output_split[2], 'Matrix A    (0, 9)\t-1.0')
-        self.assertEqual(output_split[3], 'Vector b  [0.]')
+        self.assertEqual(output_split[3], 'Vector b  [-0.]')
         self.assertEqual(output_split[4], "Vector C  [[0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]]")
         return_code = process.returncode
         self.assertEqual(return_code, 0)
@@ -272,7 +272,7 @@ class TestErrors(unittest.TestCase):
                                  universal_newlines=True)
         output_split = process.stdout.split("\n")
         self.assertEqual(output_split[2], 'Matrix A    (0, 9)\t-1.0')
-        self.assertEqual(output_split[3], 'Vector b  [0.]')
+        self.assertEqual(output_split[3], 'Vector b  [-0.]')
         self.assertEqual(output_split[4], "Vector C  [[0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]]")
         return_code = process.returncode
         self.assertEqual(return_code, 0)

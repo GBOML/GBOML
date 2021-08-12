@@ -283,7 +283,7 @@ class Expression(Symbol):
         return expr
 
     def evaluate_expression(self, definitions: dict):
-        
+
         # Get type, children and nb_children
         e_type = self.type
         children = self.get_children()
@@ -389,7 +389,7 @@ class Expression(Symbol):
             value = -term1
 
         elif e_type == "sum":
-        
+            from compiler.classes.parameter import Parameter
             time_int = self.time_interval.get_range(definitions)
             time_var = self.time_interval.get_index_name()
             if time_var in definitions:
@@ -400,7 +400,9 @@ class Expression(Symbol):
             condition_verified = False
             for i in time_int:
 
-                definitions[time_var] = [i]
+                index_parameter = Parameter(time_var, Expression("literal", i))
+                index_parameter.set_value([i])
+                definitions[time_var] = index_parameter
                 if self.check_time(definitions):
 
                     condition_verified = True

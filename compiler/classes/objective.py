@@ -53,3 +53,11 @@ class Objective(Type):
             predicate = self.condition.check(definitions)
         
         return predicate
+
+    def get_condition(self):
+
+        return self.condition
+
+    def get_time_interval(self):
+
+        return self.time_interval

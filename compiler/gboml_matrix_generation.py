@@ -10,33 +10,19 @@ def extend_factor(root: Program, definitions) -> None:
 	for node in nodes:
 
 		obj_fact_list = node.get_objective_factors()
-		obj_acc = []
 		for i, object_fact in enumerate(obj_fact_list):
 			object_fact.extend(definitions)
-			obj_matrix = object_fact.get_extension()
-			obj_acc.append([i, obj_matrix])
 
-		node.set_objective_matrix(obj_acc)
 		constr_fact_list = node.get_constraint_factors()
-		constr_acc = []
 		for constr_fact in constr_fact_list:
 			constr_fact.extend(definitions)
-			constr_matrix = constr_fact.get_extension()
-			constr_acc += constr_matrix
-		node.set_constraints_matrix(constr_acc)
-		node.constr_factors = None
 
 	hyperlinks = root.get_links()
 	for link in hyperlinks:
 
 		constr_fact_list = link.get_constraint_factors()
-		constr_acc = []
 		for constr_fact in constr_fact_list:
 			constr_fact.extend(definitions)
-			constr_matrix = constr_fact.get_extension()
-			constr_acc += constr_matrix
-		link.set_constraints_matrix(constr_acc)
-		link.constr_factors = None
 
 
 def matrix_generation_c(root: Program) -> tuple:
@@ -57,53 +43,50 @@ def matrix_generation_c(root: Program) -> tuple:
 	objective_map = {}
 
 	nb_variables = root.get_nb_var_index()
-	nb_objectives = 0
-
+	total_number_objectives = 0
 	nodes = root.get_nodes()
 
 	for node in nodes:
 		node_objectives = {}
-
-		# TODO: Generation of the objective map currently assumes the following:
-		# 1: the first obj_index will be 0 (if not, we generate an empty entry in the first loop iteration)
-		# 2: objective with the same obj_index come in groups (we close an entry of node_objectives
-		# once we get a new obj_index)
-		# This could be avoided by having node.get_objective_list return a container that is structured by obj_indexes
-		current_row_indexes = []
-		objectives = node.get_objective_list()
+		number_node_objectives = 0
+		objective_factors_list = node.get_objective_factors()
 		node_name = node.get_name()
 
-		for obj_index, tuple_obj in objectives:
-			_, _, sign = tuple_obj[0]
+		for objective_index, objective_factor in enumerate(objective_factors_list):
+
+			internal_sparse: coo_matrix = objective_factor.sparse
+			number_objectives, _ = internal_sparse.shape
+			optimization_type = objective_factor.extension_type
+			values, rows, columns = internal_sparse.data, internal_sparse.row, internal_sparse.col
+			independent_terms = objective_factor.independent_terms
+			rows = rows + total_number_objectives
+			number_node_objectives += number_objectives
+
 			obj_data = dict()
-			obj_data["type"] = sign	
-			obj_data["indexes"] = np.arange(nb_objectives, nb_objectives+len(tuple_obj))
-			node_objectives[obj_index] = obj_data
+			obj_data["type"] = optimization_type
+			obj_data["indexes"] = np.arange(total_number_objectives, total_number_objectives + number_objectives)
+			node_objectives[objective_index] = obj_data
+			total_number_objectives = total_number_objectives + number_objectives
 
-			for [values, col_indexes], constant, sign in tuple_obj:
-
-				current_row_indexes.append(nb_objectives)
-
-				if sign == "max":
-					values = - values
-					constant = - constant
-
-				row_indexes = np.zeros(len(values))
-				row_indexes.fill(nb_objectives)
-				all_values.append(values)
-				all_columns.append(col_indexes)
-				all_rows.append(row_indexes)
-				all_indep_terms.append(constant)
-				nb_objectives = nb_objectives + 1
-
+			if optimization_type == "max":
+				values = - values
+				independent_terms = - independent_terms
+			all_values.append(values)
+			all_columns.append(columns)
+			all_rows.append(rows)
+			all_indep_terms.append(independent_terms)
 		objective_map[node_name] = node_objectives
+		node.nb_objective_matrix = number_node_objectives
 		node.objective_list = None
+
+	if len(all_rows) == 0:
+		error_("ERROR: no valid objective defined")
+
 	rows = np.concatenate(all_rows)
 	columns = np.concatenate(all_columns)
 	values = np.concatenate(all_values)
-	indep_terms = np.array(all_indep_terms)
-
-	sparse_matrix = coo_matrix((values, (rows, columns)), shape=(nb_objectives, nb_variables))
+	indep_terms = np.concatenate(all_indep_terms)
+	sparse_matrix = coo_matrix((values, (rows, columns)), shape=(total_number_objectives, nb_variables))
 	sparse_matrix.sum_duplicates()
 
 	return sparse_matrix, indep_terms, objective_map
@@ -124,62 +107,74 @@ def matrix_generation_a_b(root: Program) -> tuple:
 	all_rhs = []
 
 	nb_variables = root.get_nb_var_index()
-	nb_constraints = 0
+	total_number_constraints = 0
 
 	nodes = root.get_nodes()
 	hyperlinks = root.get_links()
 
 	for obj in itertools.chain.from_iterable([nodes, hyperlinks]):
+		constr_fact_list = obj.get_constraint_factors()
+		number_node_constraints = 0
 
-		constraints = obj.get_constraints_matrix()
-		for [values, col_indexes], rhs, sign in constraints:
-
+		for constr_fact in constr_fact_list:
+			internal_sparse: coo_matrix = constr_fact.sparse
+			number_constraints, _ = internal_sparse.shape
+			sign = constr_fact.extension_type
+			values, rows, columns = internal_sparse.data, internal_sparse.row, internal_sparse.col
+			independent_terms = constr_fact.independent_terms
+			rows = rows+total_number_constraints
+			total_number_constraints = total_number_constraints+number_constraints
+			number_node_constraints += number_constraints
 			if sign == "==":
 				# Do c<=b and -c<=-b
-				row_indexes = np.zeros(len(values))
-				row_indexes.fill(nb_constraints)
-				all_values.append(values)
-				all_columns.append(col_indexes)
-				all_rows.append(row_indexes)
-				all_rhs.append(rhs)
-				nb_constraints = nb_constraints + 1
-				sign = ">="
+				rows_duplicates = rows+number_constraints
+				rows = np.concatenate([rows, rows_duplicates])
 
-			if sign == ">=":
+				values = np.concatenate([values, -values])
+				columns = np.concatenate([columns, columns])
+
+				independent_terms = np.concatenate([independent_terms, -independent_terms])
+
+				total_number_constraints = total_number_constraints+number_constraints
+				number_node_constraints += number_constraints
+			elif sign == ">=":
 				# Do -c<=-b
-				values = - values
-				rhs = - rhs
+				values = -values
+				independent_terms = - independent_terms
 
-			row_indexes = np.zeros(len(values))
-			row_indexes.fill(nb_constraints)
 			all_values.append(values)
-			all_columns.append(col_indexes)
-			all_rows.append(row_indexes)
-			all_rhs.append(rhs)
-			nb_constraints = nb_constraints + 1
+			all_columns.append(columns)
+			all_rows.append(rows)
+			all_rhs.append(independent_terms)
+		obj.free_factors_constraints()
 		obj.c_triplet_list = None
+		obj.nb_constraint_matrix = number_node_constraints
 	root.link_constraints = None
 
 	if len(all_rows) == 0:
 		error_("ERROR: no valid constraint defined")
 	elif len(all_rows) == 1:
-		rows = np.array(all_rows[0])
+		all_rows = np.array(all_rows[0])
 	else:
-		rows = np.concatenate(all_rows)
+		all_rows = np.concatenate(all_rows)
 
-	if len(all_rows) == 1:
-		columns = np.array(all_columns[0])
+	if len(all_columns) == 1:
+		all_columns = np.array(all_columns[0])
 	else:
-		columns = np.concatenate(all_columns)
+		all_columns = np.concatenate(all_columns)
 
 	if len(all_values) == 1:
-		values = np.array(all_values[0])
+		all_values = np.array(all_values[0])
 	else:
-		values = np.concatenate(all_values)
+		all_values = np.concatenate(all_values)
 
-	rhs_vector = np.array(all_rhs, dtype=float)
-	sparse_matrix = coo_matrix((values, (rows, columns)), shape=(nb_constraints, nb_variables))
+	if len(all_rhs) == 1:
+		all_rhs = np.array(all_rhs[0], dtype=float)
+	else:
+		all_rhs = np.concatenate(all_rhs, dtype=float)
+
+	sparse_matrix = coo_matrix((all_values, (all_rows, all_columns)), shape=(total_number_constraints, nb_variables))
 	sparse_matrix.sum_duplicates()
 	sparse_matrix.eliminate_zeros()
 
-	return sparse_matrix, rhs_vector
+	return sparse_matrix, all_rhs

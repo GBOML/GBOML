@@ -102,6 +102,18 @@ class TimeInterval:
 
         return time_int
 
+    def get_begin(self):
+
+        return self.begin
+
+    def get_step(self):
+
+        return self.step
+
+    def get_end(self):
+
+        return self.end
+
     def get_index_name(self):
 
         return self.name

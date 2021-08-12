@@ -288,8 +288,8 @@ def p_time_loop(p):
 
         p[0] = TimeInterval(p[2], p[5], p[9], p[7], p.lineno(2))
     elif len(p) == 9:
-
-        p[0] = TimeInterval(p[2], p[5], p[7], 1, p.lineno(2))
+        step = Expression('literal', 1)
+        p[0] = TimeInterval(p[2], p[5], p[7], step, p.lineno(2))
 
 
 def p_objectives(p):
