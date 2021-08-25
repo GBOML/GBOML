@@ -39,6 +39,7 @@ if __name__ == '__main__':
     parser.add_argument("--lex", help="Prints all tokens found in input file", action='store_const', const=True)
     parser.add_argument("--parse", help="Prints the AST", action='store_const', const=True)
     parser.add_argument("--matrix", help="Prints matrix representation", action='store_const', const=True)
+    parser.add_argument("--nb_processes", help="Number of processes to use", type=int)
 
     # Solver
     parser.add_argument("--clp", help="CLP solver", action='store_const', const=True)
@@ -58,9 +59,17 @@ if __name__ == '__main__':
     start_time = time()
 
     if args.input_file:
+        if args.nb_processes is None:
+            args.nb_processes = 1
+        elif args.nb_processes <= 0:
+            print("The number of processes must be strictly positive")
+            exit()
 
-        program, A, b, C, indep_terms_c, T, name_tuples, objective_map = compile_gboml(args.input_file, args.log,
-                                                                                       args.lex, args.parse)
+        program, A, b, C, indep_terms_c, T, name_tuples, objective_map = compile_gboml(args.input_file,
+                                                                                       args.log,
+                                                                                       args.lex,
+                                                                                       args.parse,
+                                                                                       args.nb_processes)
         print("All --- %s seconds ---" % (time() - start_time))
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 

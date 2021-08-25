@@ -769,7 +769,8 @@ class Factorize:
                 self.independent_terms = np.array(all_independent_terms, dtype=float)
                 self.sparse = coo_matrix((values, (rows, columns)), shape=(nb_completed_objectives,
                                                                            int(max(columns))+1))
-
+                self.sparse.sum_duplicates()
+                self.sparse.eliminate_zeros()
         elif self.type_fact == "sum":
 
             expr_sum = self.obj

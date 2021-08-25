@@ -68,6 +68,10 @@ class Node:
         self.obj_factors = None
 
     def free_factors_constraints(self):
+        for factor in self.constr_factors:
+            factor.sparse = None
+            factor.independent_terms = None
+            factor = None
         self.constr_factors = None
 
     def get_constraint_factors(self):

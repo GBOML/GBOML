@@ -15,12 +15,11 @@ from .gboml_lexer import tokenize_file
 from .gboml_parser import parse_file
 from .gboml_semantic import semantic, check_mdp, convert_to_mdp, check_linearity, factorize
 from .gboml_matrix_generation import matrix_generation_a_b,\
-    matrix_generation_c, extend_factor
+    matrix_generation_c, extend_factor, extend_factor_on_multiple_processes
 from .utils import move_to_directory
 
 import sys
 import os
-import psutil
 
 
 def compile_gboml_mdp(input_file: str):
@@ -46,7 +45,8 @@ def compile_gboml_mdp(input_file: str):
     return mdp
 
 
-def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: bool = False) -> tuple:
+def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: bool = False,
+                  nb_processes: int = 1) -> tuple:
     """compile_gboml
 
         takes as input a filename and converts to the matrix representation of the problem and
@@ -68,7 +68,6 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
              objective_belonging -> Mapping to check which objective relates to which node
 
     """
-    init_free = psutil.virtual_memory().free/10**9
     curr_dir, filename = move_to_directory(input_file)
 
     if log is True:
@@ -86,21 +85,18 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
         print(ast.to_string())
 
     program, program_variables_dict, definitions = semantic(ast)
-
-    # check_mdp(program, program_variables_dict, definitions)
-    # mdp = convert_to_mdp(program, program_variables_dict)
-
-    # exit()
     check_linearity(program, program_variables_dict, definitions)
     factorize(program, program_variables_dict, definitions)
-    extend_factor(program, definitions)
+
+    if nb_processes > 1:
+        extend_factor_on_multiple_processes(program, definitions, nb_processes)
+    else:
+        extend_factor(program, definitions)
 
     matrix_a, vector_b = matrix_generation_a_b(program)
-
     vector_c, indep_terms_c, objective_map = matrix_generation_c(program)
     program.free_factors_objectives()
 
     time_horizon = program.get_time().get_value()
     os.chdir(curr_dir)
-
     return program, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, program.get_tuple_name(), objective_map
