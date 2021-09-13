@@ -42,7 +42,7 @@ def convert_parameter_dict_to_values(parameter_name_object_dict: dict) -> dict:
 
 
 def generate_json(program, variable_names, solver_data, status, solution, objective, c_matrix, indep_terms_c,
-                  objective_map) -> dict:
+                  objective_map, constraint_info=dict(), variables_info=dict()) -> dict:
     """generate_json
 
         Converts all the information contained in the inputs into one dictionary
@@ -132,6 +132,7 @@ def generate_json(program, variable_names, solver_data, status, solution, object
                     if obj_type == "max":
 
                         value = -value
+
                     all_obj.append(value)
             node_data["variables"] = variables
             node_data["objectives"] = all_obj

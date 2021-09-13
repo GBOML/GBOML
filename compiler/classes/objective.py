@@ -9,7 +9,7 @@ class Objective(Type):
     - an expression
     """
 
-    def __init__(self, o_type, expression, time_interval=None, condition=None, line=0):
+    def __init__(self, o_type, expression, time_interval=None, condition=None, name=None, line=0):
 
         assert o_type == "min" or o_type == "max", "Internal error: unknown objective type"
         assert type(expression) == Expression, "Internal error: expected expression type expression in objective"
@@ -17,12 +17,16 @@ class Objective(Type):
         self.expression = expression
         self.time_interval = time_interval
         self.condition = condition
+        self.name = name
 
     def __str__(self):
 
         string = "["+str(self.type)+','+str(self.expression)+']'
         
         return string
+
+    def get_name(self):
+        return self.name
 
     def get_expression(self):
         

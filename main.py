@@ -29,6 +29,12 @@ import numpy as np
 import sys
 from time import gmtime, strftime, sleep, time
 
+
+def sort_coo(m):
+    tuples = zip(m.row, m.col, m.data)
+    return sorted(tuples, key=lambda x: (x[0], x[2]))
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(allow_abbrev=False,
@@ -65,22 +71,32 @@ if __name__ == '__main__':
             print("The number of processes must be strictly positive")
             exit()
 
-        program, A, b, C, indep_terms_c, T, name_tuples, objective_map = compile_gboml(args.input_file,
-                                                                                       args.log,
-                                                                                       args.lex,
-                                                                                       args.parse,
-                                                                                       args.nb_processes)
+        program, A, b, C, indep_terms_c, T, name_tuples, factor_map, objective_map = compile_gboml(args.input_file,
+                                                                                                   args.log,
+                                                                                                   args.lex,
+                                                                                                   args.parse,
+                                                                                                   args.nb_processes)
         print("All --- %s seconds ---" % (time() - start_time))
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
         if args.matrix:
-
-            print("Matrix A ", A)
-            print("Vector b ", b)
-            print("Vector C ", C_sum)
+            """A.maxprint = A.shape[0]
+            with open("spare_matrix.txt", "w") as file:
+                file.write(str(A.data))
+                file.write(str(A.col))
+                file.write(str(A.row))
+                file.write(str(A))
+                file.close()
+            """
+            # print("Matrix A ", A)
+            # print("Vector b ", b)
+            # print("Vector C ", C_sum)
 
         objective_offset = float(indep_terms_c.sum())
         status = None
+
+        constraints_additional_information = dict()
+        variables_additional_information = dict()
 
         if args.linprog:
 
@@ -90,10 +106,16 @@ if __name__ == '__main__':
             x, objective, status, solver_info = clp_solver(A, b, C_sum, objective_offset, name_tuples)
         elif args.cplex:
 
-            x, objective, status, solver_info = cplex_solver(A, b, C_sum, objective_offset, name_tuples)
+            x, objective, status, solver_info, \
+                constraints_additional_information, \
+                variables_additional_information = cplex_solver(A, b, C_sum, objective_offset, name_tuples)
+
         elif args.gurobi:
 
-            x, objective, status, solver_info = gurobi_solver(A, b, C_sum, objective_offset, name_tuples)
+            x, objective, status, solver_info, \
+                constraints_additional_information, \
+                variables_additional_information = gurobi_solver(A, b, C_sum, objective_offset, name_tuples, factor_map)
+
         elif args.xpress:
 
             x, objective, status, solver_info = xpress_solver(A, b, C_sum, objective_offset, name_tuples)

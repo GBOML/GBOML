@@ -223,17 +223,29 @@ def p_constraints(p):
 
 
 def p_constraints_aux(p):
-    """constraints_aux : define_constraints SEMICOLON constraints_aux
+    """constraints_aux : ID COLON define_constraints SEMICOLON constraints_aux
+                       | ID COLON define_constraints SEMICOLON
+                       | define_constraints SEMICOLON constraints_aux
                        | define_constraints SEMICOLON"""
 
     if len(p) == 3:
 
         p[0] = []
         p[0].append(p[1])
-    else:
+    elif len(p) == 4:
 
         p[3].insert(0, p[1])
         p[0] = p[3]
+
+    elif len(p) == 5:
+        p[3].set_name(p[1])
+        p[0] = []
+        p[0].append(p[3])
+
+    elif len(p) == 6:
+        p[3].set_name(p[1])
+        p[5].insert(0, p[3])
+        p[0] = p[5]
 
 
 def p_define_constraints(p):
@@ -306,12 +318,19 @@ def p_objectives(p):
 
 
 def p_define_objectives(p):
-    """define_objectives : MIN COLON expr time_loop condition SEMICOLON obj_aux
+    """define_objectives : MIN ID COLON expr time_loop condition SEMICOLON obj_aux
+                         | MAX ID COLON expr time_loop condition SEMICOLON obj_aux
+                         | MIN COLON expr time_loop condition SEMICOLON obj_aux
                          | MAX COLON expr time_loop condition SEMICOLON obj_aux"""
 
-    obj = Objective(p[1], p[3], p[4], p[5], line=p.lineno(1))
-    p[7].insert(0, obj)
-    p[0] = p[7]
+    if len(p) == 8:
+        obj = Objective(p[1], p[3], p[4], p[5], line=p.lineno(1), name=None)
+        p[7].insert(0, obj)
+        p[0] = p[7]
+    elif len(p) == 9:
+        obj = Objective(p[1], p[4], p[5], p[6], line=p.lineno(1), name=p[2])
+        p[8].insert(0, obj)
+        p[0] = p[8]
 
 
 def p_obj_aux(p):

@@ -39,6 +39,7 @@ def extend_factor_on_multiple_processes(root: Program, definitions, nb_processes
 	with mp.Pool(processes=nb_processes) as pool:
 		results = pool.map(extend_node_factors_mapping, all_tuples)
 	# pool.close()
+
 	for i, node_factors in enumerate(all_tuples):
 		node_results = results[i]
 		factor_list, node_dict = node_factors
@@ -53,18 +54,15 @@ def extend_factor(root: Program, definitions) -> None:
 	nodes = root.get_nodes()
 
 	for node in nodes:
-
 		obj_fact_list = node.get_objective_factors()
 		for i, object_fact in enumerate(obj_fact_list):
 			object_fact.extend(definitions)
-
 		constr_fact_list = node.get_constraint_factors()
 		for constr_fact in constr_fact_list:
 			constr_fact.extend(definitions)
 
 	hyperlinks = root.get_links()
 	for link in hyperlinks:
-
 		constr_fact_list = link.get_constraint_factors()
 		for constr_fact in constr_fact_list:
 			constr_fact.extend(definitions)
@@ -179,14 +177,16 @@ def matrix_generation_a_b(root: Program) -> tuple:
 			independent_terms = constr_fact.independent_terms
 			sign = constr_fact.extension_type
 			values = internal_sparse.data
+			"""
 			if sign == "==":
 				length_values += 2*len(values)
 				number_of_constraints += 2*number_constraints
 				length_independent_terms += 2*len(independent_terms)
 			else:
-				length_values += len(values)
-				number_of_constraints += number_constraints
-				length_independent_terms += len(independent_terms)
+			"""
+			length_values += len(values)
+			number_of_constraints += number_constraints
+			length_independent_terms += len(independent_terms)
 
 	all_values = np.zeros(length_values)
 	all_rows = np.zeros(length_values)
@@ -195,12 +195,16 @@ def matrix_generation_a_b(root: Program) -> tuple:
 	values_offset = 0
 	independent_terms_offset = 0
 	constraint_offset = 0
+	constraints_mapping = {}
 
 	for obj in itertools.chain.from_iterable([nodes, hyperlinks]):
 		constr_fact_list = obj.get_constraint_factors()
 		number_node_constraints = 0
-
+		factor_mapping = {}
+		object_name = obj.get_name()
+		print(object_name)
 		for constr_fact in constr_fact_list:
+
 			internal_sparse: coo_matrix = constr_fact.sparse
 			number_constraints, _ = internal_sparse.shape
 			sign = constr_fact.extension_type
@@ -224,6 +228,7 @@ def matrix_generation_a_b(root: Program) -> tuple:
 			independent_terms_offset += number_of_independent_terms
 			constraint_offset += number_constraints
 			number_node_constraints += number_constraints
+			"""
 			if sign == "==":
 				# Add also -c<=-b
 				rows = rows+number_constraints
@@ -239,11 +244,16 @@ def matrix_generation_a_b(root: Program) -> tuple:
 				independent_terms_offset += number_of_independent_terms
 				constraint_offset += number_constraints
 				number_node_constraints += number_constraints
-
+				number_constraints = 2*number_constraints
+			"""
+			if constr_fact.get_name():
+				factor_mapping[constr_fact.get_name()] = slice(constraint_offset-number_constraints, constraint_offset)
+		if factor_mapping:
+			constraints_mapping[object_name] = factor_mapping
 		obj.free_factors_constraints()
 		obj.c_triplet_list = None
 		obj.nb_constraint_matrix = number_node_constraints
 	root.link_constraints = None
 	sparse_matrix = coo_matrix((all_values, (all_rows, all_columns)), shape=(number_of_constraints, number_of_variables))
 
-	return sparse_matrix, all_rhs
+	return sparse_matrix, all_rhs, constraints_mapping

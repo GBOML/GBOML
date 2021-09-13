@@ -30,6 +30,7 @@ class Constraint(Type):
             "Internal error: expected Condition object in Constraint"
 
         Type.__init__(self, c_type, line)
+        self.name = None
         self.rhs = rhs
         self.lhs = lhs
         self.time_interval = time_interval
@@ -46,6 +47,12 @@ class Constraint(Type):
         string += ']'
 
         return string
+
+    def get_name(self):
+        return self.name
+
+    def set_name(self, name):
+        self.name = name
 
     def get_time_interval(self):
 

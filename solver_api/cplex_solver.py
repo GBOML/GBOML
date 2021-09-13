@@ -165,4 +165,29 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarra
         print(e)
         status = "error"
 
-    return solution, objective, status, solver_info
+    constraints_additional_information = dict()
+    variables_additional_information = dict()
+    attributes_to_retrieve_constraints = [
+                                          ["dual", model.solution.get_dual_values],
+                                          ["slack", model.solution.get_linear_slacks]
+                                          ]
+    attributes_to_retrieve_variables = [
+                                          ["basis", model.solution.basis.get_basis],
+                                          ["dual_norms", model.solution.basis.get_dual_norms]
+                                         ]
+
+    for name, function in attributes_to_retrieve_constraints:
+        try:
+            constraints_additional_information[name] = function()
+        except cplex.exceptions.errors.CplexSolverError:
+            print("Unable to retrieve ", name, " information for constraints")
+
+    for name, function in attributes_to_retrieve_variables:
+        try:
+            variables_additional_information[name] = function()
+        except cplex.exceptions.errors.CplexSolverError:
+            print("Unable to retrieve ", name, " information for variables")
+
+    print(variables_additional_information)
+    return solution, objective, status, solver_info, constraints_additional_information, \
+            variables_additional_information

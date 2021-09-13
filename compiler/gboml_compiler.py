@@ -80,7 +80,6 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
         tokenize_file(filename)
 
     ast = parse_file(filename)
-
     if parse is True:
         print(ast.to_string())
 
@@ -93,10 +92,11 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
     else:
         extend_factor(program, definitions)
 
-    matrix_a, vector_b = matrix_generation_a_b(program)
+    matrix_a, vector_b, factor_mapping = matrix_generation_a_b(program)
     vector_c, indep_terms_c, objective_map = matrix_generation_c(program)
     program.free_factors_objectives()
 
     time_horizon = program.get_time().get_value()
     os.chdir(curr_dir)
-    return program, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, program.get_tuple_name(), objective_map
+    return program, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, program.get_tuple_name(), \
+           factor_mapping, objective_map

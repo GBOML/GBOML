@@ -56,6 +56,8 @@ def semantic(program: Program) -> Program:
         definitions[name] = node_parameters
         program_variables_dict[name] = node_variables
         global_index = set_size_variables(node_variables, definitions, global_index)
+        check_names_repetitions(node.get_constraints())
+        check_names_repetitions(node.get_objectives())
 
     program.set_nb_var_index(global_index)
 
@@ -844,7 +846,7 @@ def check_names_repetitions(elements_list: list) -> None:
             error_('ERROR: Name "'+str(name)+'" is reserved for time, used at line '+str(elements_list[i].get_line()))
 
         for k in range(i+1, n):
-            if name == elements_list[k].get_name():
+            if name == elements_list[k].get_name() and name is not None:
                 error_('ERROR: Redefinition error: "'+str(name)+'" at line '+str(elements_list[k].get_line()))
         i = i+1
 

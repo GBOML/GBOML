@@ -55,6 +55,7 @@ class Factorize:
 
     def __init__(self, obj):
 
+        self.name = None
         type_fact = "sum"
         if type(obj) == Constraint:
 
@@ -75,6 +76,9 @@ class Factorize:
         self.extension_type = ""
         self.sparse = None
         self.independent_terms = []
+
+    def get_name(self):
+        return self.name
 
     def get_line(self):
 
@@ -127,6 +131,7 @@ class Factorize:
     def factorize_constraint(self, variables, constants, indexes):
 
         constraint = self.obj
+        self.name = constraint.name
         leaves_rhs = constraint.get_rhs().get_leafs()
         leaves_lhs = constraint.get_lhs().get_leafs()
         index_name = constraint.get_index_var() 
@@ -225,6 +230,7 @@ class Factorize:
     def factorize_objective(self, variables, constants, indexes):
 
         objective = self.obj
+        self.name = objective.name
         obj_expr = objective.get_expression()
         leaves = obj_expr.get_leafs()
         index_name = objective.get_index_var() 
@@ -634,6 +640,15 @@ class Factorize:
                     all_columns.append(columns)
                     all_independent_terms.append(constant)
 
+                    if sign == "==":
+                        row_indexes = np.zeros(len(new_values))
+                        row_indexes.fill(nb_completed_constraints)
+                        all_rows.append(row_indexes)
+                        nb_completed_constraints += 1
+                        all_values.append(-new_values)
+                        all_columns.append(columns)
+                        all_independent_terms.append(-constant)
+
                     # matrix = np.array([new_values, columns])
 
                     if unique_evaluation is True:
@@ -659,6 +674,8 @@ class Factorize:
                 self.independent_terms = np.array(all_independent_terms, dtype=float)
                 self.sparse = coo_matrix((values, (rows, columns)), shape=(nb_completed_constraints,
                                                                            int(max(columns))+1))
+                self.sparse.sum_duplicates()
+                self.sparse.eliminate_zeros()
         elif self.type_fact == "objective":
 
             objective = self.obj
