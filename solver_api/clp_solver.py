@@ -81,6 +81,8 @@ def clp_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
                 s += 0.0 <= variables[index:index+var_size] <= 1
 
     # Get cbc equivalent of that build clp model to exploit variable types
+    print(dir(s))
+
     cbc_model = s.getCbcModel()
 
     # Solve the model
@@ -116,4 +118,5 @@ def clp_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
 
         status = "unknown"
 
+    print(dir(cbc_model))
     return solution, objective, status, solver_info

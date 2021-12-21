@@ -35,6 +35,7 @@ class Parameter(Symbol):
             string += list_to_string(self.vector)
         else:
             string += str(self.expression)
+        string += str(self.value)
         string += ']'
         
         return string
@@ -86,3 +87,10 @@ class Parameter(Symbol):
     def get_vector(self):
         
         return self.vector
+
+    def get_number_of_values(self):
+
+        if self.type == "expression":
+            return 1
+        else:
+            return len(self.vector)

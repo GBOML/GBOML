@@ -676,6 +676,7 @@ class Factorize:
                                                                            int(max(columns))+1))
                 self.sparse.sum_duplicates()
                 self.sparse.eliminate_zeros()
+
         elif self.type_fact == "objective":
 
             objective = self.obj

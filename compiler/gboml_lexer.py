@@ -63,6 +63,8 @@ keywords = {
     'mod': 'MOD',
     'for': 'FOR',
     'where': 'WHERE',
+    'with': 'WITH',
+    'from': 'FROM',
     'and': 'AND',
     'or': 'OR',
     'not': 'NOT',
@@ -81,7 +83,8 @@ reserved = {
     '#OBJECTIVES': 'OBJ',
     '#TIMEHORIZON': 'TIME',
     "#GLOBAL": "GLOBAL",
-    "#HYPEREDGE": "HYPEREDGE"
+    "#HYPEREDGE": "HYPEREDGE",
+    "#EXPRESSION": "EXPRESSION",
     }
 
 # List of token names.   This is always required
@@ -113,6 +116,7 @@ tokens = (
     'BIGGER',
     'LOWER',
     'NEQ',
+    'ASSIGN',
     ) + tuple(keywords.values()) + tuple(reserved.values())
 
 # Regular expression rules for simple tokens
@@ -139,6 +143,7 @@ t_SEMICOLON = r'\;'
 t_DOT = r'\.'
 t_DOUBLE_EQ = r'\=\='
 t_NEQ = r'\!\='
+t_ASSIGN = r'\<\-'
 
 
 def t_filename(t):
@@ -163,6 +168,7 @@ def t_id(t):
         t.type = keywords.get(t.value, 'ID')
     else:
         t.type = "ID"
+        # print(t.value)
     return t
 
 
@@ -211,8 +217,12 @@ t_ignore = ' \t\r\f'
 # Error handling rule
 
 def t_error(t):
-    message = 'Lexing error:' + str(t.lineno) + ':' \
-        + str(find_column(lexer.lexdata, t)) + ':'
+
+    if lexer.lexdata is not None:
+        message = 'Lexing error:' + str(t.lineno) + ':' \
+            + str(find_column(lexer.lexdata, t)) + ':'
+    else:
+        message = 'Lexing error:' + str(t.lineno) + ':'
 
     if t.type == 'filename':
         message += "Illegal filename '%s'" % t.value

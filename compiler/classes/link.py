@@ -3,11 +3,12 @@ from compiler.utils import error_
 
 class Hyperlink:
 
-    def __init__(self, name, parameters=None, constraints=None, line=0):
+    def __init__(self, name, parameters=None, expressions=None, constraints=None, line=0):
 
         self.name = name
         self.parameters = parameters
         self.constraints = constraints
+        self.expressions = expressions
         self.parameter_dict = None
         self.nb_param = len(parameters)
         self.nb_constraints_expanded = 0
@@ -17,9 +18,16 @@ class Hyperlink:
         self.variables_used = {}
         self.line = line
 
+    def get_line(self):
+        return self.line
+
     def get_name(self):
 
         return self.name
+
+    def rename(self, new_name):
+
+        self.name = new_name
 
     def get_number_parameters(self):
 
@@ -29,9 +37,16 @@ class Hyperlink:
 
         return self.variables_used
 
+    def get_expressions(self):
+        return self.expression
+
     def add_constraint(self, constr):
 
         self.constraints.append(constr)
+
+    def remove_constraint(self, constraint):
+
+        self.constraints.remove(constraint)
 
     def set_constraints(self, constraints):
 

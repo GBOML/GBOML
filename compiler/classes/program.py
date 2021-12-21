@@ -1,4 +1,26 @@
-from compiler.utils import list_to_string, error_
+from compiler.utils import list_to_string, error_, turn_to_dict
+from compiler.classes.node import Node
+
+
+def get_variable_name_size_offset_tuples_from_dict(variables_dict):
+    tuple_names = []
+    for node_name in variables_dict.keys():
+
+        node_var_dict = variables_dict[node_name]
+        all_tuples = []
+        for var_name in node_var_dict.keys():
+            if type(node_var_dict[var_name]) == dict:
+                intermediate_dict = {var_name: node_var_dict[var_name]}
+                name_index = get_variable_name_size_offset_tuples_from_dict(intermediate_dict)
+
+            else:
+                variable = node_var_dict[var_name]
+                identifier = variable.get_identifier()
+                name_index = [identifier.get_index(), var_name, identifier.get_option(),
+                              identifier.get_size()]
+            all_tuples.append(name_index)
+        tuple_names.append([node_name, all_tuples])
+    return tuple_names
 
 
 class Program: 
@@ -24,6 +46,7 @@ class Program:
         self.var_dict = {}
         self.link_list = []
         self.factor_links = []
+        self.dict_nodes_links = turn_to_dict(self.vector_nodes+self.links)
 
     def __str__(self):
         
@@ -58,6 +81,30 @@ class Program:
         string += '\nLinks predefined are : ' + str(self.links)
         
         return string
+
+    def get(self, list_names):
+        if type(list_names) == str:
+            name = list_names
+            print(name)
+            print(self.dict_nodes_links)
+            if name not in self.dict_nodes_links:
+                return -1
+            else:
+                return self.dict_nodes_links[name]
+        elif (type(list_names) == list and len(list_names) >= 1) or type(list_names) == tuple:
+            actual_dict = self.dict_nodes_links
+            actual_object = None
+            for name in list_names:
+                if name not in actual_dict:
+
+                    return None
+                else:
+                    actual_object = actual_dict[name]
+                    if type(actual_object) == Node:
+                        actual_dict = actual_object.get_internal_dict()
+                    else:
+                        actual_dict = {}
+            return actual_object
 
     def set_link_factors(self, factor_list):
 
@@ -179,20 +226,7 @@ class Program:
 
     def get_tuple_name(self):
 
-        tuple_names = []
-        for node_name in self.var_dict.keys():
-
-            node_var_dict = self.var_dict[node_name]
-            all_tuples = []
-            for var_name in node_var_dict.keys():
-                variable = node_var_dict[var_name]
-                identifier = variable.get_identifier()
-                name_index = [identifier.get_index(), var_name, identifier.get_option(),
-                              identifier.get_size()]
-                all_tuples.append(name_index)
-            tuple_names.append([node_name, all_tuples])
-
-        return tuple_names
+        return get_variable_name_size_offset_tuples_from_dict(self.var_dict)
 
     def add_var_link(self, tuple_list):
         link = []

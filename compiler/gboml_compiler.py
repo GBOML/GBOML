@@ -10,11 +10,10 @@ Defines functions to extract the information of a GBOML file, check and translat
 
 """
 
-
 from .gboml_lexer import tokenize_file
 from .gboml_parser import parse_file
-from .gboml_semantic import semantic, check_mdp, convert_to_mdp, check_linearity, factorize
-from .gboml_matrix_generation import matrix_generation_a_b,\
+from .gboml_semantic import semantic, check_mdp, convert_to_mdp, check_program_linearity, factorize_program
+from .gboml_matrix_generation import matrix_generation_a_b, \
     matrix_generation_c, extend_factor, extend_factor_on_multiple_processes
 from .utils import move_to_directory
 
@@ -73,7 +72,7 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
     if log is True:
         filename_split = filename.rsplit('.', 1)
         logfile = filename_split[0]
-        f = open(logfile+".out", 'w')
+        f = open(logfile + ".out", 'w')
         sys.stdout = f
 
     if lex is True:
@@ -84,9 +83,8 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
         print(ast.to_string())
 
     program, program_variables_dict, definitions = semantic(ast)
-    check_linearity(program, program_variables_dict, definitions)
-    factorize(program, program_variables_dict, definitions)
-
+    check_program_linearity(program, program_variables_dict, definitions)
+    factorize_program(program, program_variables_dict, definitions)
     if nb_processes > 1:
         extend_factor_on_multiple_processes(program, definitions, nb_processes)
     else:

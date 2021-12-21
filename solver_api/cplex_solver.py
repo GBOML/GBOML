@@ -14,6 +14,7 @@ and passes it to the cplex solver.
 
 import numpy as np
 from scipy.sparse import coo_matrix
+from compiler.utils import flat_nested_list_to_two_level
 
 
 def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
@@ -54,24 +55,25 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarra
     # Generate model
     model = cplex.Cplex()
     model.variables.add(obj=vector_c, lb=[-cplex.infinity]*n, ub=[cplex.infinity]*n)
-    for _, variable_indexes in name_tuples:
+    flat_name_tuples = flat_nested_list_to_two_level(name_tuples)
 
-        for index, _, var_type, var_size in variable_indexes:
+    for index, _, var_type, var_size in flat_name_tuples:
 
-            if var_type == "integer":
+        if var_type == "integer":
 
-                i = index
-                while i < index+var_size:
+            i = index
+            while i < index+var_size:
 
-                    model.variables.set_types(i, model.variables.type.integer)
-                    i = i+1
-            if var_type == "binary":
+                model.variables.set_types(i, model.variables.type.integer)
+                i = i+1
+        if var_type == "binary":
 
-                i = index
-                while i < index+var_size:
+            i = index
+            while i < index+var_size:
 
-                    model.variables.set_types(i, model.variables.type.binary)
-                    i = i+1
+                model.variables.set_types(i, model.variables.type.binary)
+                i = i+1
+
     model.linear_constraints.add(senses=['L']*m, rhs=vector_b)
     model.linear_constraints.set_coefficients(matrix_a_zipped)
     model.objective.set_sense(model.objective.sense.minimize)
@@ -189,5 +191,6 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarra
             print("Unable to retrieve ", name, " information for variables")
 
     print(variables_additional_information)
+    print("hi")
     return solution, objective, status, solver_info, constraints_additional_information, \
             variables_additional_information

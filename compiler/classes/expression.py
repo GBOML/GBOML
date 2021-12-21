@@ -128,6 +128,14 @@ class Expression(Symbol):
 
         return predicate
 
+    def replace_name_with_expression(self, name, expression):
+        expr_type = self.get_type()
+        if expr_type == "literal":
+            print(self.name)
+        else:
+            for child in self.children:
+                child.replace_name_with_expression(name, expression)
+
     def expanded_leafs(self, definitions):
 
         expr_type = self.get_type()

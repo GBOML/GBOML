@@ -9,10 +9,13 @@
 
 import ply.yacc as yacc  # type: ignore
 
-from .gboml_lexer import tokens
-
+from .gboml_lexer import tokens, lexer
+from .utils import check_file_exists, error_
 from .classes import Time, Expression, Variable, Parameter, Program, Objective, Node, Identifier, \
     Constraint, Condition, TimeInterval, Hyperlink
+
+list_opened_files = []
+cache_graph = {}
 
 # precedence rules from least to highest priority with associativity also specified
 
@@ -33,17 +36,23 @@ precedence = (  # Unary minus operator
 def p_start(p):
     """start : time global program"""
 
+    timehorizon = p[1]
+    global_parameters = p[2]
     list_node, list_hyperlink = p[3]
-    p[0] = Program(list_node, global_param=p[2], timescale=p[1], links=list_hyperlink)
+    p[0] = Program(list_node, global_param=global_parameters, timescale=timehorizon, links=list_hyperlink)
 
 
 def p_global(p):
     """global : GLOBAL define_parameters
               | empty"""
 
+    # if global parameters have been defined
     if len(p) == 3:
 
-        p[0] = p[2]
+        global_parameters = p[2]
+        p[0] = global_parameters
+
+    # else no global parameters
     else:
 
         p[0] = []
@@ -53,30 +62,40 @@ def p_time(p):
     """time : TIME ID EQUAL expr SEMICOLON
             | empty"""
 
+    # if a timehorizon has been defined
     if len(p) == 6:
 
-        p[0] = Time(p[2], p[4], line=p.lineno(2))
+        time_identifier = p[2]
+        time_expression = p[4]
+        p[0] = Time(time_identifier, time_expression, line=p.lineno(2))
+
+    # if no timehorizon definition
     else:
 
+        # force the timehorizon to 1 and emit warning
         expr = Expression('literal', 1, line=p.lineno(1))
         p[0] = Time("T", expr)
         print("WARNING: No timescale was defined ! Default : T = 1")
 
 
 def p_program(p):
-
     """program : node program
                 | hyperlink program
                 | empty"""
 
+    # if input file is empty
     if p[1] is None:
 
         p[0] = [[], []]
-    if type(p[1]) == Node:
+
+    # elif the first element is a node
+    elif type(p[1]) == Node:
 
         list_node, list_hyperlink = p[2]
         list_node.append(p[1])
         p[0] = [list_node, list_hyperlink]
+
+    # elif the first element is a hyperedge
     elif type(p[1]) == Hyperlink:
 
         list_node, list_hyperlink = p[2]
@@ -85,42 +104,180 @@ def p_program(p):
 
 
 def p_hyperlink(p):
-    """hyperlink : HYPEREDGE ID parameters constraints"""
+    """hyperlink : HYPEREDGE ID parameters expressions_definitions constraints
+                 | HYPEREDGE ID EQUAL IMPORT list_of_id FROM FILENAME with_name_redefinition """
 
-    h_link = Hyperlink(p[2], p[3], p[4], line=p.lexer.lineno)
-    p[0] = h_link
+    if len(p) == 6:
+        link_identifier = p[2]
+        list_parameters = p[3]
+        list_expressions = p[4]
+        list_constraints = p[5]
+        h_link = Hyperlink(link_identifier, list_parameters, list_expressions, list_constraints, line=p.lexer.lineno)
+        p[0] = h_link
+
+    elif len(p) == 9:
+        # RENAME Hyperedge
+        link_identifier = p[2]
+        imported_node_identifier = p[5]
+        filename = p[7]
+        list_name_redefinitions = p[8]
+        graph_filename = parse_file(filename)
+        returned_hyperedge = graph_filename.get(imported_node_identifier)
+        if returned_hyperedge is None:
+            error_("ERROR: In file " + str(filename) + " there is no hyperedge named " + str(imported_node_identifier))
+        if type(returned_hyperedge) == Node:
+            error_("ERROR: A node is imported as type Hyperedge at line " + str(p.lexer.lineno))
+        returned_hyperedge.set_changes(list_name_redefinitions)
+        returned_hyperedge.rename(link_identifier)
+        p[0] = returned_hyperedge
+
+
+def p_with_name_redefinitions(p):
+    """with_name_redefinition : WITH name_redefinition
+                              | empty"""
+    if len(p) == 2:
+        p[0] = []
+    elif len(p) == 3:
+        p[0] = p[2]
 
 
 def p_node(p):
-    """node : NODE ID parameters variables constraints objectives"""
+    """node : NODE ID parameters program variables expressions_definitions constraints objectives
+            | NODE ID EQUAL IMPORT list_of_id FROM FILENAME with_redefine_parameters_variables"""
 
-    p[0] = Node(p[2])
-    p[0].set_line(p.lexer.lineno)
-    p[0].set_parameters(p[3])
-    p[0].set_variables(p[4])
-    p[0].set_constraints(p[5])
-    p[0].set_objectives(p[6])
+    if type(p[3]) == list:
+        sub_nodes, sub_edges = p[4]
+        list_parameters = p[3]
+        list_variables = p[5]
+        list_expressions = p[6]
+        list_constraints = p[7]
+        list_objectives = p[8]
+        node_identifier = p[2]
+        p[0] = Node(node_identifier)
+        p[0].set_line(p.lexer.lineno)
+        p[0].set_sub_nodes(sub_nodes)
+        p[0].set_sub_hyperedges(sub_edges)
+        p[0].update_internal_dict()
+        p[0].set_parameters(list_parameters)
+        p[0].set_variables(list_variables)
+        p[0].set_constraints(list_constraints)
+        p[0].set_objectives(list_objectives)
+        p[0].set_expressions(list_expressions)
+
+    elif type(p[3]) == str:
+
+        node_identifier = p[2]
+        imported_node_identifier = p[5]
+        filename = p[7]
+        print(p[8])
+        list_parameters, list_variables = p[8]
+        print(node_identifier, imported_node_identifier, filename, list_parameters, list_variables)
+        graph_filename = parse_file(filename)
+        print(imported_node_identifier)
+        print(graph_filename.get_nodes()[0].get_name())
+        returned_node = graph_filename.get(imported_node_identifier)
+        if returned_node is None:
+            error_("ERROR: In file "+str(filename)+" there is no node named "+str(imported_node_identifier) +
+                   " at line "+str(p.lexer.lineno))
+        if type(returned_node) == Hyperlink:
+            error_("ERROR: A hyperedge is imported as type node at line "+str(p.lexer.lineno))
+        returned_node.set_parameters_changes(list_parameters)
+        returned_node.set_variables_changes(list_variables)
+        returned_node.rename(node_identifier)
+        p[0] = returned_node
+
+
+def p_list_of_id(p):
+    """list_of_id : ID DOT list_of_id
+                  | ID"""
+    identifier_name = p[1]
+    if len(p) == 2:
+        p[0] = [identifier_name]
+    elif len(p) == 4:
+        list_id = p[3]
+        list_id.insert(0, identifier_name)
+        p[0] = list_id
+
+
+def p_with_redefine_parameters_variables(p):
+    """with_redefine_parameters_variables : WITH redefine_parameters_variables
+                                          | SEMICOLON"""
+    if len(p) == 2:
+        p[0] = [[], []]
+    else:
+        p[0] = p[2]
+
+
+def p_name_redefinition(p):
+    """name_redefinition : ID EQUAL ID SEMICOLON name_redefinition
+                         | ID EQUAL ID SEMICOLON """
+
+    lhs_id = p[1]
+    rhs_id = p[3]
+    redefinition = [lhs_id, rhs_id, p.lineno(1)]
+    list_redefinitions = []
+    if len(p) == 6:
+        list_redefinitions = p[5]
+    list_redefinitions.append(redefinition)
+    p[0] = list_redefinitions
+
+
+def p_redefine_parameters_variables(p):
+    """redefine_parameters_variables : parameter redefine_parameters_variables
+                                     | ID external_internal SEMICOLON redefine_parameters_variables
+                                     | parameter
+                                     | ID external_internal SEMICOLON"""
+
+    if len(p) == 2:
+        parameter = p[1]
+        list_parameters = [parameter]
+        list_variables = []
+        p[0] = [list_parameters, list_variables]
+    elif len(p) == 3:
+        parameter = p[1]
+        list_parameters, list_variables = p[2]
+        list_parameters.append(parameter)
+        p[0] = [list_parameters, list_variables]
+    elif len(p) == 4:
+        variable_name = p[1]
+        variable_type = p[2]
+        list_parameters = []
+        list_variables = [[variable_name, variable_type, p.lineno(1)]]
+        p[0] = [list_parameters, list_variables]
+    elif len(p) == 5:
+        variable_name = p[1]
+        variable_type = p[2]
+        list_parameters, list_variables = p[2]
+        list_variables.append([variable_name, variable_type, p.lineno(1)])
+        p[0] = [list_parameters, list_variables]
 
 
 def p_parameters(p):
     """parameters : PARAM define_parameters
                   | empty"""
 
+    # if no parameter has been defined
     if len(p) == 2:
 
         p[0] = []
+
+    # else parameters have been defined
     else:
 
-        p[0] = p[2]
+        list_parameters = p[2]
+        p[0] = list_parameters
 
 
 def p_define_parameters(p):
     """define_parameters : parameter define_parameters
                          | empty"""
 
+    # if no parameter has been defined
     if len(p) == 2:
 
         p[0] = []
+
+    # else parameters have been defined
     else:
 
         p[2].insert(0, p[1])
@@ -132,30 +289,45 @@ def p_parameter(p):
                  | ID EQUAL LCBRAC term more_values RCBRAC SEMICOLON
                  | ID EQUAL IMPORT FILENAME SEMICOLON"""
 
+    parameter_id = p[1]
+
+    # parameter defined by an expression
     if len(p) == 5:
 
-        p[0] = Parameter(p[1], p[3], line=p.lineno(1))
+        parameter_expression = p[3]
+        p[0] = Parameter(parameter_id, parameter_expression, line=p.lineno(1))
+
+    # parameter defined as a table
     elif len(p) == 8:
 
-        p[0] = Parameter(p[1], None, line=p.lineno(1))
-        p[5].insert(0, p[4])
-        p[0].set_vector(p[5])
+        list_values = p[5]
+        last_value = p[4]
+        p[0] = Parameter(parameter_id, None, line=p.lineno(1))
+        list_values.insert(0, last_value)
+        p[0].set_vector(list_values)
+
+    # parameter defined via an import
     else:
 
-        p[0] = Parameter(p[1], p[4], line=p.lineno(1))
+        filename = p[4]
+        p[0] = Parameter(parameter_id, filename, line=p.lineno(1))
 
 
 def p_more_values(p):
     """more_values : COMMA term more_values
                     | empty"""
 
+    # if no more values are used
     if len(p) == 2:
 
         p[0] = []
-    else:
 
-        p[3].insert(0, p[2])
-        p[0] = p[3]
+    # add additional value
+    else:
+        list_values = p[3]
+        additional_value = p[2]
+        list_values.insert(0, additional_value)
+        p[0] = list_values
 
 
 def p_variables(p):
@@ -165,13 +337,37 @@ def p_variables(p):
 
 
 def p_define_variables(p):
-    """define_variables : INTERNAL type_var option_var COLON id SEMICOLON var_aux
-                        | EXTERNAL type_var option_var COLON id SEMICOLON var_aux"""
+    """define_variables : external_internal type_var option_var COLON id SEMICOLON var_aux
+                        | external_internal type_var option_var COLON id ASSIGN id SEMICOLON var_aux"""
 
-    p[5].set_option(p[2])
-    var = Variable(p[5], p[1], v_option=p[3], line=p.lineno(1))
-    p[7].insert(0, var)
-    p[0] = p[7]
+    identifier_option = p[2]
+    var_identifier = p[5]
+    var_type = p[3]
+    internal_external_keyword = p[1]
+
+    # variable definition without assignment
+    if len(p) == 8:
+        list_variables = p[7]
+        var_identifier.set_option(identifier_option)
+        var = Variable(var_identifier, internal_external_keyword, v_option=var_type, line=p.lineno(1))
+        list_variables.insert(0, var)
+        p[0] = list_variables
+
+    # variable definition with assignment
+    elif len(p) == 10:
+        list_variables = p[9]
+        child_variable = p[7]
+        var_identifier.set_option(identifier_option)
+        var = Variable(var_identifier, internal_external_keyword, v_option=var_type,
+                       child_variable=child_variable, line=p.lineno(1))
+        list_variables.insert(0, var)
+        p[0] = list_variables
+
+
+def p_external_internal(p):
+    """external_internal : INTERNAL
+                         | EXTERNAL"""
+    p[0] = p[1]
 
 
 def p_type_var(p):
@@ -202,21 +398,60 @@ def p_var_aux(p):
     """var_aux :  define_variables
                 | empty"""
 
+    # case empty
     if p[1] is None:
 
         p[0] = []
+
+    # case where more variables are defined
     else:
 
         p[0] = p[1]
 
 
+def p_expressions_definition(p):
+    """expressions_definitions : EXPRESSION expression_declaration expression_declaration_aux
+                                | empty"""
+
+    # empty case
+    if len(p) == 2:
+        p[0] = []
+
+    # definition case
+    else:
+        list_expressions = p[3]
+        additional_expression = p[2]
+        list_expressions.insert(0, additional_expression)
+        p[0] = list_expressions
+
+
+def p_expression_declaration(p):
+    """expression_declaration : ID EQUAL expr SEMICOLON"""
+    p[0] = [p[1], p[3], p.lineno(1)]
+
+
+def p_expression_declaration_aux(p):
+    """expression_declaration_aux : expression_declaration expression_declaration_aux
+                                  | empty"""
+    if len(p) == 2:
+        p[0] = []
+
+    elif len(p) == 3:
+        list_expressions = p[2]
+        additional_expression = p[1]
+        list_expressions.insert(0, additional_expression)
+        p[0] = list_expressions
+
+
 def p_constraints(p):
     """constraints : CONS constraints_aux
                    | empty"""
-
+    # empty case
     if len(p) == 2:
 
         p[0] = []
+
+    # definition case
     else:
 
         p[0] = p[2]
@@ -228,20 +463,25 @@ def p_constraints_aux(p):
                        | define_constraints SEMICOLON constraints_aux
                        | define_constraints SEMICOLON"""
 
+    # last unnamed constraint definition
     if len(p) == 3:
 
         p[0] = []
         p[0].append(p[1])
+
+    # add one unnamed constraint
     elif len(p) == 4:
 
         p[3].insert(0, p[1])
         p[0] = p[3]
 
+    # last named constraint
     elif len(p) == 5:
         p[3].set_name(p[1])
         p[0] = []
         p[0].append(p[3])
 
+    # add named constraint
     elif len(p) == 6:
         p[3].set_name(p[1])
         p[5].insert(0, p[3])
@@ -253,6 +493,7 @@ def p_define_constraints(p):
                           | expr LEQ expr time_loop condition
                           | expr BEQ expr time_loop condition"""
 
+    # define a general constraint
     p[0] = Constraint(p[2], p[1], p[3], time_interval=p[4], condition=p[5], line=p.lineno(2))
 
 
@@ -260,6 +501,7 @@ def p_condition(p):
     """condition : WHERE bool_condition
                  | empty"""
 
+    # not empty case
     if len(p) == 3:
 
         p[0] = p[2]
@@ -277,15 +519,19 @@ def p_bool_condition(p):
                       | expr LEQ expr 
                       | expr BEQ expr"""
 
+    # AND OR PAR DOUBLE_EQ NEQ LOWER BIGGER LEQ BEQ cases
     if len(p) == 4:
-
+        # AND OR DOUBLE_EQ NEQ LOWER BIGGER LEQ BEQ cases
         if type(p[2]) == str:
 
             children = [p[1], p[3]]
             p[0] = Condition(p[2], children, line=p.lineno(2))
+        # PAR case
         else:
 
             p[0] = p[2]
+
+    # NOT case
     else:
 
         p[0] = Condition(p[1], [p[2]], line=p.lineno(1))
@@ -448,7 +694,8 @@ def p_error(p):
         print('Syntax error: %d:%d: Unexpected token %s namely (%s)' % (p.lineno, find_column(p.lexer.lexdata, p),
                                                                         p.type, str(p.value)))
     else:
-
+        global list_opened_files
+        print(list_opened_files)
         print('Syntax error: Expected a certain token got EOF(End Of File)')
     exit(-1)
 
@@ -462,14 +709,32 @@ def find_column(input_string, p):
 def parse_file(name: str) -> Program:
 
     # Build the parser
+    global list_opened_files
+    global cache_graph
+    print(list_opened_files)
+    print(cache_graph)
 
     parser = yacc.yacc()
-
+    check_file_exists(name)
+    print(name)
     with open(name, 'r') as content:
 
         data = content.read()
 
+    if name in list_opened_files:
+        error_("ERROR: File "+str(name)+" has already been visited, there are loops in the import \n"
+               + str(list_opened_files))
+
+    if name in cache_graph:
+        return cache_graph[name]
+    else:
+        list_opened_files.append(name)
     # result = True
 
-    result = parser.parse(data)
+    result = parser.parse(data, lexer=lexer.clone())
+
+    list_opened_files.pop(-1)
+
+    cache_graph[name] = result
+
     return result

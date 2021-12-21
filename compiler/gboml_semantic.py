@@ -12,20 +12,21 @@ from .classes import Expression, Attribute, Program, Node, Identifier, Factorize
 from .classes.error import RedefinitionError
 
 import numpy as np  # type: ignore
-from .utils import error_
+from .utils import error_, get_branch_in_nested_dict, update_branch_in_nested_dict, get_layer_in_nested_dict
 import time as t
+import json
 
 
 def semantic(program: Program) -> Program:
 
-    # CHECKS to do -> Check if there are constraints
+    # CHECKS to do -> Check if there are no constraints
     time = program.get_time()
     check_time_horizon(time)
     time_value = time.get_value()
 
     node_list = program.get_nodes()
     link_list = program.get_links()
-    check_names_repetitions(node_list+link_list)
+    check_layer_repetition(node_list, link_list)
 
     definitions = dict()
     time_parameter = Parameter("T", Expression("literal", time_value))
@@ -44,39 +45,22 @@ def semantic(program: Program) -> Program:
 
     check_objective_exists(node_list)
 
-    for node in node_list:
-        name = node.get_name()
-
-        # Retrieve node parameter dictionary
-        node_parameters = node.get_dictionary_parameters()
-        node_variables = node.get_dictionary_variables(get_id=False)
-        match_dictionaries(node_parameters, node_variables)
-        parameter_evaluation(node_parameters, definitions)
-        node.set_parameter_dict(node_parameters)
-        definitions[name] = node_parameters
-        program_variables_dict[name] = node_variables
-        global_index = set_size_variables(node_variables, definitions, global_index)
-        check_names_repetitions(node.get_constraints())
-        check_names_repetitions(node.get_objectives())
-
-    program.set_nb_var_index(global_index)
-
-    for link in link_list:
-        name = link.get_name()
-        link_parameters = link.get_dictionary_parameters()
-        parameter_evaluation(link_parameters, definitions)
-        link.set_parameter_dict(link_parameters)
-        definitions[name] = link_parameters
+    global_index = check_and_extend_parameters_variables_in_nodes(node_list, program_variables_dict, definitions, [],
+                                                                  global_index)
+    check_and_extend_parameters_in_edges(link_list, definitions, [])
 
     for node in node_list:
 
-        add_node_names(node)
-        check_definition(node, program_variables_dict, definitions)
+        node_name = node.get_name()
+        recursive_node_name_addition(node)
+        current_definition = {"T": definitions["T"], "global": definitions["global"], node_name: definitions[node_name]}
+        recursive_check_definition_node(node, current_definition, program_variables_dict, definitions)
 
     for link in link_list:
-
+        edge_name = link.get_name()
         add_link_names(link)
-        check_definition_link(link, program_variables_dict, definitions)
+        current_definition = {"T": definitions["T"], "global": definitions["global"], edge_name: definitions[edge_name]}
+        check_definition_link(link, program_variables_dict, current_definition)
 
     program.set_nb_var_index(global_index)
     program.set_variables_dict(program_variables_dict)
@@ -97,77 +81,208 @@ def check_constraint_exists(node_list: list, hyperlink_list: list):
 
 
 def check_objective_exists(node_list: list):
-    objective_exist = False
-    for node in node_list:
-        objectives = node.get_objectives()
-        if objectives:
-            objective_exist = True
-            break
-    if not objective_exist:
+    objective_defined = objective_exists(node_list)
+    if not objective_defined:
         error_("ERROR: There is no objective defined")
 
 
-def check_linearity(program, variables: dict, definitions: dict):
+def objective_exists(node_list: list) -> bool:
+    objective_defined = False
+    for node in node_list:
+        if node.get_objectives():
+            objective_defined = True
+            break
+
+        objective_defined = objective_exists(node.get_sub_nodes())
+        if objective_defined:
+            break
+    return objective_defined
+
+
+def apply_changes_variables(dictionary_of_variables, variables_changes):
+    for variable_id, variable_type, variable_line in variables_changes:
+        if variable_id not in dictionary_of_variables:
+            error_("ERROR : variable id : "+str(variable_id)+" does not exist at line: "+str(variable_line))
+        else:
+            variable_considered = dictionary_of_variables[variable_id]
+            variable_considered.reset_type(variable_type)
+
+
+def apply_changes_parameters(dictionary_of_parameters, parameters_changes):
+    for new_parameter in parameters_changes:
+        parameter_name = new_parameter.get_name()
+        if parameter_name not in dictionary_of_parameters:
+            error_("ERROR : parameter id " + str(parameter_name) + " does not exist at line: "
+                   + str(new_parameter.get_line()))
+        else:
+            previous_parameter = dictionary_of_parameters[parameter_name]
+            new_parameter_type = new_parameter.get_type()
+            previous_parameter_type = previous_parameter.get_type()
+            if previous_parameter_type != new_parameter_type:
+                error_("ERROR : the redefinition of "+str(parameter_name)+" does not match its previous type at lien: "
+                       + str(new_parameter.get_line()))
+
+            if new_parameter.get_number_of_values() != previous_parameter.get_number_of_values():
+                print("WARNING : unmatching length in redefinition of parameter at line: "
+                      + str(new_parameter.get_line()))
+            dictionary_of_parameters[parameter_name] = new_parameter
+
+
+def pretty(d, indent=0):
+   for key, value in d.items():
+      print('\t' * indent + str(key))
+      if isinstance(value, dict):
+         pretty(value, indent+1)
+      else:
+         print('\t' * (indent+1) + str(value))
+
+
+def check_and_extend_parameters_variables_in_nodes(nodes_list: list, program_variables_dict: dict, definitions: dict,
+                                                   depth_list: list, global_index: int):
+    for node in nodes_list:
+
+        node_name = node.get_name()
+        variables_changes = node.get_variables_changes()
+        parameters_changes = node.get_parameters_changes()
+        # Retrieve node parameter dictionary
+        node_parameters = node.get_dictionary_parameters()
+        node_variables = node.get_dictionary_variables(get_id=False)
+        node_expressions = node.get_dictionary_expressions()
+        apply_changes_variables(node_variables, variables_changes)
+        apply_changes_parameters(node_parameters, parameters_changes)
+        match_dictionaries(node_parameters, node_variables, node_expressions)
+        _, flat_branch_dictionary = get_branch_in_nested_dict(definitions, depth_list, not_lower=True)
+        flat_branch_dictionary["global"] = definitions["global"]
+        flat_branch_dictionary["T"] = definitions["T"]
+        parameter_evaluation(node_parameters, flat_branch_dictionary)
+
+        flat_branch_dictionary[node_name] = node_parameters
+        node.set_parameter_dict(node_parameters)
+        _, definitions = update_branch_in_nested_dict(definitions, depth_list.copy(), node_name, node_parameters)
+        _, program_variables_dict = update_branch_in_nested_dict(program_variables_dict, depth_list.copy(), node_name,
+                                                                 node_variables.copy())
+        depth_list.append(node_name)
+        global_index = check_and_extend_parameters_variables_in_nodes(node.get_sub_nodes(), program_variables_dict,
+                                                                      definitions, depth_list, global_index)
+        check_and_extend_parameters_in_edges(node.get_sub_hyperedges(), definitions, depth_list)
+        _, nested_nodes_variables = get_layer_in_nested_dict(program_variables_dict, depth_list, only_dict=True)
+        depth_list.remove(node_name)
+        global_index = set_size_variables(node_variables, flat_branch_dictionary, global_index, nested_nodes_variables)
+
+        check_names_repetitions(node.get_constraints())
+        check_names_repetitions(node.get_objectives())
+
+    return global_index
+
+
+def check_and_extend_parameters_in_edges(edge_list: list, definitions: dict, depth_list: list):
+    for edge in edge_list:
+        edge_name = edge.get_name()
+        # Retrieve node parameter dictionary
+        edge_parameters = edge.get_dictionary_parameters()
+        _, flat_branch_dictionary = get_branch_in_nested_dict(definitions, depth_list, not_lower=True)
+        flat_branch_dictionary["global"] = definitions["global"]
+        flat_branch_dictionary["T"] = definitions["T"]
+        parameter_evaluation(edge_parameters, flat_branch_dictionary)
+        edge.set_parameter_dict(edge_parameters)
+        _, definitions = update_branch_in_nested_dict(definitions, depth_list.copy(), edge_name, edge_parameters)
+
+
+def check_program_linearity(program, variables, definitions):
+    definition_accumulator_dict = {"T": definitions["T"], "global": definitions["global"]}
     nodes = program.get_nodes()
-    hyperlinks = program.get_links()
+    hyperedges = program.get_links()
+    recursive_application_on_nodes_hyperedges(nodes, hyperedges, variables, definitions, definition_accumulator_dict,
+                                              check_expressions_dependency, check_expressions_dependency_link)
 
+
+def recursive_application_on_nodes_hyperedges(nodes, hyperedges, variables: dict, definitions, accumulator_dict,
+                                              function_nodes, function_hyperedge):
     for node in nodes:
-        # name = node.get_name()
-        # start_time = t.time()
-        check_expressions_dependency(node, variables, definitions)
-        # print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
+        node_name = node.get_name()
+        sub_nodes = node.get_sub_nodes()
+        sub_edges = node.get_sub_hyperedges()
+        accumulator_dict[node_name] = definitions[node_name]
+        function_nodes(node, variables, accumulator_dict)
+        recursive_application_on_nodes_hyperedges(sub_nodes, sub_edges, variables[node_name], definitions[node_name],
+                                                  accumulator_dict, function_nodes, function_hyperedge)
+        accumulator_dict.pop(node_name)
 
-    for link in hyperlinks:
-        # name = link.get_name()
-        # start_time = t.time()
+    for link in hyperedges:
+        function_hyperedge(link, variables, definitions)
+
+"""
+def check_linearity(nodes, hyperedges, variables: dict, definitions: dict, accumulator_dict: dict = {}):
+    for node in nodes:
+        node_name = node.get_name()
+        sub_nodes = node.get_sub_nodes()
+        sub_edges = node.get_sub_hyperedges()
+        accumulator_dict[node_name] = definitions[node_name]
+        check_expressions_dependency(node, variables, accumulator_dict)
+        check_linearity(sub_nodes, sub_edges, variables[node_name], definitions[node_name], accumulator_dict)
+        accumulator_dict.pop(node_name)
+
+    for link in hyperedges:
         check_expressions_dependency_link(link, variables, definitions)
-        # print("Check hyperlink %s : --- %s seconds ---" % (name, t.time() - start_time))
+"""
 
 
-def factorize(program, variables: dict, definitions: dict):
+def check_replacement_expressions(expressions, variables, parameters, external_parameters):
+    all_expressions = {}
+    for name, expression, line in expressions:
+        leafs = expression.get_leafs()
+        for leaf in leafs:
+            print(leaf)
+
+
+def factorize_program(program, variables, definitions):
+    definition_accumulator_dict = {"T": definitions["T"], "global": definitions["global"]}
     nodes = program.get_nodes()
-    hyperlinks = program.get_links()
-    for node in nodes:
+    hyperedges = program.get_links()
+    recursive_application_on_nodes_hyperedges(nodes, hyperedges, variables, definitions, definition_accumulator_dict,
+                                              factorize_node, factorize_hyperedge)
 
-        name = node.get_name()
-        start_time = t.time()
-        constraints = node.get_constraints()
-        objectives = node.get_objectives()
-        check_expressions_dependency(node, variables, definitions)
-        constraint_factors = []
-        for constraint in constraints:
 
-            factor = Factorize(constraint)
-            factor.factorize_constraint(variables, definitions, [])
-            constraint_factors.append(factor)
+def factorize_node(node, variables, definitions):
 
-        node.set_constraint_factors(constraint_factors)
+    name = node.get_name()
+    start_time = t.time()
+    constraints = node.get_constraints()
+    objectives = node.get_objectives()
+    constraint_factors = []
+    for constraint in constraints:
 
-        objective_factors = []
-        for objective in objectives:
+        factor = Factorize(constraint)
+        factor.factorize_constraint(variables, definitions, [])
+        constraint_factors.append(factor)
 
-            factor = Factorize(objective)
-            factor.factorize_objective(variables, definitions, [])
-            objective_factors.append(factor)
-        node.set_objective_factors(objective_factors)
+    node.set_constraint_factors(constraint_factors)
 
-        print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
+    objective_factors = []
+    for objective in objectives:
 
-    for link in hyperlinks:
+        factor = Factorize(objective)
+        factor.factorize_objective(variables, definitions, [])
+        objective_factors.append(factor)
+    node.set_objective_factors(objective_factors)
 
-        name = link.get_name()
-        constraints = link.get_constraints()
-        check_expressions_dependency_link(link, variables, definitions)
-        constraint_factors = []
+    print("Check variables of node %s : --- %s seconds ---" % (name, t.time() - start_time))
 
-        for constraint in constraints:
 
-            factor = Factorize(constraint)
-            factor.factorize_constraint(variables, definitions, [])
-            constraint_factors.append(factor)
-        link.set_constraint_factors(constraint_factors)
-        start_time = t.time()
-        print("Check hyperlink %s : --- %s seconds ---" % (name, t.time() - start_time))
+def factorize_hyperedge(edge, variables, definitions):
+
+    name = edge.get_name()
+    constraints = edge.get_constraints()
+    constraint_factors = []
+
+    for constraint in constraints:
+
+        factor = Factorize(constraint)
+        factor.factorize_constraint(variables, definitions, [])
+        constraint_factors.append(factor)
+    edge.set_constraint_factors(constraint_factors)
+    start_time = t.time()
+    print("Check hyperlink %s : --- %s seconds ---" % (name, t.time() - start_time))
 
 
 def check_expressions_dependency_link(link: Hyperlink, variables: dict, parameters_obj: dict):
@@ -357,6 +472,7 @@ def replace_parameters_hyperlinks(hyperlink: Hyperlink, definitions):
 def replace_parameters_node(node: Node, definitions):
     constraints = node.get_constraints()
     objectives = node.get_objectives()
+    expressions = node.get_expressions()
     for constraint in constraints:
         rhs: Expression = constraint.get_rhs()
         lhs: Expression = constraint.get_lhs()
@@ -388,9 +504,32 @@ def check_definition_link(link: Hyperlink, variables_dict: dict, parameters_dict
                                     variable_type="external")
 
 
+def recursive_check_definition_node(node: Node, current_definitions,
+                                    variables_dict: dict, parameters_dict: dict):
+    node_name = node.get_name()
+    sub_nodes, sub_edges = node.get_sub_nodes(), node.get_sub_hyperedges()
+    check_definition(node, variables_dict, current_definitions)
+    variables_dict = variables_dict[node_name]
+    parameters_dict = parameters_dict[node_name]
+    for sub_node in sub_nodes:
+
+        sub_node_name = sub_node.get_name()
+        current_definitions[sub_node_name] = parameters_dict[sub_node_name]
+        sub_node_variables = {sub_node_name: variables_dict[sub_node_name]}
+        recursive_check_definition_node(sub_node, current_definitions, sub_node_variables, parameters_dict)
+        current_definitions.pop(sub_node_name)
+
+    for edge in sub_edges:
+        edge_name = edge.get_name()
+        current_definitions[edge_name] = parameters_dict[edge_name]
+        check_definition_link(edge, variables_dict, current_definitions)
+        current_definitions.pop(edge_name)
+
+
 def check_definition(node: Node, variables_dict: dict, parameters_dict: dict):
     objectives_list = node.get_objectives()
     constraints_list = node.get_constraints()
+    # expressions_list = node.get_expressions()
     node_name = node.get_name()
 
     for constraint in constraints_list:
@@ -534,9 +673,22 @@ def add_link_names(link: Hyperlink):
         add_node_names_expression(rhs, link, reserved)
 
 
+def recursive_node_name_addition(node):
+    add_node_names(node)
+    for sub_node in node.get_sub_nodes():
+        recursive_node_name_addition(sub_node)
+
+    for sub_edge in node.get_sub_hyperedges():
+        add_link_names(sub_edge)
+
+
 def add_node_names(node: Node):
     objectives_list = node.get_objectives()
     constraints_list = node.get_constraints()
+    expressions_list = node.get_expressions()
+
+    for expr_name, expression, line_number in expressions_list:
+        add_node_names_expression(expression, node, [])
 
     for constraint in constraints_list:
         condition = constraint.get_condition()
@@ -665,7 +817,6 @@ def convert_to_mdp(program, program_variables_dict):
 
                 if variable_dynamics is not None:
                     convert_expression_identifiers_to_basic(variable_dynamics)
-                    print(variable_dynamics)
 
                 if variable_initial_constraint is not None:
                     convert_expression_identifiers_to_basic(variable_initial_constraint)
@@ -812,7 +963,7 @@ def free_non_useful_information_in_node(node):
 #
 
 
-def match_dictionaries(dict1: dict, dict2: dict) -> None:
+def match_dictionaries(dict1: dict, dict2: dict, dict3: dict = {}) -> None:
     """
     Match dictionaries find the intersection between the keys of two dictionaries
     returns nothing if set is empty and outputs an error otherwise
@@ -822,11 +973,23 @@ def match_dictionaries(dict1: dict, dict2: dict) -> None:
     """
     dict1_set = set(dict1)
     dict2_set = set(dict2)
-
-    inter_set = dict1_set.intersection(dict2_set)  
+    dict3_set = set(dict3)
+    inter_set = dict1_set.intersection(dict2_set, dict3_set)
  
     if len(inter_set) != 0:
         error_("ERROR : some variables and parameters share the same name: "+str(inter_set))
+
+
+def check_layer_repetition(nodes_list: list, hyperedges_list: list, parent_nodes: list = []) -> None:
+
+    check_names_repetitions(nodes_list+hyperedges_list+parent_nodes)
+
+    for node in nodes_list:
+        sub_nodes = node.get_sub_nodes()
+        sub_hyperedges = node.get_sub_hyperedges()
+        parent_nodes.append(node)
+        check_layer_repetition(sub_nodes, sub_hyperedges, parent_nodes)
+        parent_nodes.remove(node)
 
 
 def check_names_repetitions(elements_list: list) -> None:
@@ -978,17 +1141,39 @@ def check_variables_type_sizes(dictionary_var: dict, dictionary_param: dict):
                 error_("ERROR: sizing variables must have a size of 1 at line "+str(var.get_line()))
 
 
-def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int, size_check=False) -> int:
+def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int, nested_nodes_variables) -> int:
     """
     Initializes the index of variable object inside a dictionary
     """
     start_index = index
-    timehorizon = dictionary_param["T"].get_value()[0]
     for k in dictionary_var.keys():
         var = dictionary_var[k]
         identifier = var.get_identifier()
         identifier.set_size(dictionary_param)
-        start_index = identifier.set_index(start_index)
+        child_assignment_identifier = var.get_child_assignment()
+        if child_assignment_identifier:
+            child_node_name = child_assignment_identifier.get_node_name()
+            child_var_name = child_assignment_identifier.get_name()
+            if child_assignment_identifier.get_type() != identifier.get_type():
+                error_("ERROR: assigning variables of different types is not allowed at line : "
+                       + str(identifier.get_line()))
+            if not child_node_name:
+                error_("ERROR: node name is required for assignments at line : "+str(identifier.get_line()))
+
+            if child_node_name in nested_nodes_variables and child_var_name in nested_nodes_variables[child_node_name]:
+
+                child_variable = nested_nodes_variables[child_node_name][child_var_name]
+                child_id = child_variable.get_identifier()
+                start_index = identifier.set_index(child_id.get_index())
+
+                if identifier.get_size() != child_id.get_size():
+                    error_("ERROR: unmatching size in assignment of variable at line : "+str(identifier.get_line()))
+            else:
+                error_('ERROR: Unknown identifier '+str(child_assignment_identifier)+" not defined at line " +
+                       str(identifier.get_line()))
+        else:
+            start_index = identifier.set_index(start_index)
+
     return start_index
 
 
