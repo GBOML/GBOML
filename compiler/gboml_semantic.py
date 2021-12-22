@@ -178,14 +178,36 @@ def check_and_extend_parameters_variables_in_nodes(nodes_list: list, program_var
 def check_and_extend_parameters_in_edges(edge_list: list, definitions: dict, depth_list: list):
     for edge in edge_list:
         edge_name = edge.get_name()
+        parameters_changes = edge.get_parameters_changes()
+        names_changes = edge.get_names_changes()
         # Retrieve node parameter dictionary
         edge_parameters = edge.get_dictionary_parameters()
+        apply_changes_parameters(edge_parameters, parameters_changes)
+        change_node_names_in_edge(edge, names_changes)
         _, flat_branch_dictionary = get_branch_in_nested_dict(definitions, depth_list, not_lower=True)
         flat_branch_dictionary["global"] = definitions["global"]
         flat_branch_dictionary["T"] = definitions["T"]
         parameter_evaluation(edge_parameters, flat_branch_dictionary)
         edge.set_parameter_dict(edge_parameters)
         _, definitions = update_branch_in_nested_dict(definitions, depth_list.copy(), edge_name, edge_parameters)
+
+
+def change_node_names_in_edge(edge, names_changes):
+
+    changes_dictionary = {}
+    for lhs_id, rhs_id, _ in names_changes:
+        changes_dictionary[lhs_id] = rhs_id
+
+    if changes_dictionary != {}:
+        constraints = edge.get_constraints()
+        for constraint in constraints:
+            leaves = constraint.get_leafs
+            for leaf in leaves:
+                seed = leaf.get_name()
+                if type(seed) == Identifier:
+                    current_node_name = seed.get_node_name()
+                    if current_node_name in changes_dictionary:
+                        seed.set_node_name(changes_dictionary[current_node_name])
 
 
 def check_program_linearity(program, variables, definitions):

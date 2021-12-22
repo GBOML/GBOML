@@ -105,7 +105,7 @@ def p_program(p):
 
 def p_hyperlink(p):
     """hyperlink : HYPEREDGE ID parameters expressions_definitions constraints
-                 | HYPEREDGE ID EQUAL IMPORT list_of_id FROM FILENAME with_name_redefinition """
+                 | HYPEREDGE ID EQUAL IMPORT list_of_id FROM FILENAME with_name_parameter_redefinition """
 
     if len(p) == 6:
         link_identifier = p[2]
@@ -120,23 +120,24 @@ def p_hyperlink(p):
         link_identifier = p[2]
         imported_node_identifier = p[5]
         filename = p[7]
-        list_name_redefinitions = p[8]
+        list_parameters_redefinitions, list_name_redefinitions = p[8]
         graph_filename = parse_file(filename)
         returned_hyperedge = graph_filename.get(imported_node_identifier)
         if returned_hyperedge is None:
             error_("ERROR: In file " + str(filename) + " there is no hyperedge named " + str(imported_node_identifier))
         if type(returned_hyperedge) == Node:
             error_("ERROR: A node is imported as type Hyperedge at line " + str(p.lexer.lineno))
-        returned_hyperedge.set_changes(list_name_redefinitions)
+        returned_hyperedge.set_names_changes(list_name_redefinitions)
+        returned_hyperedge.set_parameters_changes(list_parameters_redefinitions)
         returned_hyperedge.rename(link_identifier)
         p[0] = returned_hyperedge
 
 
-def p_with_name_redefinitions(p):
-    """with_name_redefinition : WITH name_redefinition
+def p_with_name_parameter_redefinition(p):
+    """with_name_parameter_redefinition : WITH name_parameter_redefinition
                               | empty"""
     if len(p) == 2:
-        p[0] = []
+        p[0] = [[], []]
     elif len(p) == 3:
         p[0] = p[2]
 
@@ -208,18 +209,30 @@ def p_with_redefine_parameters_variables(p):
         p[0] = p[2]
 
 
-def p_name_redefinition(p):
-    """name_redefinition : ID EQUAL ID SEMICOLON name_redefinition
-                         | ID EQUAL ID SEMICOLON """
+def p_name_parameter_redefinition(p):
+    """name_parameter_redefinition : ID ASSIGN ID SEMICOLON name_parameter_redefinition
+                                   | ID ASSIGN ID SEMICOLON
+                                   | parameter name_parameter_redefinition
+                                   | parameter"""
+    if len(p) >= 5:
+        lhs_id = p[1]
+        rhs_id = p[3]
+        redefinition = [lhs_id, rhs_id, p.lineno(1)]
+        list_parameters = []
+        list_node_name_redefinition = []
+        if len(p) == 6:
+            list_parameters, list_node_name_redefinition = p[5]
+        list_node_name_redefinition.append(redefinition)
+        p[0] = [list_parameters, list_node_name_redefinition]
 
-    lhs_id = p[1]
-    rhs_id = p[3]
-    redefinition = [lhs_id, rhs_id, p.lineno(1)]
-    list_redefinitions = []
-    if len(p) == 6:
-        list_redefinitions = p[5]
-    list_redefinitions.append(redefinition)
-    p[0] = list_redefinitions
+    else:
+        parameter = p[1]
+        list_parameters = []
+        list_node_name_redefinition = []
+        if len(p) == 3:
+            list_parameters, list_node_name_redefinition = p[3]
+        list_parameters.append(parameter)
+        p[0] = [list_parameters, list_node_name_redefinition]
 
 
 def p_redefine_parameters_variables(p):

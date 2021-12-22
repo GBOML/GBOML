@@ -4,7 +4,7 @@ from compiler.classes import Parameter, Expression, Node, Hyperlink, Time, Progr
 from compiler.utils import error_, move_to_directory
 from enum import Enum
 import os
-from solver_api import cplex_solver
+from solver_api import cplex_solver, gurobi_solver, clp_solver
 from copy import deepcopy
 import numpy as np
 
@@ -172,10 +172,19 @@ class GbomlGraph():
         self.factor_mapping = factor_mapping
         self.objective_map = objective_map
 
-    def solve_cplex(self):
+    def __solve(self, solver_function):
         vector_c = np.asarray(self.vector_c.sum(axis=0), dtype=float)
         objective_offset = float(self.indep_term_c.sum())
-        return cplex_solver(self.matrix_a, self.matrix_b, vector_c, objective_offset, self.program.get_tuple_name())
+        return solver_function(self.matrix_a, self.matrix_b, vector_c, objective_offset, self.program.get_tuple_name())
+
+    def solve_cplex(self):
+        return self.__solve(cplex_solver)
+
+    def solve_gurobi(self):
+        return self.__solve(gurobi_solver)
+
+    def solve_clp(self):
+        return self.__solve(clp_solver)
 
     @staticmethod
     def import_all_nodes_and_edges(filename):
@@ -350,6 +359,11 @@ class GbomlGraph():
         if to_delete_objectives_names:
             error_("Could not delete " + str(to_delete_objectives_names) + " as they were not found in hyperedge "
                    + str(node.get_name()))
+
+    @staticmethod
+    def change_node_name_in_hyperedge(hyperedge: Hyperlink, old_node_name, new_node_name):
+        change_tuple = [old_node_name, new_node_name, None]
+        hyperedge.add_name_change(change_tuple)
 
 
 test_gboml_python_interface()

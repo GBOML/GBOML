@@ -60,6 +60,9 @@ class Identifier(Symbol):
     def get_node_name(self):
         return self.node_name
 
+    def set_node_name(self, new_name):
+        self.node_name = new_name
+
     def set_option(self, option):
 
         self.option = option

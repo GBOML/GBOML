@@ -17,6 +17,8 @@ class Hyperlink:
         self.c_triplet_list = []
         self.variables_used = {}
         self.line = line
+        self.names_changes = []
+        self.parameters_changes = []
 
     def get_line(self):
         return self.line
@@ -55,6 +57,24 @@ class Hyperlink:
     def get_constraints(self):
 
         return self.constraints
+
+    def set_names_changes(self, changes):
+        self.names_changes = changes
+
+    def get_names_changes(self):
+        return self.names_changes
+
+    def add_name_change(self, change):
+        self.names_changes.append(change)
+
+    def set_parameters_changes(self, changes):
+        self.parameters_changes = changes
+
+    def add_parameter_change(self, change):
+        self.parameters_changes.append(change)
+
+    def get_parameters_changes(self):
+        return self.parameters_changes
 
     def set_constraints_matrix(self, list_matrix):
 
