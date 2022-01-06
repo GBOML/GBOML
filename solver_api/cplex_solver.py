@@ -15,6 +15,7 @@ and passes it to the cplex solver.
 import numpy as np
 from scipy.sparse import coo_matrix
 from compiler.utils import flat_nested_list_to_two_level
+import time
 
 
 def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
@@ -174,8 +175,8 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarra
                                           ["slack", model.solution.get_linear_slacks]
                                           ]
     attributes_to_retrieve_variables = [
-                                          ["basis", model.solution.basis.get_basis],
-                                          ["dual_norms", model.solution.basis.get_dual_norms]
+                                          ["basis", model.solution.basis.get_basis, 0],
+                                          ["dual_norms", model.solution.basis.get_dual_norms, slice(0, 2)]
                                          ]
 
     for name, function in attributes_to_retrieve_constraints:
@@ -184,9 +185,9 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarra
         except cplex.exceptions.errors.CplexSolverError:
             print("Unable to retrieve ", name, " information for constraints")
 
-    for name, function in attributes_to_retrieve_variables:
+    for name, function, index in attributes_to_retrieve_variables:
         try:
-            variables_additional_information[name] = function()
+            variables_additional_information[name] = function()[index]
         except cplex.exceptions.errors.CplexSolverError:
             print("Unable to retrieve ", name, " information for variables")
 

@@ -129,7 +129,7 @@ def matrix_generation_c(root: Program) -> tuple:
         objective_factors_list = node.get_objective_factors()
         for objective_index, objective_factor in enumerate(objective_factors_list):
             internal_sparse: coo_matrix = objective_factor.sparse
-            if not internal_sparse:
+            if internal_sparse is None:
                 continue
             number_objective, _ = internal_sparse.shape
             independent_terms = objective_factor.independent_terms
@@ -146,7 +146,6 @@ def matrix_generation_c(root: Program) -> tuple:
     values_offset = 0
     independent_terms_offset = 0
     objective_offset = 0
-    objective_map = {}
 
     for node in nodes:
         node_objectives = {}
@@ -157,12 +156,13 @@ def matrix_generation_c(root: Program) -> tuple:
         for objective_index, objective_factor in enumerate(objective_factors_list):
 
             internal_sparse: coo_matrix = objective_factor.sparse
-            if not internal_sparse:
+            if internal_sparse is None:
                 continue
             number_objectives, _ = internal_sparse.shape
             optimization_type = objective_factor.extension_type
             values, rows, columns = internal_sparse.data, internal_sparse.row, internal_sparse.col
             independent_terms = objective_factor.independent_terms
+            name_objective = objective_factor.get_name()
             rows += objective_offset
 
             number_of_values = len(values)
@@ -171,6 +171,8 @@ def matrix_generation_c(root: Program) -> tuple:
             obj_data = dict()
             obj_data["type"] = optimization_type
             obj_data["indexes"] = np.arange(objective_offset, objective_offset + number_objectives)
+            if name_objective is not None:
+                obj_data["name"] = name_objective
             node_objectives[objective_index] = obj_data
 
             if optimization_type == "max":
@@ -187,7 +189,7 @@ def matrix_generation_c(root: Program) -> tuple:
             objective_offset += number_objectives
             number_node_objectives += number_objectives
 
-        objective_map[node_name] = node_objectives
+        node.set_objectives_data(node_objectives)
         node.nb_objective_matrix = number_node_objectives
         node.objective_list = None
 
@@ -195,7 +197,7 @@ def matrix_generation_c(root: Program) -> tuple:
         error_("ERROR: no valid objective defined")
 
     sparse_matrix = coo_matrix((all_values, (all_rows, all_columns)), shape=(number_of_objectives, nb_variables))
-    return sparse_matrix, indep_terms, objective_map
+    return sparse_matrix, indep_terms
 
 
 def matrix_generation_a_b(root: Program) -> tuple:
@@ -219,11 +221,10 @@ def matrix_generation_a_b(root: Program) -> tuple:
         constr_fact_list = obj.get_constraint_factors()
         for constr_fact in constr_fact_list:
             internal_sparse: coo_matrix = constr_fact.sparse
-            if not internal_sparse:
+            if internal_sparse is None:
                 continue
             number_constraints, _ = internal_sparse.shape
             independent_terms = constr_fact.independent_terms
-            sign = constr_fact.extension_type
             values = internal_sparse.data
             """
             if sign == "==":
@@ -243,7 +244,6 @@ def matrix_generation_a_b(root: Program) -> tuple:
     values_offset = 0
     independent_terms_offset = 0
     constraint_offset = 0
-    constraints_mapping = {}
 
     for obj in graph_elements:
         constr_fact_list = obj.get_constraint_factors()
@@ -254,7 +254,7 @@ def matrix_generation_a_b(root: Program) -> tuple:
         for constr_fact in constr_fact_list:
 
             internal_sparse: coo_matrix = constr_fact.sparse
-            if not internal_sparse:
+            if internal_sparse is None:
                 continue
             number_constraints, _ = internal_sparse.shape
             sign = constr_fact.extension_type
@@ -300,11 +300,13 @@ def matrix_generation_a_b(root: Program) -> tuple:
                 factor_mapping[constr_fact.get_name()] = slice(constraint_offset - number_constraints,
                                                                constraint_offset)
         if factor_mapping:
-            constraints_mapping[object_name] = factor_mapping
+            obj.set_constraints_data(factor_mapping)
         obj.free_factors_constraints()
         obj.c_triplet_list = None
+        print(number_node_constraints)
         obj.nb_constraint_matrix = number_node_constraints
     root.link_constraints = None
     sparse_matrix = coo_matrix((all_values, (all_rows, all_columns)),
                                shape=(number_of_constraints, number_of_variables))
-    return sparse_matrix, all_rhs, constraints_mapping
+
+    return sparse_matrix, all_rhs

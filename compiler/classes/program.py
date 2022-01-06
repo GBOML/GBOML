@@ -240,3 +240,19 @@ class Program:
     def get_link_var(self):
 
         return self.link_list
+
+    def get_first_level_constraints_decomposition(self):
+        per_block_constraint_indexes = []
+        start_index = 0
+        current_index = 0
+        nodes = self.vector_nodes
+        hyperedges = self.links
+        for node in nodes:
+            current_index += node.get_number_expanded_constraints(True)
+            per_block_constraint_indexes.append([start_index, current_index-1])
+            start_index = current_index
+
+        for hyperedge in hyperedges:
+            current_index += hyperedge.get_number_expanded_constraints()
+        per_block_constraint_indexes.append([start_index, current_index-1])
+        return per_block_constraint_indexes

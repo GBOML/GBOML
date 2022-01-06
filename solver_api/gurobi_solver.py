@@ -17,7 +17,7 @@ from scipy.sparse import coo_matrix
 
 
 def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
-                  objective_offset: float, name_tuples: dict, factor_map: dict) -> tuple:
+                  objective_offset: float, name_tuples: dict) -> tuple:
     """gurobi_solver
 
         takes as input the matrix A, the vectors b and c. It returns the solution
@@ -45,8 +45,6 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarr
     except ImportError:
         print("Warning: Did not find the gurobipy package")
         exit(0)
-
-    print(factor_map)
 
     solution = None
     objective = None
@@ -164,20 +162,6 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarr
             constraints_additional_information[attribute] = model.getAttr(attribute, model.getConstrs())
         except grbp.GurobiError:
             print("Warning : Unable to retrieve ", attribute, " information for constraints")
-
-    factor_add_info = {}
-    for node_name in factor_map.keys():
-        node_dict = {}
-        for constraint_name in factor_map[node_name].keys():
-            range_concerned = factor_map[node_name][constraint_name]
-            print(range_concerned)
-            constraint_attributes = {}
-            for attribute in constraints_additional_information.keys():
-                constraint_attributes[attribute] = constraints_additional_information[attribute][range_concerned]
-
-            node_dict[constraint_name] = constraint_attributes
-        factor_add_info[node_name] = node_dict
-    print(factor_add_info)
 
     for attribute in attributes_to_retrieve_variables:
         try:

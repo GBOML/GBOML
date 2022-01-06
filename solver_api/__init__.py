@@ -30,5 +30,7 @@ from .clp_solver import clp_solver
 from .cplex_solver import cplex_solver
 from .xpress_solver import xpress_solver
 from .scipy_solver import scipy_solver
+from .dsppy import DSPpy
+from .dsp_solver import dsp_solver
 
-__all__ = ["gurobi_solver", "clp_solver", "cplex_solver", "xpress_solver", "scipy_solver"]
+__all__ = ["gurobi_solver", "clp_solver", "cplex_solver", "xpress_solver", "scipy_solver", "DSPpy", "dsp_solver"]

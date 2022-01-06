@@ -39,6 +39,8 @@ class Node:
         self.parameters_changes = []
         self.variables_changes = []
         self.dict_sub_nodes_edges = {}
+        self.objectives_data = {}
+        self.constraints_data = {}
 
     def __str__(self):
 
@@ -69,6 +71,18 @@ class Node:
 
     def get_sub_hyperedges(self):
         return self.hyperedges
+
+    def set_objectives_data(self, obj_data):
+        self.objectives_data = obj_data
+
+    def get_objectives_data(self):
+        return self.objectives_data
+
+    def set_constraints_data(self, constr_data):
+        self.constraints_data = constr_data
+
+    def get_constraints_data(self):
+        return self.constraints_data
 
     def set_sub_hyperedges(self, sub_hyperedges):
         self.hyperedges = sub_hyperedges
@@ -187,9 +201,18 @@ class Node:
 
         return len(self.constraints)
 
-    def get_number_expanded_constraints(self):
+    def get_number_expanded_constraints(self, with_sub_nodes_and_edges=False):
 
-        return self.nb_constraint_matrix
+        total_number_of_constraint = self.nb_constraint_matrix
+
+        if with_sub_nodes_and_edges:
+            for sub_node in self.get_sub_nodes():
+                total_number_of_constraint += sub_node.get_number_expanded_constraints(True)
+
+            for sub_hyperedge in self.get_sub_hyperedges():
+                total_number_of_constraint += sub_hyperedge.get_number_expanded_constraints()
+
+        return total_number_of_constraint
 
     def get_parameter_dict(self):
 

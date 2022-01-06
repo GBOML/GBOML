@@ -21,7 +21,7 @@ Several other options exists and can be retrieved by writing :
 from compiler import compile_gboml, compile_gboml_mdp
 from output import generate_json, generate_pandas
 from solver_api import scipy_solver, clp_solver,\
-    cplex_solver, gurobi_solver, xpress_solver
+    cplex_solver, gurobi_solver, xpress_solver, dsp_solver
 
 import argparse
 import json
@@ -54,10 +54,14 @@ if __name__ == '__main__':
     parser.add_argument("--linprog", help="Scipy linprog solver", action='store_const', const=True)
     parser.add_argument("--gurobi", help="Gurobi solver", action='store_const', const=True)
     parser.add_argument("--xpress", help="Xpress solver", action='store_const', const=True)
+    parser.add_argument("--dsp_de", help="DSP Extensive Form algorithm", action='store_const', const=True)
+    parser.add_argument("--dsp_dw", help="DSP Dantzig-Wolf algorithm", action="store_const", const=True)
 
     # Output
     parser.add_argument("--csv", help="Convert results to CSV format", action='store_const', const=True)
     parser.add_argument("--json", help="Convert results to JSON format", action='store_const', const=True)
+    parser.add_argument("--detailed_json", help="Convert detailed results to JSON format",
+                        action="store_const", const=True)
     parser.add_argument("--log", help="Get log in a file", action="store_const", const=True)
     parser.add_argument("--output", help="Output filename", type=str)
 
@@ -71,11 +75,9 @@ if __name__ == '__main__':
             print("The number of processes must be strictly positive")
             exit()
 
-        program, A, b, C, indep_terms_c, T, name_tuples, factor_map, objective_map = compile_gboml(args.input_file,
-                                                                                                   args.log,
-                                                                                                   args.lex,
-                                                                                                   args.parse,
-                                                                                                   args.nb_processes)
+        program, A, b, C, indep_terms_c, T, name_tuples = compile_gboml(args.input_file, args.log, args.lex,
+                                                                        args.parse, args.nb_processes)
+
         print("All --- %s seconds ---" % (time() - start_time))
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
@@ -114,11 +116,22 @@ if __name__ == '__main__':
 
             x, objective, status, solver_info, \
                 constraints_additional_information, \
-                variables_additional_information = gurobi_solver(A, b, C_sum, objective_offset, name_tuples, factor_map)
+                variables_additional_information = gurobi_solver(A, b, C_sum, objective_offset, name_tuples)
 
         elif args.xpress:
 
             x, objective, status, solver_info = xpress_solver(A, b, C_sum, objective_offset, name_tuples)
+
+        elif args.dsp_dw:
+            x, objective, status, solver_info = dsp_solver(A, b, C_sum, objective_offset, name_tuples,
+                                                           program.get_first_level_constraints_decomposition(),
+                                                           algorithm="dw")
+
+        elif args.dsp_de:
+            x, objective, status, solver_info = dsp_solver(A, b, C_sum, objective_offset, name_tuples,
+                                                           program.get_first_level_constraints_decomposition(),
+                                                           algorithm="de")
+
         else:
 
             print("No solver was chosen")
@@ -155,9 +168,18 @@ if __name__ == '__main__':
             time_str = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
             filename = filename + "_"+time_str
 
-        if args.json:
-            dictionary = generate_json(program, name_tuples, solver_info, status, x, objective, C,
-                                       indep_terms_c, objective_map)
+        if args.json or args.detailed_json:
+            if args.json and args.detailed_json:
+                print("Warning: Selected both json and detailed json results in only detailed json being saved")
+            dictionary = dict()
+            if args.json:
+
+                dictionary = generate_json(program, solver_info, status, x, objective, C,
+                                           indep_terms_c)
+            if args.detailed_json:
+                dictionary = generate_json(program, solver_info, status, x, objective, C,
+                                           indep_terms_c, constraints_additional_information,
+                                           variables_additional_information)
             try:
                 with open(filename+".json", 'w') as outfile:
 
@@ -170,7 +192,7 @@ if __name__ == '__main__':
                 print("Was unable to save the file")
         if args.csv:
 
-            panda_datastructure = generate_pandas(program, x, name_tuples)
+            panda_datastructure = generate_pandas(program, x)
             try:
 
                 panda_datastructure.to_csv(filename+".csv")

@@ -11,7 +11,7 @@ class Hyperlink:
         self.expressions = expressions
         self.parameter_dict = None
         self.nb_param = len(parameters)
-        self.nb_constraints_expanded = 0
+        self.nb_constraint_matrix = 0
         self.nb_constraints = len(constraints)
         self.constr_factors = []
         self.c_triplet_list = []
@@ -19,6 +19,7 @@ class Hyperlink:
         self.line = line
         self.names_changes = []
         self.parameters_changes = []
+        self.constraints_data = {}
 
     def get_line(self):
         return self.line
@@ -41,6 +42,12 @@ class Hyperlink:
 
     def get_expressions(self):
         return self.expression
+
+    def set_constraints_data(self, constr_data):
+        self.constraints_data = constr_data
+
+    def get_constraints_data(self):
+        return self.constraints_data
 
     def add_constraint(self, constr):
 
@@ -78,7 +85,7 @@ class Hyperlink:
 
     def set_constraints_matrix(self, list_matrix):
 
-        self.nb_constraints_expanded += len(list_matrix)
+        self.nb_constraint_matrix += len(list_matrix)
         self.c_triplet_list = list_matrix
 
     def get_constraints_matrix(self):
@@ -90,7 +97,7 @@ class Hyperlink:
 
     def get_number_expanded_constraints(self):
 
-        return self.nb_constraints_expanded
+        return self.nb_constraint_matrix
 
     def get_number_constraints(self):
 
