@@ -1,3 +1,5 @@
+// Working example where x = -4
+
 #TIMEHORIZON T = 1;
 
 #NODE H

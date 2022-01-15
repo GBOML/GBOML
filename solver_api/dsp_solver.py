@@ -47,15 +47,13 @@ def dsp_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
 
     vector_c = vector_c[-1]
 
-    print(structure_indexes)
-
     start_master_constraint, end_master_constraint = structure_indexes[-1]
     master_csr = all_constraints_matrix[start_master_constraint:end_master_constraint + 1, 0:nb_cols]
     master_val, master_row, master_col = master_csr.data, master_csr.indptr, master_csr.indices
     master_nb_lines = end_master_constraint + 1 - start_master_constraint
     minus_infinity_col = [-1000] * nb_cols
     plus_infinity_col = [1000] * nb_cols
-    master_coltypes = ["C"]*nb_cols
+    master_coltypes = []
     flat_name_tuples = flat_nested_list_to_two_level(name_tuples)
 
     for index, _, var_type, var_size in flat_name_tuples:
@@ -96,7 +94,6 @@ def dsp_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
                              vector_c, row_lb, row_up)
 
     dsp.updateBlocks(pointer_to_model)
-    dsp.solveDe(pointer_to_model)
     # Retrieve solver information
     solver_info = {"name": "dsp", "algo": algorithm}
     solution = None
@@ -125,7 +122,5 @@ def dsp_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
 
         print(e)
         status = "error"
-
     dsp.freeEnv(pointer_to_model)
-    print(solution)
     return solution, objective, status, solver_info

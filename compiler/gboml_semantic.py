@@ -128,15 +128,6 @@ def apply_changes_parameters(dictionary_of_parameters, parameters_changes):
             dictionary_of_parameters[parameter_name] = new_parameter
 
 
-def pretty(d, indent=0):
-   for key, value in d.items():
-      print('\t' * indent + str(key))
-      if isinstance(value, dict):
-         pretty(value, indent+1)
-      else:
-         print('\t' * (indent+1) + str(value))
-
-
 def check_and_extend_parameters_variables_in_nodes(nodes_list: list, program_variables_dict: dict, definitions: dict,
                                                    depth_list: list, global_index: int):
     for node in nodes_list:
@@ -168,7 +159,6 @@ def check_and_extend_parameters_variables_in_nodes(nodes_list: list, program_var
         _, nested_nodes_variables = get_layer_in_nested_dict(program_variables_dict, depth_list, only_dict=True)
         depth_list.remove(node_name)
         global_index = set_size_variables(node_variables, flat_branch_dictionary, global_index, nested_nodes_variables)
-
         check_names_repetitions(node.get_constraints())
         check_names_repetitions(node.get_objectives())
 
@@ -201,7 +191,7 @@ def change_node_names_in_edge(edge, names_changes):
     if changes_dictionary != {}:
         constraints = edge.get_constraints()
         for constraint in constraints:
-            leaves = constraint.get_leafs
+            leaves = constraint.get_leafs()
             for leaf in leaves:
                 seed = leaf.get_name()
                 if type(seed) == Identifier:
@@ -247,14 +237,6 @@ def check_linearity(nodes, hyperedges, variables: dict, definitions: dict, accum
     for link in hyperedges:
         check_expressions_dependency_link(link, variables, definitions)
 """
-
-
-def check_replacement_expressions(expressions, variables, parameters, external_parameters):
-    all_expressions = {}
-    for name, expression, line in expressions:
-        leafs = expression.get_leafs()
-        for leaf in leafs:
-            print(leaf)
 
 
 def factorize_program(program, variables, definitions):
@@ -494,7 +476,6 @@ def replace_parameters_hyperlinks(hyperlink: Hyperlink, definitions):
 def replace_parameters_node(node: Node, definitions):
     constraints = node.get_constraints()
     objectives = node.get_objectives()
-    expressions = node.get_expressions()
     for constraint in constraints:
         rhs: Expression = constraint.get_rhs()
         lhs: Expression = constraint.get_lhs()
@@ -506,7 +487,7 @@ def replace_parameters_node(node: Node, definitions):
         obj_expression.replace_basic_parameters(definitions)
 
 
-def check_definition_link(link: Hyperlink, variables_dict: dict, parameters_dict: dict):
+def check_definition_link(link: Hyperlink, variables_dict: dict, parameters_dict: dict, parent_hood=[]):
 
     constraints_list = link.get_constraints()
     link_name = link.get_name()
@@ -520,38 +501,40 @@ def check_definition_link(link: Hyperlink, variables_dict: dict, parameters_dict
         reserved = [index_var]
         lhs = constraint.get_lhs()
         check_definition_expression(lhs, variables_dict, parameters_dict, reserved, in_node_name_parameter=link_name,
-                                    variable_type="external")
+                                    variable_type="external", parent_hood=parent_hood)
         rhs = constraint.get_rhs()
         check_definition_expression(rhs, variables_dict, parameters_dict, reserved, in_node_name_parameter=link_name,
-                                    variable_type="external")
+                                    variable_type="external", parent_hood=parent_hood)
 
 
 def recursive_check_definition_node(node: Node, current_definitions,
-                                    variables_dict: dict, parameters_dict: dict):
+                                    variables_dict: dict, parameters_dict: dict,
+                                    parent_hood=[]):
     node_name = node.get_name()
     sub_nodes, sub_edges = node.get_sub_nodes(), node.get_sub_hyperedges()
-    check_definition(node, variables_dict, current_definitions)
+    check_definition(node, variables_dict, current_definitions, parent_hood=parent_hood)
     variables_dict = variables_dict[node_name]
     parameters_dict = parameters_dict[node_name]
+    parent_hood.append(node_name)
     for sub_node in sub_nodes:
 
         sub_node_name = sub_node.get_name()
         current_definitions[sub_node_name] = parameters_dict[sub_node_name]
         sub_node_variables = {sub_node_name: variables_dict[sub_node_name]}
-        recursive_check_definition_node(sub_node, current_definitions, sub_node_variables, parameters_dict)
+        recursive_check_definition_node(sub_node, current_definitions, sub_node_variables, parameters_dict, parent_hood)
         current_definitions.pop(sub_node_name)
 
     for edge in sub_edges:
         edge_name = edge.get_name()
         current_definitions[edge_name] = parameters_dict[edge_name]
-        check_definition_link(edge, variables_dict, current_definitions)
+        check_definition_link(edge, variables_dict, current_definitions, parent_hood)
         current_definitions.pop(edge_name)
+    parent_hood.pop(-1)
 
 
-def check_definition(node: Node, variables_dict: dict, parameters_dict: dict):
+def check_definition(node: Node, variables_dict: dict, parameters_dict: dict, parent_hood):
     objectives_list = node.get_objectives()
     constraints_list = node.get_constraints()
-    # expressions_list = node.get_expressions()
     node_name = node.get_name()
 
     for constraint in constraints_list:
@@ -568,10 +551,12 @@ def check_definition(node: Node, variables_dict: dict, parameters_dict: dict):
         reserved = [index_var]
         lhs = constraint.get_lhs()
         check_definition_expression(lhs, variables_dict, parameters_dict, reserved,
-                                    in_node_name_variable=node_name, in_node_name_parameter=node_name)
+                                    in_node_name_variable=node_name, in_node_name_parameter=node_name,
+                                    parent_hood=parent_hood)
         rhs = constraint.get_rhs()
         check_definition_expression(rhs, variables_dict, parameters_dict, reserved,
-                                    in_node_name_variable=node_name, in_node_name_parameter=node_name)
+                                    in_node_name_variable=node_name, in_node_name_parameter=node_name,
+                                    parent_hood=parent_hood)
 
     for objective in objectives_list:
         expr = objective.get_expression()
@@ -587,12 +572,13 @@ def check_definition(node: Node, variables_dict: dict, parameters_dict: dict):
 
         reserved = [index_var]
         check_definition_expression(expr, variables_dict, parameters_dict, reserved,
-                                    in_node_name_variable=node_name, in_node_name_parameter=node_name)
+                                    in_node_name_variable=node_name, in_node_name_parameter=node_name,
+                                    parent_hood=parent_hood)
 
 
 def check_definition_expression(expr: Expression, variables_dict: dict, parameters_dict: dict, reserved=[],
                                 variables_allowed=True, in_node_name_variable="", in_node_name_parameter="",
-                                variable_type=""):
+                                variable_type="", parent_hood=[]):
     leaves = expr.get_leafs()
 
     for leaf in leaves:
@@ -650,8 +636,11 @@ def check_definition_expression(expr: Expression, variables_dict: dict, paramete
             elif not is_reserved and \
                     in_node_name != "" and\
                     seed_node_name != "global" and\
-                    in_node_name != seed_node_name:
-
+                    in_node_name != seed_node_name and\
+                    seed_node_name not in parent_hood:
+                print(in_node_name)
+                print(parameters_dict)
+                print(variables_dict)
                 error_("ERROR: referencing variables or parameters defined in node "+str(seed_node_name) +
                        " inside node "+str(in_node_name)+" is not allowed at line "+str(expr.get_line()))
 
@@ -1186,7 +1175,7 @@ def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int,
 
                 child_variable = nested_nodes_variables[child_node_name][child_var_name]
                 child_id = child_variable.get_identifier()
-                start_index = identifier.set_index(child_id.get_index())
+                identifier.set_index(child_id.get_index())
 
                 if identifier.get_size() != child_id.get_size():
                     error_("ERROR: unmatching size in assignment of variable at line : "+str(identifier.get_line()))

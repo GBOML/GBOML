@@ -1,0 +1,24 @@
+
+#TIMEHORIZON T = 2;
+
+#NODE B
+#PARAMETERS
+lower_bound = 5;
+#VARIABLES
+external integer : b;
+#CONSTRAINTS
+b >= lower_bound;
+#OBJECTIVES
+min : b;
+
+#NODE A
+#PARAMETERS
+lower_bound = 6;
+#VARIABLES
+external integer : x;
+#CONSTRAINTS
+x >= lower_bound;
+#OBJECTIVES
+min : x;
+
+#HYPEREDGE H = import H from "test24.txt"

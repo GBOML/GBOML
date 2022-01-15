@@ -1,3 +1,5 @@
+// Test linking with explicit extension
+
 #TIMEHORIZON
 T = 10;
 

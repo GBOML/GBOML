@@ -1,3 +1,5 @@
+// Test linking with global parameters
+
 #TIMEHORIZON
     T = 2;
 

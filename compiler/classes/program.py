@@ -85,8 +85,6 @@ class Program:
     def get(self, list_names):
         if type(list_names) == str:
             name = list_names
-            print(name)
-            print(self.dict_nodes_links)
             if name not in self.dict_nodes_links:
                 return -1
             else:

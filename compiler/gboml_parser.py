@@ -8,9 +8,11 @@
 # ------------
 
 import ply.yacc as yacc  # type: ignore
+from copy import deepcopy
+import os
 
 from .gboml_lexer import tokens, lexer
-from .utils import check_file_exists, error_
+from .utils import check_file_exists, error_, move_to_directory
 from .classes import Time, Expression, Variable, Parameter, Program, Objective, Node, Identifier, \
     Constraint, Condition, TimeInterval, Hyperlink
 
@@ -121,8 +123,10 @@ def p_hyperlink(p):
         imported_node_identifier = p[5]
         filename = p[7]
         list_parameters_redefinitions, list_name_redefinitions = p[8]
-        graph_filename = parse_file(filename)
+        old_dir, cut_filename = move_to_directory(filename)
+        graph_filename = parse_file(cut_filename)
         returned_hyperedge = graph_filename.get(imported_node_identifier)
+        returned_hyperedge = deepcopy(returned_hyperedge)
         if returned_hyperedge is None:
             error_("ERROR: In file " + str(filename) + " there is no hyperedge named " + str(imported_node_identifier))
         if type(returned_hyperedge) == Node:
@@ -130,6 +134,7 @@ def p_hyperlink(p):
         returned_hyperedge.set_names_changes(list_name_redefinitions)
         returned_hyperedge.set_parameters_changes(list_parameters_redefinitions)
         returned_hyperedge.rename(link_identifier)
+        os.chdir(old_dir)
         p[0] = returned_hyperedge
 
 
@@ -170,13 +175,11 @@ def p_node(p):
         node_identifier = p[2]
         imported_node_identifier = p[5]
         filename = p[7]
-        print(p[8])
         list_parameters, list_variables = p[8]
-        print(node_identifier, imported_node_identifier, filename, list_parameters, list_variables)
-        graph_filename = parse_file(filename)
-        print(imported_node_identifier)
-        print(graph_filename.get_nodes()[0].get_name())
+        old_dir, cut_filename = move_to_directory(filename)
+        graph_filename = parse_file(cut_filename)
         returned_node = graph_filename.get(imported_node_identifier)
+        returned_node = deepcopy(returned_node)
         if returned_node is None:
             error_("ERROR: In file "+str(filename)+" there is no node named "+str(imported_node_identifier) +
                    " at line "+str(p.lexer.lineno))
@@ -185,6 +188,7 @@ def p_node(p):
         returned_node.set_parameters_changes(list_parameters)
         returned_node.set_variables_changes(list_variables)
         returned_node.rename(node_identifier)
+        os.chdir(old_dir)
         p[0] = returned_node
 
 
@@ -707,8 +711,6 @@ def p_error(p):
         print('Syntax error: %d:%d: Unexpected token %s namely (%s)' % (p.lineno, find_column(p.lexer.lexdata, p),
                                                                         p.type, str(p.value)))
     else:
-        global list_opened_files
-        print(list_opened_files)
         print('Syntax error: Expected a certain token got EOF(End Of File)')
     exit(-1)
 
@@ -724,12 +726,10 @@ def parse_file(name: str) -> Program:
     # Build the parser
     global list_opened_files
     global cache_graph
-    print(list_opened_files)
-    print(cache_graph)
 
     parser = yacc.yacc()
     check_file_exists(name)
-    print(name)
+
     with open(name, 'r') as content:
 
         data = content.read()

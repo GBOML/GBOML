@@ -184,7 +184,6 @@ class Node:
         return self.name
 
     def rename(self, new_name):
-        print("hi renaming of "+str(new_name))
         self.name = new_name
 
     def get_constraints(self):

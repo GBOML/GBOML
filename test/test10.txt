@@ -1,3 +1,5 @@
+// Non linearity in constraint ERROR
+
 #TIMEHORIZON
 T = 10;
 

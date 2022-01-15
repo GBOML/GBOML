@@ -1,3 +1,5 @@
+// Test working constrainting and optimizing only one element of vector
+
 #TIMEHORIZON
 T = 10;
 

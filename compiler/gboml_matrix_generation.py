@@ -249,8 +249,6 @@ def matrix_generation_a_b(root: Program) -> tuple:
         constr_fact_list = obj.get_constraint_factors()
         number_node_constraints = 0
         factor_mapping = {}
-        object_name = obj.get_name()
-        print(object_name)
         for constr_fact in constr_fact_list:
 
             internal_sparse: coo_matrix = constr_fact.sparse
@@ -303,7 +301,6 @@ def matrix_generation_a_b(root: Program) -> tuple:
             obj.set_constraints_data(factor_mapping)
         obj.free_factors_constraints()
         obj.c_triplet_list = None
-        print(number_node_constraints)
         obj.nb_constraint_matrix = number_node_constraints
     root.link_constraints = None
     sparse_matrix = coo_matrix((all_values, (all_rows, all_columns)),

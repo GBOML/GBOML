@@ -12,39 +12,41 @@
 
 """
 
-from ctypes import *
+from ctypes import cdll, c_void_p, c_int, c_double, c_char, POINTER, byref
 from ctypes.util import find_library
 
 
 class DSPpy:
     """
-    DSPpy is the python class interface with libDSP.so
-    Note that : libDSP.so (or mac equivalent) shall be on the library path
-    This implementation was not tested on Windows as DSP itself was not tested on windows
-
-    For DSP installation steps, please refer to :
-    - https://github.com/Argonne-National-Laboratory/DSP
+    DSPpy is the Python class interface with the shared library
+    Notes : - the shared library (libDsp.so on Linux or libDsp.dylib on OS X) should be on the library path
+            - this implementation was not tested on Windows as DSP itself was not tested on Windows
+            - For DSP installation steps, please refer to: https://github.com/Argonne-National-Laboratory/DSP
 
     """
 
-    def __init__(self):
+    def __init__(self, path=None):
         """__init__
 
         Loads the shared DSP library and returns a DSPpy object which contains an interface
         to the different functions defined in DSPCInterface.h
 
         Args:
+            path(str) : explicit path to the DSP library (if none, the path is searched on the default library path)
 
         Returns:
             DSPpy object
 
         """
-        self.libDSP = cdll.LoadLibrary(find_library("DSP"))
+        if path is None:
+            path = find_library("DSP")
 
-    def createEnv(self):
+        self.libDSP = cdll.LoadLibrary(path)
+
+    def createEnv(self) -> c_void_p:
         """createEnv
 
-        Initializes a C++ a DSP environment and returns a ctype pointer to the environnement
+        Initializes a C++ DSP environment and returns a ctype pointer to the environnement
 
         Args:
 
@@ -56,7 +58,7 @@ class DSPpy:
         pointer_to_env = c_void_p(self.libDSP.createEnv())
         return pointer_to_env
 
-    def freeEnv(self, pointer_to_env):
+    def freeEnv(self, pointer_to_env: c_void_p) -> None:
         """freeEnv
 
         Frees a C++ DSP environment
@@ -70,11 +72,12 @@ class DSPpy:
         self.libDSP.freeEnv.argtypes = [c_void_p]
         self.libDSP.freeEnv(byref(pointer_to_env))
 
-    def loadBlockProblem(self, pointer_to_env, id: int, ncols: int, nrows: int, numels: int, start: list, index: list,
-                         value: list, clbd: list, cubd: list, coltype: list, obj: list, rlbd: list, rubd: list):
+    def loadBlockProblem(self, pointer_to_env: c_void_p, id: int, ncols: int, nrows: int, numels: int, start: list,
+                         index: list, value: list, clbd: list, cubd: list, coltype: list, obj: list, rlbd: list,
+                         rubd: list) -> None:
         """loadBlockProblem
 
-        Loads a block in multiple block structured problem. The loaded block is composed of a CSR form constraint
+        Loads a block in block-structured problems. The loaded block is composed of a CSR form constraint
         matrix, an upper and lower bound on rows and columns, columns types and an objective vector.
 
         Args:
@@ -82,18 +85,20 @@ class DSPpy:
             id (int) : number that identifies the block (0 is the master block)
             ncols (int) : total number of columns in the constraint matrix
             nrows (int) : number of lines in the loaded block constraint matrix
-            numels (int) : number of values in the CSR matrix
-            start (list <int>) : CSR format index pointer array of the constraint matrix
-            index (list <int>) : CSR format index array of the constraint matrix
-            value (list <float>) : CSR format data array of the constraint matrix
-            clbd (list <float>) : column lower bound
-            cubd (list <float>) : column upper bound
+            numels (int) : number of nonzero values in the CSR matrix
+            start (list <int>) : CSR format index pointer array (i.e., array storing the number of nonzero values in all
+                                 previous rows of constraint matrix)
+            index (list <int>) : CSR format index array (i.e., array storing column numbers of nonzero entries in
+                                 constraint matrix)
+            value (list <float>) : CSR format data array (i.e., array storing nonzero entries in constraint matrix)
+            clbd (list <float>) : column lower bound (i.e., lower bound of corresponding variable)
+            cubd (list <float>) : column upper bound (i.e., upper bound of corresponding variable)
             coltype (list <str>) : list of each columns' type
-                                   (respectively "I" for interger, "B" for binary and "C" for continuous)
-            obj (list <float>) : objective vector (the objective vector must be
-                                 the one of the master problem for the subproblems)
-            rlbd (list <float>) : row lower bounds
-            rubd (list <float>) : row upper bounds
+                                   ("I" for interger, "B" for binary and "C" for continuous, respectively)
+            obj (list <float>) : objective vector (the objective vector must be the one of the master problem
+                                 for the subproblems)
+            rlbd (list <float>) : row lower bounds (i.e., lower bound of corresponding constraint)
+            rubd (list <float>) : row upper bounds (i.e., upper bound of corresponding constraint)
 
         Returns:
 
@@ -122,10 +127,10 @@ class DSPpy:
                                      c_start, c_index, c_value, c_clbd, c_cubd,
                                      c_coltype, c_obj, c_rlbd, c_rubd)
 
-    def printModel(self, pointer_to_env):
+    def printModel(self, pointer_to_env: c_void_p) -> None:
         """printModel
 
-        prints the model contained in the DSP environment pointer
+        Prints the model contained in the DSP environment pointer
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a DSP environment
@@ -136,7 +141,7 @@ class DSPpy:
         self.libDSP.printModel.argtypes = [c_void_p]
         self.libDSP.printModel(pointer_to_env)
 
-    def getCpuTime(self, pointer_to_env):
+    def getCpuTime(self, pointer_to_env: c_void_p) -> float:
         """getCpuTime
 
         prints the resolution CPU time
@@ -152,10 +157,10 @@ class DSPpy:
         cpu_time = self.libDSP.getCpuTime(pointer_to_env)
         return cpu_time
 
-    def getDualBound(self, pointer_to_env):
+    def getDualBound(self, pointer_to_env: c_void_p) -> float:
         """getDualBound
 
-        retrieves the dual bound out of a resolved DSP environment
+        Retrieves the dual bound from a solved DSP environment
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
@@ -168,17 +173,17 @@ class DSPpy:
         dual_bound = self.libDSP.getDualBound(pointer_to_env)
         return dual_bound
 
-    def getDualSolution(self, pointer_to_env, ncols):
+    def getDualSolution(self, pointer_to_env: c_void_p, ncols: int) -> list:
         """getDualSolution
 
-        retrieves the dual solution out of a resolved DSP environment
+        Retrieves the dual solution from a solved DSP environment
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
             ncols (int) : number of columns in the optimization problem
 
         Returns:
-            solution (float) : Dual solution
+            solution (list <float>) : Dual solution
         """
         self.libDSP.getDualSolution.argtypes = [c_void_p, c_int, POINTER(c_double)]
         c_ncols = c_int(ncols)
@@ -187,10 +192,10 @@ class DSPpy:
         solution = self.__convert_to_list(c_solution)
         return solution
 
-    def getPrimalBound(self, pointer_to_env):
+    def getPrimalBound(self, pointer_to_env: c_void_p) -> float:
         """getPrimalBound
 
-        retrieves the primal bound out of a resolved DSP environment
+        Retrieves the primal bound from a solved DSP environment
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
@@ -203,17 +208,17 @@ class DSPpy:
         primal_bound = self.libDSP.getPrimalBound(pointer_to_env)
         return primal_bound
 
-    def getPrimalSolution(self, pointer_to_env, ncols):
+    def getPrimalSolution(self, pointer_to_env: c_void_p, ncols: int) -> list:
         """getPrimalSolution
 
-        retrieves the primal solution out of a resolved DSP environment
+        Retrieves the primal solution from a solved DSP environment
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
             ncols (int) : number of columns in the optimization problem
 
         Returns:
-            solution (float) : Primal solution
+            solution (list <float>) : Primal solution
         """
         self.libDSP.getPrimalSolution.argtypes = [c_void_p, c_int, POINTER(c_double)]
         c_ncols = c_int(ncols)
@@ -222,10 +227,10 @@ class DSPpy:
         solution = self.__convert_to_list(c_solution)
         return solution
 
-    def getNumIterations(self, pointer_to_env):
+    def getNumIterations(self, pointer_to_env: c_void_p) -> int:
         """getNumIterations
 
-        retrieves the number of iterations needed to solve DSP environment
+        Retrieves the number of iterations needed to solve optimization problem
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
@@ -238,10 +243,10 @@ class DSPpy:
         nb_iteration = self.libDSP.getNumIterations(pointer_to_env)
         return nb_iteration
 
-    def getStatus(self, pointer_to_env):
+    def getStatus(self, pointer_to_env: c_void_p) -> int:
         """getStatus
 
-        retrieves the solved DSP environment's status
+        Retrieves the status of a solved DSP environment
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
@@ -254,10 +259,10 @@ class DSPpy:
         status = self.libDSP.getStatus(pointer_to_env)
         return status
 
-    def getTotalNumCols(self, pointer_to_env):
+    def getTotalNumCols(self, pointer_to_env: c_void_p) -> int:
         """getTotalNumCols
 
-        retrieves the total number of columns in a DSP environment
+        Retrieves the total number of columns in a DSP environment
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
@@ -270,10 +275,10 @@ class DSPpy:
         nb_col = self.libDSP.getTotalNumCols(pointer_to_env)
         return nb_col
 
-    def getTotalNumRows(self, pointer_to_env):
+    def getTotalNumRows(self, pointer_to_env: c_void_p) -> int:
         """getTotalNumRows
 
-        retrieves the total number of rows in a DSP environment
+        Retrieves the total number of rows in a DSP environment
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
@@ -286,10 +291,10 @@ class DSPpy:
         nb_rows = self.libDSP.getTotalNumRows(pointer_to_env)
         return nb_rows
 
-    def getWallTime(self, pointer_to_env):
+    def getWallTime(self, pointer_to_env: c_void_p) -> int:
         """getWallTime
 
-        prints the resolution wall time
+        Prints the solving wall time
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a solved DSP environment
@@ -302,11 +307,10 @@ class DSPpy:
         wall_time = self.libDSP.getWallTime(pointer_to_env)
         return wall_time
 
-    def updateBlocks(self, pointer_to_env):
+    def updateBlocks(self, pointer_to_env: c_void_p) -> None:
         """updateBlocks
 
-        Once all the blocks loaded, update blocks updates the final fields of a DSP environment
-        to make it ready for resolution
+        Once all the blocks have been loaded, updateBlocks must be called to enable the solving
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a loaded DSP environment
@@ -317,10 +321,11 @@ class DSPpy:
         self.libDSP.updateBlocks.argtypes = [c_void_p]
         self.libDSP.updateBlocks(pointer_to_env)
 
-    def solveDe(self, pointer_to_env):
+    def solveDe(self, pointer_to_env: c_void_p) -> None:
         """solveDe
 
-        Solves a DSP environment using the Extensive Form method
+        Solves an optimization problem using the Extensive Form method (i.e., aggregates all blocks and passes to
+        off-the-shelf solver)
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a loaded DSP environment
@@ -331,10 +336,10 @@ class DSPpy:
         self.libDSP.solveDe.argtypes = [c_void_p]
         self.libDSP.solveDe(pointer_to_env)
 
-    def solveDw(self, pointer_to_env):
+    def solveDw(self, pointer_to_env: c_void_p) -> None:
         """solveDw
 
-        Solves a DSP environment using the Dantzig Wolf method
+        Solves an optimization problem using the Dantzig-Wolf algorithm
 
         Args:
             pointer_to_env (c_void_p) : ctypes pointer to a loaded DSP environment
@@ -346,16 +351,16 @@ class DSPpy:
         self.libDSP.solveDw(pointer_to_env)
 
     @staticmethod
-    def __convert_to_list(c_list):
+    def __convert_to_list(c_list: POINTER) -> list:
         """__convert_to_list
 
-        Converts a list of ctypes elements to a python list of elements
+        Converts a list of ctypes elements to a Python list of elements
 
         Args:
             c_list : ctypes list of values
 
         Returns:
-            list_values : python list of values
+            list_values : Python list of values
 
         """
         list_values = []
@@ -364,7 +369,7 @@ class DSPpy:
         return list_values
 
     @staticmethod
-    def __convert_column_type_to_c_char(list_char: list):
+    def __convert_column_type_to_c_char(list_char: list) -> POINTER(c_char):
         """__convert_column_type_to_c_char
 
         Converts a list of strings (containing 'B', 'I' and 'C') to ctypes list of char equivalent
@@ -390,24 +395,23 @@ class DSPpy:
         return c_list_char
 
     @staticmethod
-    def __convert_list_to_c_double(list_doubles: list):
+    def __convert_list_to_c_double(list_doubles: list) -> POINTER(c_double):
         """__convert_list_to_c_double
 
         Converts a list of floats to a ctypes list of c_double
 
         Args:
-            list_doubles : list of numbers
+            list_doubles (list) : list of numbers
 
         Returns:
-            c_list_doubles : list of ctypes c_double
+            c_list_doubles (POINTER(c_double) : list of ctypes c_double
 
         """
-        print(list_doubles)
         c_list_doubles = (c_double * len(list_doubles))(*list_doubles)
         return c_list_doubles
 
     @staticmethod
-    def __convert_list_to_c_int(list_ints: list):
+    def __convert_list_to_c_int(list_ints: list) -> POINTER(c_int):
         """__convert_list_to_c_int
 
         Converts a list of floats to a ctypes list of c_int

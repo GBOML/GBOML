@@ -168,7 +168,6 @@ def t_id(t):
         t.type = keywords.get(t.value, 'ID')
     else:
         t.type = "ID"
-        # print(t.value)
     return t
 
 

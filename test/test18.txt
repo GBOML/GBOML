@@ -1,3 +1,5 @@
+// Test objective declared as sum
+
 #TIMEHORIZON
 T = 10;
 

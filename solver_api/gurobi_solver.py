@@ -14,6 +14,7 @@ and passes it to the gurobi solver.
 
 import numpy as np
 from scipy.sparse import coo_matrix
+from compiler.utils import flat_nested_list_to_two_level
 
 
 def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
@@ -61,14 +62,14 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarr
     model.addMConstr(matrix_a, x, '<', b)
     model.setObjective(vector_c @ x + objective_offset, GRB.MINIMIZE)
 
-    for _, variable_indexes in name_tuples:
+    flat_name_tuples = flat_nested_list_to_two_level(name_tuples)
 
-        for index, _, var_type, var_size in variable_indexes:
+    for index, _, var_type, var_size in flat_name_tuples:
 
-            if var_type == "integer":
-                x[index:index + var_size].vtype = GRB.INTEGER
-            if var_type == "binary":
-                x[index:index + var_size].vtype = GRB.BINARY
+        if var_type == "integer":
+            x[index:index + var_size].vtype = GRB.INTEGER
+        if var_type == "binary":
+            x[index:index + var_size].vtype = GRB.BINARY
 
     # Gather and retrieve solver information
     solver_info = dict()

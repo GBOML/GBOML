@@ -75,6 +75,7 @@ class Parameter(Symbol):
                     except ValueError:
 
                         error_("file "+expression+" contains values that are not numbers "+nb)
+            f.close()
 
     def get_expression(self):
         

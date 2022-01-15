@@ -90,9 +90,9 @@ if __name__ == '__main__':
                 file.write(str(A))
                 file.close()
             """
-            # print("Matrix A ", A)
-            # print("Vector b ", b)
-            # print("Vector C ", C_sum)
+            print("Matrix A ", A)
+            print("Vector b ", b)
+            print("Vector C ", C_sum)
 
         objective_offset = float(indep_terms_c.sum())
         status = None

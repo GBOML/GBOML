@@ -1,3 +1,6 @@
+// working example of a minimization of un-constrainted variable
+// No solution
+
 #TIMEHORIZON T = 10;
 
 #NODE H

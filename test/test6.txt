@@ -1,9 +1,13 @@
+// working example where x[t] = b for every t in T
+
 #TIMEHORIZON T = 10;
 
 #NODE H
+#PARAMETERS
+b = 4;
 #VARIABLES 
 internal : x[T];
 #CONSTRAINTS
-x[t]>=4;
+x[t]>=b;
 #OBJECTIVES
 min : x[t];

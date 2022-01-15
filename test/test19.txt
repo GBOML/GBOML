@@ -1,3 +1,5 @@
+// Test explicit objective extension
+
 #TIMEHORIZON
 T = 10;
 

@@ -1,0 +1,26 @@
+//encapsulating imported nodes with redefinitions
+
+#TIMEHORIZON T = 2;
+
+#GLOBAL
+pi = 3.14;
+
+#NODE A
+    #PARAMETERS
+        diameter = 12;
+        circumference = diameter * global.pi;
+
+    #NODE B = import DEMAND from "../examples/microgrid/microgrid.txt" with
+        consumption internal;
+
+    #NODE PV = import SOLAR_PV from "../examples/microgrid/microgrid.txt" with
+        pi = global.pi;
+
+    #VARIABLES
+        internal : x <- PV.capacity;
+
+    #CONSTRAINTS
+        x == 120;
+
+    #OBJECTIVES
+        min: x;

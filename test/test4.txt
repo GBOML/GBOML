@@ -1,3 +1,5 @@
+// Error in variable declared as scalar
+
 #TIMEHORIZON T = 10;
 
 #NODE H
