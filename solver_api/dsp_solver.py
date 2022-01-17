@@ -53,23 +53,17 @@ def dsp_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray,
     master_nb_lines = end_master_constraint + 1 - start_master_constraint
     minus_infinity_col = [-1000] * nb_cols
     plus_infinity_col = [1000] * nb_cols
-    master_coltypes = []
+    master_coltypes = ["C"]*nb_cols
     flat_name_tuples = flat_nested_list_to_two_level(name_tuples)
 
     for index, _, var_type, var_size in flat_name_tuples:
 
         if var_type == "integer":
 
-            integer_types = ["I"]*var_size
-            master_coltypes += integer_types
+            master_coltypes[index:index+var_size] = ["I"]*var_size
         if var_type == "binary":
 
-            binary_types = ["B"]*var_size
-            master_coltypes += binary_types
-
-        else:
-            continuous_types = ["C"]*var_size
-            master_coltypes += continuous_types
+            master_coltypes[index:index+var_size] = ["B"]*var_size
 
     row_lb = [-float("inf")] * master_nb_lines
     row_up = vector_b[start_master_constraint:end_master_constraint + 1]

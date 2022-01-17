@@ -13,7 +13,8 @@ and passes it to the xpress solver.
 """
 
 import numpy as np
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, csr_matrix
+from compiler.utils import flat_nested_list_to_two_level
 
 
 def xpress_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarray, objective_offset: float,
@@ -49,35 +50,35 @@ def xpress_solver(matrix_a: coo_matrix, vector_b: np.ndarray, vector_c: np.ndarr
     # Generating the model
     model = xp.problem()
     matrix_a = matrix_a.astype(float)
+    _, nb_columns = matrix_a.shape
 
-    var_list = []
+    var_list = [xp.var(vartype=xp.continuous, lb=float('-inf')) for _ in range(nb_columns)]
+    flat_name_tuples = flat_nested_list_to_two_level(name_tuples)
     is_milp = False
-    for _, variable_indexes in name_tuples:
+    for index, _, var_type, var_size in flat_name_tuples:
+        if var_type == "integer":
+            is_milp = True
+            for i in range(var_size):
+                var_list[index+i] = xp.var(vartype=xp.integer, lb=float('-inf'))
+        elif var_type == "binary":
+            is_milp = True
+            for i in range(var_size):
+                var_list[index+i] = xp.var(vartype=xp.binary)
 
-        for index, _, var_type, var_size in variable_indexes:
-
-            if var_type == "integer":
-                is_milp = True
-                for _ in range(var_size):
-                    var_list.append(xp.var(vartype=xp.integer, lb=float('-inf')))
-            elif var_type == "binary":
-                is_milp = True
-                for _ in range(var_size):
-                    var_list.append(xp.var(vartype=xp.binary))
-            else:
-                for _ in range(var_size):
-                    var_list.append(xp.var(vartype=xp.continuous, lb=float('-inf')))
     var_array = np.array(var_list)
     model.addVariable(var_array)
-    data, row, col = matrix_a.data, matrix_a.row, matrix_a.col
-    nb_constraints, nb_vars = matrix_a.shape
-    for index_constraint in range(nb_constraints):
-        indexes = np.where(row == index_constraint)
-        columns = col[indexes]
-        lhs_constraint = xp.Dot(data[indexes], var_array[columns])
-        model.addConstraint(lhs_constraint <= vector_b[index_constraint])
+    nb_constraints, _ = matrix_a.shape
+    csr_matrix_format_a = matrix_a.tocsr()
+    csr_data, csr_indices, csr_ptr = csr_matrix_format_a.data, csr_matrix_format_a.indices, csr_matrix_format_a.indptr
 
-    objective = xp.Dot(vector_c, var_array) + objective_offset
+    for i in range(nb_constraints):
+        pt = slice(csr_ptr[i], csr_ptr[i+1])
+        columns = csr_indices[pt]
+        values = csr_data[pt]
+        lhs_constraint = xp.Dot(np.array(values), var_array[columns])
+        model.addConstraint(lhs_constraint <= vector_b[i])
+
+    objective = xp.Dot(vector_c.reshape(-1), var_array) + objective_offset
     model.setObjective(objective)
 
     # Retrieve solver information

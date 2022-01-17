@@ -1165,6 +1165,11 @@ def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int,
         if child_assignment_identifier:
             child_node_name = child_assignment_identifier.get_node_name()
             child_var_name = child_assignment_identifier.get_name()
+            child_expression = child_assignment_identifier.get_expression()
+            if child_expression is None:
+                child_declared_size = 1
+            else:
+                child_declared_size = child_expression.evaluate_expression(dictionary_param)
             if child_assignment_identifier.get_type() != identifier.get_type():
                 error_("ERROR: assigning variables of different types is not allowed at line : "
                        + str(identifier.get_line()))
@@ -1176,8 +1181,7 @@ def set_size_variables(dictionary_var: dict, dictionary_param: dict, index: int,
                 child_variable = nested_nodes_variables[child_node_name][child_var_name]
                 child_id = child_variable.get_identifier()
                 identifier.set_index(child_id.get_index())
-
-                if identifier.get_size() != child_id.get_size():
+                if identifier.get_size() != child_id.get_size() or identifier.get_size() != child_declared_size:
                     error_("ERROR: unmatching size in assignment of variable at line : "+str(identifier.get_line()))
             else:
                 error_('ERROR: Unknown identifier '+str(child_assignment_identifier)+" not defined at line " +
