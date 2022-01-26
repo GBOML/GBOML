@@ -49,6 +49,4 @@ An early version of the GBOML framework was introduced in [a recent paper](https
 
 ## License
 
-Copyright since 2020 Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst, University of Liege
-
-ADD LICENSE
+Copyright since 2020 Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst, University of Liege. All rights reserved.
