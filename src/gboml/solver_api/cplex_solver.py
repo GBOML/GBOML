@@ -18,12 +18,14 @@ from gboml.compiler.utils import flat_nested_list_to_two_level
 import numpy as np
 from scipy.sparse import coo_matrix
 import time
+import os
 
 
 def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
                  vector_c: np.ndarray,
                  objective_offset: float,
-                 name_tuples: dict) -> tuple:
+                 name_tuples: dict,
+                 opt_file: str = None) -> tuple:
     """cplex_solver
 
         takes as input the matrix A, the vectors b and c. It returns
@@ -37,7 +39,7 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
             objective_offset -> float of the objective offset
             name_tuples -> dictionary of <node_name variables> used
                            to get the type
-
+            opt_file -> optimization parameters file
         Returns:
             solution -> np.ndarray of the flat solution
             objective -> float of the objective value
@@ -53,6 +55,9 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         print("Warning: Did not find the CPLEX package")
         exit(0)
 
+    if opt_file is None:
+        opt_file = 'gboml/solver_api/cplex.opt'
+    print(os.getcwd())
     # Convert to appropriate structure
     matrix_a_zipped = zip(matrix_a.row.tolist(), matrix_a.col.tolist(),
                           matrix_a.data)
@@ -94,7 +99,7 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
     option_info = {}
     try:
 
-        with open('solver_api/cplex.opt', 'r') as optfile:
+        with open(opt_file, 'r') as optfile:
 
             lines = optfile.readlines()
     except IOError:

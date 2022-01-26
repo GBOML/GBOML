@@ -132,6 +132,8 @@ tokens = (
     'ASSIGN',
     ) + tuple(keywords.values()) + tuple(reserved.values())
 
+reserved["#LINK"] = "HYPEREDGE"
+
 # Regular expression rules for simple tokens
 
 t_PLUS = r'\+'

@@ -17,12 +17,14 @@ and passes it to the gurobi solver.
 import numpy as np
 from scipy.sparse import coo_matrix
 from gboml.compiler.utils import flat_nested_list_to_two_level
+import os
 
 
 def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
                   vector_c: np.ndarray,
                   objective_offset: float,
-                  name_tuples: dict) -> tuple:
+                  name_tuples: dict,
+                  opt_file: str = None) -> tuple:
     """gurobi_solver
 
         takes as input the matrix A, the vectors b and c. It returns
@@ -36,6 +38,7 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
             objective_offset -> float of the objective offset
             name_tuples -> dictionary of <node_name variables> used to get
                            the type
+            opt_file -> optimization parameters file
 
         Returns:
             solution -> np.ndarray of the flat solution
@@ -57,6 +60,9 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
     except ImportError:
         print("Warning: Did not find the gurobipy package")
         exit(0)
+
+    if opt_file is None:
+        opt_file = 'gboml/solver_api/gurobi.opt'
 
     solution = None
     objective = None
@@ -91,7 +97,7 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
 
     try:
 
-        with open('solver_api/gurobi.opt', 'r') as optfile:
+        with open(opt_file, 'r') as optfile:
             lines = optfile.readlines()
     except IOError:
 

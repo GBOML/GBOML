@@ -76,6 +76,7 @@ def main():
     parser.add_argument("--log", help="Get log in a file",
                         action="store_const", const=True)
     parser.add_argument("--output", help="Output filename", type=str)
+    parser.add_argument("--opt", help="Optimization options filename", type=str)
 
     args = parser.parse_args()
     start_time = time()
@@ -118,21 +119,21 @@ def main():
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             cplex_solver(A, b, C_sum, objective_offset, name_tuples)
+             cplex_solver(A, b, C_sum, objective_offset, name_tuples, args.opt)
 
         elif args.gurobi:
 
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             gurobi_solver(A, b, C_sum, objective_offset, name_tuples)
+             gurobi_solver(A, b, C_sum, objective_offset, name_tuples, args.opt)
 
         elif args.xpress:
 
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             xpress_solver(A, b, C_sum, objective_offset, name_tuples)
+             xpress_solver(A, b, C_sum, objective_offset, name_tuples, args.opt)
 
         elif args.dsp_dw:
             x, objective, status, solver_info = \

@@ -245,10 +245,13 @@ class GbomlGraph:
         return solver_function(self.matrix_a, self.matrix_b, vector_c,
                                objective_offset, self.program.get_tuple_name())
 
-    def solve_gurobi(self):
+    def solve_gurobi(self, opt_file: str = None):
         """
         bound method solving the flattened optimization model with Gurobi
 
+        Args:
+            opt_file (str) : path to an optimization parameters file
+
         Returns:
             solution (ndarray) : flattened solution
             objective (float) : objective value
@@ -260,12 +263,19 @@ class GbomlGraph:
                                            concerning variables
 
         """
-        return self.__solve(gurobi_solver)
+        gurobi_solver_function = \
+            lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
+                gurobi_solver(matrix_a, vector_b, vector_c, objective_offset,
+                              name_tuples, opt_file)
+        return self.__solve(gurobi_solver_function)
 
-    def solve_cplex(self):
+    def solve_cplex(self, opt_file: str = None):
         """
         bound method solving the flattened optimization model with CPLEX
 
+        Args:
+            opt_file (str) : path to an optimization parameters file
+
         Returns:
             solution (ndarray) : flattened solution
             objective (float) : objective value
@@ -276,13 +286,19 @@ class GbomlGraph:
             variables_information (dict) : dict of additional information
                                            concerning variables
         """
+        cplex_solver_function = \
+            lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
+                cplex_solver(matrix_a, vector_b, vector_c, objective_offset,
+                              name_tuples, opt_file)
+        return self.__solve(cplex_solver_function)
 
-        return self.__solve(cplex_solver)
-
-    def solve_xpress(self):
+    def solve_xpress(self, opt_file: str = None):
         """
         bound method solving the flattened optimization model with Xpress
 
+        Args:
+            opt_file (str) : path to an optimization parameters file
+
         Returns:
             solution (ndarray) : flattened solution
             objective (float) : objective value
@@ -293,7 +309,11 @@ class GbomlGraph:
             variables_information (dict) : dict of additional information
                                            concerning variables
         """
-        return self.__solve(xpress_solver)
+        xpress_solver_function = \
+            lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
+                xpress_solver(matrix_a, vector_b, vector_c, objective_offset,
+                              name_tuples, opt_file)
+        return self.__solve(xpress_solver_function)
 
     def solve_clp(self):
         """
@@ -323,13 +343,15 @@ class GbomlGraph:
             solver_info (dict) : dictionary of solver information
 
         """
-        vector_c = np.asarray(self.vector_c.sum(axis=0), dtype=float)
-        objective_offset = float(self.indep_term_c.sum())
-        return dsp_solver(self.matrix_a, self.matrix_b, vector_c,
-                          objective_offset, self.program.get_tuple_name(),
-                          self.program.
-                          get_first_level_constraints_decomposition(),
-                          algorithm=algorithm)
+
+        dsp_solver_function = \
+            lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
+                dsp_solver(matrix_a, vector_b, vector_c, objective_offset,
+                           name_tuples, self.program.
+                           get_first_level_constraints_decomposition(),
+                           algorithm=algorithm)
+
+        return self.__solve(dsp_solver_function)
 
     def turn_solution_to_dictionary(self, solver_data, status, solution,
                                     objective, constraint_info=None,

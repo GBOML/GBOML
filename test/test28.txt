@@ -28,7 +28,7 @@
                 #OBJECTIVES
                     min: y[t];
 
-            #HYPEREDGE H
+            #LINK H
                 #PARAMETERS
                     param = A.param;
                 #CONSTRAINTS
