@@ -7,9 +7,9 @@ long_description = Path("README.md").read_text()
 
 setup(
     name='gboml',
-    description='GBOML: Graph-Based Optimization Modeling Language'
+    description='GBOML: Graph-Based Optimization Modeling Language',
     long_description=long_description,
-    long_description_content_type='text/markdown'
+    long_description_content_type='text/markdown',
     version=__version__,
     entry_points={
         'console_scripts': [
