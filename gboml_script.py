@@ -4,80 +4,9 @@ from compiler.classes import Parameter, Expression, Node, Hyperlink, Time, Progr
 from compiler.utils import error_, move_to_directory
 from enum import Enum
 import os
-from solver_api import cplex_solver, gurobi_solver, clp_solver
+from solver_api import cplex_solver, gurobi_solver, clp_solver, dsp_solver, xpress_solver
 from copy import deepcopy
 import numpy as np
-
-
-# TODO
-# first check the whole thing
-# Structure and problem print
-# Solve the whole thing
-# Hyperedge problem ?
-
-
-def test_gboml_python_interface():
-    timehorizon_considered = 10
-    gboml_model = GbomlGraph(timehorizon_considered)
-    if gboml_model.get_timehorizon() != timehorizon_considered:
-        error_('Timehorizon SET : FAILED')
-    print("Timehorizon SET : OK ")
-
-    gboml_model.set_timehorizon(12)
-    if gboml_model.get_timehorizon() != 12:
-        error_('Timehorizon CHANGE : FAILED')
-    print("Timehorizon CHANGE : OK ")
-
-    node_pv = gboml_model.import_node("examples/microgrid/microgrid.txt", "SOLAR_PV", copy=True)
-    if node_pv.get_name() != "SOLAR_PV" and type(node_pv) != Node:
-        error_('Import Node without renaming : FAILED')
-    print("Import Node without renaming : OK")
-
-    node_b = gboml_model.import_node("examples/microgrid/microgrid.txt", "DEMAND", new_node_name="B", copy=True)
-    if node_b.get_name() != "B" and type(node_b) != Node:
-        error_('Import Node with renaming : FAILED')
-    print("Import Node with renaming : OK")
-
-    all_parameters_names = []
-    all_parameters_values = []
-    for i, parameter in enumerate(node_pv.get_parameters()):
-        all_parameters_names.append(parameter.get_name())
-        all_parameters_values.append(i)
-
-    gboml_model.redefine_parameters_from_list(node_pv, all_parameters_names, all_parameters_values)
-    for i, parameter in enumerate(node_pv.get_parameters_changes()):
-        name = parameter.get_name()
-        value = parameter.get_expression().get_name()
-
-        if name != all_parameters_names[i] and value != all_parameters_values[i]:
-            error_("Parameter change by list : FAILED")
-    print("Parameter change by list : OK")
-    node_pv_2 = gboml_model.import_node("examples/microgrid/microgrid.txt", "SOLAR_PV", copy=True)
-    if len(node_pv_2.get_parameters_changes()) != 0:
-        error_("Copying node : FAILED")
-    print("Copying node : OK")
-
-    gboml_model.remove_objective_in_node(node_pv_2, "hi")
-    if len(node_pv_2.get_objectives()) != 0:
-        error_("Removing objective : FAILED")
-    print("Removing objective : OK")
-
-    gboml_model.change_type_variable_in_node(node_pv_2, "investment", VariableType.EXTERNAL)
-    if len(node_pv_2.get_variables_changes()) != 1:
-        error_("Changing variables type : FAILED")
-
-    var_name, var_type, line = node_pv_2.get_variables_changes()[0]
-    if var_name != "investment" or var_type != VariableType.EXTERNAL.value:
-        error_("Changing variables type : FAILED")
-    print("Changing variables type : OK")
-    nodes, edges = gboml_model.import_all_nodes_and_edges("examples/microgrid/microgrid.txt")
-
-    gboml_model.add_nodes_in_model(*nodes)
-    gboml_model.add_hyperedges_in_model(*edges)
-
-    gboml_model.build_model()
-    print(gboml_model.solve_cplex())
-    exit()
 
 
 class VariableType(Enum):
@@ -333,6 +262,44 @@ class GbomlGraph:
 
         """
         return self.__solve(clp_solver)
+
+    def solve_xpress(self):
+        """
+        solve_xpress solves the optimization problem via Xpress
+
+        Returns:
+            solution -> np.ndarray of the flat solution
+
+            objective -> float of the objective value
+
+            status -> solution status
+
+            solver_info -> dictionary of solver information
+
+        """
+        return self.__solve(xpress_solver)
+
+    def solve_dsp(self, algorithm="de"):
+        """
+        solve_clp solves the optimization problem via DSP
+
+        Args:
+            algorithm (str): algorithm selected ("de" for the extensive form and "dw" for Dantzig-Wolf)
+
+        Returns:
+            solution -> np.ndarray of the flat solution
+
+            objective -> float of the objective value
+
+            status -> solution status
+
+            solver_info -> dictionary of solver information
+
+        """
+        vector_c = np.asarray(self.vector_c.sum(axis=0), dtype=float)
+        objective_offset = float(self.indep_term_c.sum())
+        return dsp_solver(self.matrix_a, self.matrix_b, vector_c, objective_offset, self.program.get_tuple_name(),
+                          program.get_first_level_constraints_decomposition(), algorithm=algorithm)
 
     @staticmethod
     def import_all_nodes_and_edges(filename):

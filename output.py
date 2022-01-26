@@ -13,7 +13,7 @@ into respectively a json and csv file.
         json.dump(dictionary, outfile, indent=4)
 
 """
-
+# twine upload --repository-url https://test.pypi.org/legacy/ dist/pyexample-0.1.0.tar.gz
 import pandas as pd
 from version import __version__
 
@@ -41,6 +41,19 @@ def convert_parameter_dict_to_values(parameter_name_object_dict: dict) -> dict:
 
 
 def get_nodes_and_edges_model_information(nodes, edges):
+    """get_nodes_and_edges_model_information
+
+        recursively turning all the information relative to the model contained in a list of nodes and hyperedges
+
+        Args:
+            nodes (list <Node>) : list of nodes
+            edges (list <Hyperedge>) : list of hyperedges
+
+        Returns:
+            nodes_information : node model information
+            hyperedge_info : hyperedge model information
+
+    """
     nodes_information = {}
     for node in nodes:
         node_data = dict()
@@ -74,17 +87,24 @@ def get_nodes_and_edges_model_information(nodes, edges):
     return nodes_information, hyperedge_info
 
 
-def pretty(d, indent=0):
-    for key, value in d.items():
-        print('\t' * indent + str(key))
-        if isinstance(value, dict):
-            pretty(value, indent + 1)
-        else:
-            print('\t' * (indent + 1) + str(value))
-
-
 def dict_values_in_nested_dict(nodes, hyperedges, solution, c_matrix_time_solution, constraint_info=dict(),
                                variables_info=dict()):
+    """dict_values_in_nested_dict
+
+        recursively turning all the information relative to the solution contained in a list of nodes and hyperedges
+
+        Args:
+            nodes (list <Node>) : list of nodes
+            hyperedges (list <Hyperedge>) : list of hyperedges
+            solution (numpy array) : array of the solution
+            c_matrix_time_solution (numpy array) : array of the objective_matrix * solution + independent terms
+            constraint_info (dict) : eventual additional information relative to the constraints
+            variables_info (dict) : eventual additional information relative
+
+        Returns:
+            dict_solution (dict) : dictionary gathering and structuring all the information
+
+    """
     dict_solution = {}
 
     for node in nodes:
@@ -194,14 +214,13 @@ def generate_json(program, solver_data, status, solution, objective, c_matrix, i
             objective (float): value of the objective
             c_matrix (array): matrix of all the objectives
             indep_terms_c (array): array of all the independent terms of each objective
-            objective_map (dict): dictionary of the mapping between node, objective and index in matrix
+            constraint_info (dict): dictionary containing additional constraints information
+            variables_info (dict): dictionary containing additional variables information
 
         Returns:
             gathered_data: dictionary containing all the gathered information
 
     """
-    # print(constraint_info)
-    # print(variables_info)
     gathered_data = dict()
     gathered_data["version"] = __version__
     model_data = {}
@@ -232,6 +251,26 @@ def generate_json(program, solver_data, status, solution, objective, c_matrix, i
 
 
 def flat_graph_and_add_node_prefix(nodes, hyperedges, solution, prefix=""):
+    """flat_graph_and_add_node_prefix
+
+        creates a list of the nodes and hyperedges variables & parameters and their value. The name of the variable and
+        parameters is given as : parent.parent.
+
+        Args:
+            program (Program): program object containing the augmented abstract syntax tree
+            solver_data (dict): dictionary containing the solver data
+            status (str): status of the solver
+            solution (array): flat array containing the problem's solution
+            objective (float): value of the objective
+            c_matrix (array): matrix of all the objectives
+            indep_terms_c (array): array of all the independent terms of each objective
+            constraint_info (dict): dictionary containing additional constraints information
+            variables_info (dict): dictionary containing additional variables information
+
+        Returns:
+            gathered_data: dictionary containing all the gathered information
+
+    """
     name_tuples = []
     for node in nodes:
         variables_dict = node.get_dictionary_variables()

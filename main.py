@@ -27,16 +27,9 @@ import argparse
 import json
 import numpy as np
 import sys
-from time import gmtime, strftime, sleep, time
+from time import gmtime, strftime, time
 
-
-def sort_coo(m):
-    tuples = zip(m.row, m.col, m.data)
-    return sorted(tuples, key=lambda x: (x[0], x[2]))
-
-
-if __name__ == '__main__':
-
+def main():
     parser = argparse.ArgumentParser(allow_abbrev=False,
                                      description='Compiler and solver for the generic system model language')
     parser.add_argument("input_file", type=str)
@@ -82,14 +75,6 @@ if __name__ == '__main__':
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
         if args.matrix:
-            """A.maxprint = A.shape[0]
-            with open("spare_matrix.txt", "w") as file:
-                file.write(str(A.data))
-                file.write(str(A.col))
-                file.write(str(A.row))
-                file.write(str(A))
-                file.close()
-            """
             print("Matrix A ", A)
             print("Vector b ", b)
             print("Vector C ", C_sum)
@@ -109,14 +94,14 @@ if __name__ == '__main__':
         elif args.cplex:
 
             x, objective, status, solver_info, \
-                constraints_additional_information, \
-                variables_additional_information = cplex_solver(A, b, C_sum, objective_offset, name_tuples)
+            constraints_additional_information, \
+            variables_additional_information = cplex_solver(A, b, C_sum, objective_offset, name_tuples)
 
         elif args.gurobi:
 
             x, objective, status, solver_info, \
-                constraints_additional_information, \
-                variables_additional_information = gurobi_solver(A, b, C_sum, objective_offset, name_tuples)
+            constraints_additional_information, \
+            variables_additional_information = gurobi_solver(A, b, C_sum, objective_offset, name_tuples)
 
         elif args.xpress:
 
@@ -166,14 +151,13 @@ if __name__ == '__main__':
             filename_split = args.input_file.rsplit('.', 1)
             filename = filename_split[0]
             time_str = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
-            filename = filename + "_"+time_str
+            filename = filename + "_" + time_str
 
         if args.json or args.detailed_json:
             if args.json and args.detailed_json:
                 print("Warning: Selected both json and detailed json results in only detailed json being saved")
             dictionary = dict()
             if args.json:
-
                 dictionary = generate_json(program, solver_info, status, x, objective, C,
                                            indep_terms_c)
             if args.detailed_json:
@@ -181,27 +165,31 @@ if __name__ == '__main__':
                                            indep_terms_c, constraints_additional_information,
                                            variables_additional_information)
             try:
-                with open(filename+".json", 'w') as outfile:
+                with open(filename + ".json", 'w') as outfile:
 
                     json.dump(dictionary, outfile, indent=4)
 
-                print("File saved: " + filename+".json")
+                print("File saved: " + filename + ".json")
             except PermissionError:
 
-                print("WARNING the file "+str(filename)+".json already exists and is open.")
+                print("WARNING the file " + str(filename) + ".json already exists and is open.")
                 print("Was unable to save the file")
         if args.csv:
 
             panda_datastructure = generate_pandas(program, x)
             try:
 
-                panda_datastructure.to_csv(filename+".csv")
-                print("File saved: " + filename+".csv")
+                panda_datastructure.to_csv(filename + ".csv")
+                print("File saved: " + filename + ".csv")
             except PermissionError:
 
-                print("WARNING the file "+str(filename)+".csv already exists and is open.")
+                print("WARNING the file " + str(filename) + ".csv already exists and is open.")
                 print("Was unable to save the file")
     else:
 
         print('ERROR : expected input file')
     print("--- %s seconds ---" % (time() - start_time))
+
+
+if __name__ == '__main__':
+    main()

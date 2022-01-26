@@ -721,8 +721,23 @@ def find_column(input_string, p):
     return p.lexpos - line_start + 1
 
 
-def parse_file(name: str) -> Program:
+def parse_file(name: str, cache=True) -> Program:
+    """ parse_file
 
+        takes as input a filename and converts it into a Program structure containing all the information
+
+        Args:
+            name (str) -> filename
+            cache (bool) -> predicate whether to cache the imported nodes or not
+
+        Returns:
+            program -> program object containing all the information of the file
+
+        Notes:
+            When caching as only the filename is mapped to a program, conflicts can arise if a same filename is shared
+            between two different files (on different paths typically)
+
+    """
     # Build the parser
     global list_opened_files
     global cache_graph
@@ -738,7 +753,7 @@ def parse_file(name: str) -> Program:
         error_("ERROR: File "+str(name)+" has already been visited, there are loops in the import \n"
                + str(list_opened_files))
 
-    if name in cache_graph:
+    if name in cache_graph and cache:
         return cache_graph[name]
     else:
         list_opened_files.append(name)

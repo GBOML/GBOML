@@ -21,29 +21,6 @@ import sys
 import os
 
 
-def compile_gboml_mdp(input_file: str):
-    """compile_gboml_mdp
-
-        takes as input a filename and converts to the mdp representation of the problem
-
-        Args:
-            input_file -> string containing the input file
-
-        Returns:
-             mdp -> MDP object containing the file information
-
-    """
-
-    curr_dir, filename = move_to_directory(input_file)
-    ast = parse_file(filename)
-    program, program_variables_dict, definitions = semantic(ast)
-    check_mdp(program, program_variables_dict, definitions)
-    mdp = convert_to_mdp(program, program_variables_dict)
-    os.chdir(curr_dir)
-
-    return mdp
-
-
 def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: bool = False,
                   nb_processes: int = 1) -> tuple:
     """compile_gboml
@@ -56,17 +33,19 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
             log -> boolean predicate of should the output log be saved in the file
             lex -> boolean predicate of printing the different tokens in the file
             parse -> boolean predicate of printing the abstract syntax tree generated from the file
+            nb_processes -> number of processes (workers) for the model extension
 
         Returns:
              program -> program object
-             A -> Constraint sparse matrix
-             b -> Vector of independent terms for each constraint
-             C -> objective sparse matrix
+             matrix_a -> Constraint sparse matrix
+             vector_b -> Vector of independent terms for each constraint
+             vector_c -> objective sparse matrix
+             indep_terms_c -> vector of independent terms of each row in the objective sparse matrix
              T -> Time horizon
-             name_tuples -> Mapping to convert the flat x solution to a graph structure
-             objective_belonging -> Mapping to check which objective relates to which node
+             name_tuples -> Mapping to convert the flat x solution to the original graph structure
 
     """
+
     curr_dir, filename = move_to_directory(input_file)
 
     if log is True:
@@ -97,3 +76,26 @@ def compile_gboml(input_file: str, log: bool = False, lex: bool = False, parse: 
     time_horizon = program.get_time().get_value()
     os.chdir(curr_dir)
     return program, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, program.get_tuple_name()
+
+
+def compile_gboml_mdp(input_file: str):
+    """compile_gboml_mdp
+
+        takes as input a filename and converts to the mdp representation of the problem
+
+        Args:
+            input_file -> string containing the input file
+
+        Returns:
+             mdp -> MDP object containing the file information
+
+    """
+
+    curr_dir, filename = move_to_directory(input_file)
+    ast = parse_file(filename)
+    program, program_variables_dict, definitions = semantic(ast)
+    check_mdp(program, program_variables_dict, definitions)
+    mdp = convert_to_mdp(program, program_variables_dict)
+    os.chdir(curr_dir)
+
+    return mdp

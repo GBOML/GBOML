@@ -1,22 +1,29 @@
+"""GBOML lexer file
 
-# gboml_lexer.py
-#
-# Part of the GBOML Project
-# University of Liege
-# Writer : MIFTARI B
-# ------------
+Defines the tokens of the GBOML language
 
-# IMPORT Ply's lexer
+  Typical usage example:
+
+  tokenize(gboml_file)
+  where:
+    gboml_file is the file we want to convert to tokens
+
+"""
+
 import ply.lex as lex  # type: ignore
-
-# IMPORT regular expressions
 import re
 
 
 def tokenize(data: str) -> None:
-    """
-    tokenize : Input a string
-               Prints the tokens in the string
+    """tokenize
+
+        takes as input a string and prints it as a stream of tokens
+
+        Args:
+            data(str) -> string containing the data to be tokenized
+
+        Returns:
+
     """
 
     global lexer
@@ -30,9 +37,15 @@ def tokenize(data: str) -> None:
 
 
 def tokenize_file(filepath: str) -> None:
-    """
-    tokenize_file : Input a file
-                    Prints the tokens in the file
+    """tokenize_file
+
+        takes as input a filename and prints it as a stream of tokens
+
+        Args:
+            filepath(str) -> string containing the filename to print as tokens
+
+        Returns:
+
     """
 
     with open(filepath, 'r') as content:
