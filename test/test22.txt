@@ -1,3 +1,5 @@
+// Test a normal equality node
+
 #TIMEHORIZON
     T = 4;
 

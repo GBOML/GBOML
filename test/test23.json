@@ -1,0 +1,187 @@
+{
+    "version": "0.0.2",
+    "model": {
+        "horizon": 2,
+        "number_nodes": 1,
+        "global_parameters": {
+            "pi": [
+                3.14
+            ]
+        },
+        "nodes": {
+            "A": {
+                "number_parameters": 2,
+                "number_variables": 1,
+                "number_constraints": 1,
+                "number_expanded_constraints": 2,
+                "number_objectives": 1,
+                "number_expanded_objectives": 1,
+                "parameters": {
+                    "diameter": [
+                        12
+                    ],
+                    "circumference": [
+                        37.68
+                    ]
+                },
+                "variables": [
+                    "x"
+                ],
+                "sub_nodes": {
+                    "PV": {
+                        "number_parameters": 3,
+                        "number_variables": 3,
+                        "number_constraints": 4,
+                        "number_expanded_constraints": 6,
+                        "number_objectives": 1,
+                        "number_expanded_objectives": 1,
+                        "parameters": {
+                            "pi": [
+                                3.14
+                            ],
+                            "irradiance_time_series": [
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.04,
+                                0.08,
+                                0.12,
+                                0.14,
+                                0.15,
+                                0.14,
+                                0.12,
+                                0.08,
+                                0.04,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0,
+                                0.0
+                            ],
+                            "max_capacity": [
+                                1000
+                            ]
+                        },
+                        "variables": [
+                            "capacity",
+                            "investment",
+                            "electricity"
+                        ]
+                    },
+                    "B": {
+                        "number_parameters": 1,
+                        "number_variables": 1,
+                        "number_constraints": 1,
+                        "number_expanded_constraints": 4,
+                        "number_objectives": 0,
+                        "number_expanded_objectives": 0,
+                        "parameters": {
+                            "demand": [
+                                6.9,
+                                6.4,
+                                6.1,
+                                5.9,
+                                5.7,
+                                5.4,
+                                4.8,
+                                4.5,
+                                4.6,
+                                4.6,
+                                4.7,
+                                4.9,
+                                5.1,
+                                5.3,
+                                5.4,
+                                5.4,
+                                5.4,
+                                5.8,
+                                8.4,
+                                10.6,
+                                11.0,
+                                10.5,
+                                9.2,
+                                7.8
+                            ]
+                        },
+                        "variables": [
+                            "consumption"
+                        ]
+                    }
+                }
+            }
+        },
+        "hyperedges": {}
+    },
+    "solver": {
+        "name": "cplex",
+        "options": {
+            "lpmethod": 2,
+            "solutiontype": 2
+        },
+        "status": 1
+    },
+    "solution": {
+        "status": "optimal",
+        "objective": 496.80000000000007,
+        "elements": {
+            "A": {
+                "variables": {
+                    "x": {
+                        "values": [
+                            120.0
+                        ]
+                    }
+                },
+                "objectives": {
+                    "unnamed": [
+                        120.0
+                    ]
+                },
+                "sub_elements": {
+                    "PV": {
+                        "variables": {
+                            "capacity": {
+                                "values": [
+                                    120.0
+                                ]
+                            },
+                            "investment": {
+                                "values": [
+                                    376.8
+                                ]
+                            },
+                            "electricity": {
+                                "values": [
+                                    0.0,
+                                    0.0
+                                ]
+                            }
+                        },
+                        "objectives": {
+                            "named": {
+                                "hi": 376.8
+                            }
+                        }
+                    },
+                    "B": {
+                        "variables": {
+                            "consumption": {
+                                "values": [
+                                    6.9,
+                                    6.4
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

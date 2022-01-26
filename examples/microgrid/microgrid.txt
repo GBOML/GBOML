@@ -1,46 +1,43 @@
 #TIMEHORIZON
-T = 365 * 24;
+T = 365 * 24 * 20;
 
 #NODE SOLAR_PV
 #PARAMETERS
-pi = 1;
-irradiance_time_series = import "pv_gen.csv";
-max_capacity = 1000;
+capex = 600; // capital expenditure per unit capacity
+capacity_factor = import "pv_gen.csv";
 #VARIABLES
 internal: capacity;
-internal: investment;
+internal: investment_cost;
 external: electricity[T];
 #CONSTRAINTS
 capacity >= 0;
-capacity <= max_capacity;
-electricity[t] <= irradiance_time_series[mod(t, 24)] * capacity;
-investment == capacity * pi;
+electricity[t] >= 0;
+electricity[t] <= capacity_factor[mod(t, 24)] * capacity;
+investment_cost == capex * capacity;
 #OBJECTIVES
-min: investment;
+min: investment_cost;
 
 #NODE BATTERY
 #PARAMETERS
-eta = 0.75;
-pi = 1;
-max_capacity = 1000;
+capex = 150; // capital expenditure per unit capacity
+efficiency = 0.75;
 #VARIABLES
 internal: capacity;
-internal: investment;
-internal: soc[T];
+internal: investment_cost;
+internal: energy[T];
 external: charge[T];
 external: discharge[T];
 #CONSTRAINTS
 capacity >= 0;
-capacity <= max_capacity;
-soc[t] >= 0;
-soc[t] <= capacity;
-soc[0] == soc[T-1];
+energy[t] >= 0;
 charge[t] >= 0;
 discharge[t] >= 0;
-soc[t+1] == soc[t] + eta * charge[t] - discharge[t] / eta;
-investment == capacity * pi;
+energy[t] <= capacity;
+energy[t+1] == energy[t] + efficiency * charge[t] - discharge[t] / efficiency;
+energy[0] == energy[T-1];
+investment_cost == capex * capacity;
 #OBJECTIVES
-min: investment;
+min: investment_cost;
 
 #NODE DEMAND
 #PARAMETERS
@@ -52,16 +49,16 @@ consumption[t] == demand[mod(t, 24)];
 
 #NODE DISTRIBUTION
 #PARAMETERS
-pi = 1;
+electricity_price = 0.05;
 #VARIABLES
-internal: operational[T];
-external: power_distribution[T];
+internal: operating_cost[T];
+external: power_import[T];
 #CONSTRAINTS
-power_distribution[t] >= 0;
-operational[t] == power_distribution[t] * pi;
+power_import[t] >= 0;
+operating_cost[t] == electricity_price * power_import[t];
 #OBJECTIVES
-min: operational[t];
+min: operating_cost[t];
 
 #HYPEREDGE POWER_BALANCE
 #CONSTRAINTS
-SOLAR_PV.electricity[t] + BATTERY.discharge[t] + DISTRIBUTION.power_distribution[t] == BATTERY.charge[t] + DEMAND.consumption[t];
+SOLAR_PV.electricity[t] + BATTERY.discharge[t] + DISTRIBUTION.power_import[t] == BATTERY.charge[t] + DEMAND.consumption[t];

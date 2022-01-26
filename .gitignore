@@ -22,3 +22,4 @@ speedtest.py
 
 try_files/
 examples/example1.json
+src/gboml.egg-info/

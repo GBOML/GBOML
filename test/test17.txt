@@ -1,3 +1,5 @@
+// Test a vector variable of length 0
+
 #TIMEHORIZON T =  10;
 
 #NODE A 

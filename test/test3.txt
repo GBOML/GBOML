@@ -1,3 +1,5 @@
+// Negative timehorizon error
+
 #TIMEHORIZON T = -10;
 
 #NODE H

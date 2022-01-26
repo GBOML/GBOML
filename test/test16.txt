@@ -1,3 +1,5 @@
+// Testing objective extension
+
 #TIMEHORIZON T = 3;
 
 #NODE A
