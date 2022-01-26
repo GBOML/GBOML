@@ -165,7 +165,7 @@ def xpress_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         ["slack", model.getSlack],
     ]
     attributes_to_retrieve_variables = [
-        ["dual", model.getRCost],
+        ["reduced_cost", model.getRCost],
     ]
 
     for name, function in attributes_to_retrieve_constraints:

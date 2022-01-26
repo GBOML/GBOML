@@ -175,8 +175,9 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
 
     constraints_additional_information = dict()
     variables_additional_information = dict()
-    attributes_to_retrieve_constraints = ["Pi", "CBasis", "SARHSLow", "SARHSUp"]
-    attributes_to_retrieve_variables = ["VBasis", "SAObjLow", "SAObjUp",
+    attributes_to_retrieve_constraints = ["Pi", "Slack",
+                                          "CBasis", "SARHSLow", "SARHSUp"]
+    attributes_to_retrieve_variables = ["RC", "VBasis", "SAObjLow", "SAObjUp",
                                         "SALBLow", "SALBUp", "SAUBLow",
                                         "SAUBUp"]
 

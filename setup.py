@@ -1,17 +1,22 @@
 from setuptools import setup, find_packages
+from pathlib import Path
 
 exec(open('src/gboml/version.py').read())
 
+long_description = Path("README.md").read_text()
+
 setup(
     name='gboml',
+    description='GBOML: Graph-Based Optimization Modeling Language'
+    long_description=long_description,
+    long_description_content_type='text/markdown'
     version=__version__,
-    description='Package of GBOML',
     entry_points={
         'console_scripts': [
             'gboml = gboml:main',
         ]
     },
-    author='Miftari B',
+    author='Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst',
     author_email='bmiftari@uliege.be',
     package_dir={'': 'src'},
     install_requires=[
@@ -30,7 +35,7 @@ setup(
     classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Science/Research',
-        'Operating System :: POSIX :: Linux', 
+        'Operating System :: POSIX :: Linux',
         'Operating System :: Microsoft :: Windows',
         'Operating System :: MacOS',
         'Programming Language :: Python :: 3.7',
