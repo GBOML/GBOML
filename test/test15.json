@@ -1,0 +1,119 @@
+{
+    "version": "0.0.4",
+    "model": {
+        "horizon": 1,
+        "number_nodes": 2,
+        "global_parameters": {},
+        "nodes": {
+            "R": {
+                "number_parameters": 0,
+                "number_variables": 4,
+                "number_constraints": 0,
+                "number_expanded_constraints": 0,
+                "number_objectives": 0,
+                "number_expanded_objectives": 0,
+                "parameters": {},
+                "variables": [
+                    "f",
+                    "d",
+                    "h",
+                    "ff"
+                ]
+            },
+            "A": {
+                "number_parameters": 0,
+                "number_variables": 3,
+                "number_constraints": 3,
+                "number_expanded_constraints": 3,
+                "number_objectives": 1,
+                "number_expanded_objectives": 1,
+                "parameters": {},
+                "variables": [
+                    "b",
+                    "a",
+                    "c"
+                ]
+            }
+        },
+        "hyperedges": {
+            "links": {
+                "number_parameters": 0,
+                "number_constraints": 4,
+                "number_expanded_constraints": 8,
+                "parameters": {},
+                "variables_used": {
+                    "R": [
+                        "f",
+                        "ff",
+                        "h",
+                        "d"
+                    ],
+                    "A": [
+                        "b",
+                        "a",
+                        "c"
+                    ]
+                }
+            }
+        }
+    },
+    "solver": {
+        "name": "gurobi",
+        "options": {},
+        "status": 2
+    },
+    "solution": {
+        "status": "optimal",
+        "objective": 0.0,
+        "elements": {
+            "R": {
+                "variables": {
+                    "f": {
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "d": {
+                        "values": [
+                            2.0
+                        ]
+                    },
+                    "h": {
+                        "values": [
+                            0.0
+                        ]
+                    },
+                    "ff": {
+                        "values": [
+                            1.0
+                        ]
+                    }
+                }
+            },
+            "A": {
+                "variables": {
+                    "b": {
+                        "values": [
+                            1.0
+                        ]
+                    },
+                    "a": {
+                        "values": [
+                            0.0
+                        ]
+                    },
+                    "c": {
+                        "values": [
+                            2.0
+                        ]
+                    }
+                },
+                "objectives": {
+                    "unnamed": [
+                        0.0
+                    ]
+                }
+            }
+        }
+    }
+}

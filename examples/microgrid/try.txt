@@ -1,0 +1,15 @@
+#TIMEHORIZON T = 1;
+
+#NODE B
+#PARAMETERS
+a = 10;
+#VARIABLES
+internal : x;
+#CONSTRAINTS
+x>=0;
+#OBJECTIVES
+min : x;
+
+#HYPEREDGE C
+#CONSTRAINTS
+B.x <= 0;

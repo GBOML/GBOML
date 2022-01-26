@@ -1,9 +1,9 @@
 #TIMEHORIZON
-T = 365 * 24;
+T = 24;
 
 #NODE SOLAR_PV
 #PARAMETERS
-pi = 1;
+pi = 2;
 irradiance_time_series = import "pv_gen.csv";
 max_capacity = 1000;
 #VARIABLES
@@ -11,12 +11,12 @@ internal: capacity;
 internal: investment;
 external: electricity[T];
 #CONSTRAINTS
-capacity >= 0;
+hi: capacity >= 0;
 capacity <= max_capacity;
-electricity[t] <= irradiance_time_series[mod(t, 24)] * capacity;
+ho: electricity[t] <= irradiance_time_series[mod(t, 24)] * capacity;
 investment == capacity * pi;
 #OBJECTIVES
-min: investment;
+min hi : investment;
 
 #NODE BATTERY
 #PARAMETERS
@@ -30,7 +30,7 @@ internal: soc[T];
 external: charge[T];
 external: discharge[T];
 #CONSTRAINTS
-capacity >= 0;
+hi: capacity >= 0;
 capacity <= max_capacity;
 soc[t] >= 0;
 soc[t] <= capacity;
@@ -64,4 +64,4 @@ min: operational[t];
 
 #HYPEREDGE POWER_BALANCE
 #CONSTRAINTS
-SOLAR_PV.electricity[t] + BATTERY.discharge[t] + DISTRIBUTION.power_distribution[t] == BATTERY.charge[t] + DEMAND.consumption[t];
+ho : SOLAR_PV.electricity[t] + BATTERY.discharge[t] + DISTRIBUTION.power_distribution[t] == BATTERY.charge[t] + DEMAND.consumption[t];

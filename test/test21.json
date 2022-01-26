@@ -1,0 +1,100 @@
+{
+    "version": "0.0.4",
+    "model": {
+        "horizon": 2,
+        "number_nodes": 2,
+        "global_parameters": {
+            "a": [
+                2
+            ],
+            "b": [
+                3
+            ]
+        },
+        "nodes": {
+            "D": {
+                "number_parameters": 0,
+                "number_variables": 1,
+                "number_constraints": 0,
+                "number_expanded_constraints": 0,
+                "number_objectives": 0,
+                "number_expanded_objectives": 0,
+                "parameters": {},
+                "variables": [
+                    "y"
+                ]
+            },
+            "O": {
+                "number_parameters": 2,
+                "number_variables": 1,
+                "number_constraints": 2,
+                "number_expanded_constraints": 4,
+                "number_objectives": 1,
+                "number_expanded_objectives": 2,
+                "parameters": {
+                    "p1": [
+                        2
+                    ],
+                    "p2": [
+                        3
+                    ]
+                },
+                "variables": [
+                    "x"
+                ]
+            }
+        },
+        "hyperedges": {
+            "l1": {
+                "number_parameters": 0,
+                "number_constraints": 1,
+                "number_expanded_constraints": 2,
+                "parameters": {},
+                "variables_used": {
+                    "D": [
+                        "y"
+                    ],
+                    "O": [
+                        "x"
+                    ]
+                }
+            }
+        }
+    },
+    "solver": {
+        "name": "cplex",
+        "options": {},
+        "status": 101
+    },
+    "solution": {
+        "status": "optimal",
+        "objective": 5.0,
+        "elements": {
+            "D": {
+                "variables": {
+                    "y": {
+                        "values": [
+                            1.0,
+                            2.0
+                        ]
+                    }
+                }
+            },
+            "O": {
+                "variables": {
+                    "x": {
+                        "values": [
+                            2.0,
+                            3.0
+                        ]
+                    }
+                },
+                "objectives": {
+                    "unnamed": [
+                        5.0
+                    ]
+                }
+            }
+        }
+    }
+}
