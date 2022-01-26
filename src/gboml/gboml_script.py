@@ -584,8 +584,8 @@ class GbomlGraph:
         in_node.update_internal_dict()
 
     @staticmethod
-    def redefine_parameter_from_value(node_or_hyperedge, parameter_name: str,
-                                      value: float):
+    def __redefine_parameter_from_value(node_or_hyperedge, parameter_name: str,
+                                        value: float):
         """
         static method re-defining the value of a scalar parameter
 
@@ -601,8 +601,8 @@ class GbomlGraph:
         node_or_hyperedge.add_parameter_change(parameter)
 
     @staticmethod
-    def redefine_parameter_from_values(node_or_hyperedge, parameter_name: str,
-                                       values: list):
+    def __redefine_parameter_from_values(node_or_hyperedge, parameter_name: str,
+                                         values: list):
         """
         static method re-defining parameter values from a list of values
 
@@ -624,8 +624,8 @@ class GbomlGraph:
         node_or_hyperedge.add_parameter_change(parameter)
 
     @staticmethod
-    def redefine_parameter_from_file(node_or_hyperedge, parameter_name: str,
-                                     filename):
+    def __redefine_parameter_from_file(node_or_hyperedge, parameter_name: str,
+                                       filename):
         """
         static method re-defining parameter values from a CSV file
 
@@ -661,14 +661,17 @@ class GbomlGraph:
             parameter_name = list_parameters[i]
             value = list_values[i]
             if isinstance(value, str):
-                GbomlGraph.redefine_parameter_from_file(node_or_hyperedge,
-                                                        parameter_name, value)
+                GbomlGraph.__redefine_parameter_from_file(node_or_hyperedge,
+                                                          parameter_name,
+                                                          value)
             elif isinstance(value, float) or isinstance(value, int):
-                GbomlGraph.redefine_parameter_from_value(node_or_hyperedge,
-                                                         parameter_name, value)
+                GbomlGraph.__redefine_parameter_from_value(node_or_hyperedge,
+                                                           parameter_name,
+                                                           value)
             elif isinstance(value, list):
-                GbomlGraph.redefine_parameter_from_values(node_or_hyperedge,
-                                                          parameter_name, value)
+                GbomlGraph.__redefine_parameter_from_values(node_or_hyperedge,
+                                                            parameter_name,
+                                                            value)
             else:
                 error_("Unaccepted type value for parameter redefiniton "
                        + str(type(value)))
@@ -685,14 +688,17 @@ class GbomlGraph:
         """
         for parameter_name, value in kwargs.items():
             if isinstance(value, str):
-                GbomlGraph.redefine_parameter_from_file(node_or_hyperedge,
-                                                        parameter_name, value)
+                GbomlGraph.__redefine_parameter_from_file(node_or_hyperedge,
+                                                          parameter_name,
+                                                          value)
             elif isinstance(value, float) or isinstance(value, int):
-                GbomlGraph.redefine_parameter_from_value(node_or_hyperedge,
-                                                         parameter_name, value)
+                GbomlGraph.__redefine_parameter_from_value(node_or_hyperedge,
+                                                           parameter_name,
+                                                           value)
             elif isinstance(value, list):
                 GbomlGraph.redefine_parameter_from_values(node_or_hyperedge,
-                                                          parameter_name, value)
+                                                          parameter_name,
+                                                          value)
             else:
                 error_("Unaccepted type value for parameter redefiniton "
                        + str(type(value)))
