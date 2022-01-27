@@ -1,8 +1,5 @@
 *GBOML: Graph-Based Optimization Modeling Language*
 
-[![Downloads](https://static.pepy.tech/personalized-badge/gboml?period=total&units=international_system&left_color=grey&right_color=blue&left_text=Downloads)](https://pepy.tech/project/gboml)
-[![Documentation Status](https://readthedocs.org/projects/pip/badge/?version=stable)](https://pip.pypa.io/en/stable/?badge=stable)
-[![PyPI version](https://badge.fury.io/py/gboml.svg)](https://badge.fury.io/py/gboml)
 ---
 
 ## Contents
