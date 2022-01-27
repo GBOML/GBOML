@@ -257,10 +257,8 @@ class GbomlGraph:
             objective (float) : objective value
             status (str) : solver exit status
             solver_info (dict) : dictionary storing solver information
-            constraints_information (dict) : dict of additional information
-                                             concerning constraints
-            variables_information (dict) : dict of additional information
-                                           concerning variables
+            constraints_information (dict) : dict of additional information concerning constraints
+            variables_information (dict) : dict of additional information concerning variables
 
         """
         gurobi_solver_function = \
@@ -281,10 +279,9 @@ class GbomlGraph:
             objective (float) : objective value
             status (str) : solver exit status
             solver_info (dict) : dictionary storing solver information
-            constraints_information (dict) : dict of additional information
-                                             concerning constraints
-            variables_information (dict) : dict of additional information
-                                           concerning variables
+            constraints_information (dict) : dict of additional information concerning constraints
+            variables_information (dict) : dict of additional information concerning variables
+
         """
         cplex_solver_function = \
             lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
@@ -304,10 +301,8 @@ class GbomlGraph:
             objective (float) : objective value
             status (str) : solver exit status
             solver_info (dict) : dictionary storing solver information
-            constraints_information (dict) : dict of additional information
-                                             concerning constraints
-            variables_information (dict) : dict of additional information
-                                           concerning variables
+            constraints_information (dict) : dict of additional information concerning constraints
+            variables_information (dict) : dict of additional information concerning variables
         """
         xpress_solver_function = \
             lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
@@ -370,8 +365,8 @@ class GbomlGraph:
                                     concerning variables
 
         Returns:
-            gathered_data (dict): structured dictionary containing all
-                                  the solution information
+            gathered_data (dict): structured dictionary containing all 
+            the solution information
         """
 
         if constraint_info is None:

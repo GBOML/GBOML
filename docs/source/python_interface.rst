@@ -1,5 +1,5 @@
 Python Interface
 ----------------
 
-.. autoclass:: gboml_graph.GbomlGraph
+.. autoclass:: gboml.GbomlGraph
    :members:
