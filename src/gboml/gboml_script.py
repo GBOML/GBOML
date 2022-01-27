@@ -365,8 +365,7 @@ class GbomlGraph:
                                     concerning variables
 
         Returns:
-            gathered_data (dict): structured dictionary containing all 
-            the solution information
+            gathered_data (dict): structured dictionary containing all the solution information
         """
 
         if constraint_info is None:
