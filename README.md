@@ -25,7 +25,7 @@ GBOML has been tested on Windows, macOS and Linux. The simplest way to install i
 
 Please refer to the online documentation for more [information on how to install GBOML](https://gboml-docs-test.readthedocs.io/en/latest/installation.html). Note that optimization solvers are also required to solve GBOML models and installation instructions are also provided in the online documentation.
 
-Several examples are provided in this repository ([in the examples directory](examples/)) and explained in the [online documentation](https://gboml-docs-test.readthedocs.io/en/latest/examples.html).
+Several examples are provided in this repository ([in the examples directory](examples/)) and explained in the [online documentation](https://gboml.readthedocs.io/en/latest/).
 
 ## Documentation
 
