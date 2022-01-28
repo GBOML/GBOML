@@ -12,16 +12,16 @@ before_script:
 build-job:
   stage: build
   script:
-    - python3 -m pip install .
+    - pip install .
 
 test-scripting:
   stage: test
   script:
+    - pip install .
     - gboml test/test28.txt --linprog
 
 test-graph:
   stage: test
   script:
-    - python3
-    - import gboml
-    - exit()
+    - pip install .
+    - python -c "import gboml; print(gboml.GbomlGraph())"
