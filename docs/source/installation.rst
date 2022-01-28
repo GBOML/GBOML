@@ -116,13 +116,13 @@ The next installation steps make use of `cmake <https://cmake.org/install/>`_ an
 If the make worked properly, an executable called runDsp and a shared library named libDsp should be created in the *src* subfolder of the build directory. Additional information can be found `here <https://github.com/Argonne-National-Laboratory/DSP/blob/master/docs/install.md>`__.
 
 
-Testing installation
---------------------
+Testing
+-------
 
-To test your installation, you can do 
+To manually test your installation, you can type the following commands in a terminal window:
 
 .. code-block:: bash
 
 	python test.py
 
-Note that the file *test.py* tests all the solver's interface also (except DSP as still experimental). Therefore, installing only one solver will not result in all tests being passed successfully. 
+Note that running *test.py* tests all solver APIs (except that of DSP, which is still experimental). Therefore, installing only one solver will not result in all tests being passed.
