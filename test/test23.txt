@@ -14,7 +14,7 @@ pi = 3.14;
         consumption internal;
 
     #NODE PV = import SOLAR_PV from "../examples/microgrid/microgrid.txt" with
-        pi = global.pi;
+        capex = global.pi;
 
     #VARIABLES
         internal : x <- PV.capacity;
