@@ -22,6 +22,9 @@ import unittest
 import subprocess
 import json
 import numpy as np
+import os
+
+PATH = os.getcwd()
 
 
 class CompilerTests(unittest.TestCase):
@@ -614,6 +617,8 @@ class CompilerTests(unittest.TestCase):
         Tests a node defined inside another node
 
         """
+        global PATH
+        os.chdir(PATH)
         _, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, \
          name_tuples = compile_gboml("test/test23.txt")
         objective_offset = float(indep_terms_c.sum())
@@ -653,6 +658,8 @@ class CompilerTests(unittest.TestCase):
         Tests a node defined inside another node with a hyperedge
 
         """
+        global PATH
+        os.chdir(PATH)
         _, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, \
          name_tuples = compile_gboml("test/test24.txt")
         objective_offset = float(indep_terms_c.sum())
@@ -669,6 +676,8 @@ class CompilerTests(unittest.TestCase):
         Tests a hyperedge import
 
         """
+        global PATH
+        os.chdir(PATH)
         _, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, \
          name_tuples = compile_gboml("test/test25.txt")
         objective_offset = float(indep_terms_c.sum())
@@ -684,6 +693,8 @@ class CompilerTests(unittest.TestCase):
         Tests a series of nested nodes with only one variable defined
 
         """
+        global PATH
+        os.chdir(PATH)
         _, matrix_a, vector_b, vector_c, indep_terms_c, _, _ = compile_gboml(
             "test/test26.txt")
         objective_offset = float(indep_terms_c.sum())
@@ -702,6 +713,8 @@ class CompilerTests(unittest.TestCase):
         parameters intertwined
 
         """
+        global PATH
+        os.chdir(PATH)
         _, matrix_a, vector_b, vector_c, indep_terms_c, _, name_tuples = \
             compile_gboml("test/test27.txt")
         objective_offset = float(indep_terms_c.sum())
@@ -718,6 +731,8 @@ class CompilerTests(unittest.TestCase):
         Tests a series of nested nodes with two low level nodes and a hyperedge
 
         """
+        global PATH
+        os.chdir(PATH)
         _, matrix_a, vector_b, vector_c, indep_terms_c, _, name_tuples = \
             compile_gboml("test/test28.txt")
         objective_offset = float(indep_terms_c.sum())
