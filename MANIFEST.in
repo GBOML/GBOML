@@ -1,1 +1,4 @@
 recursive-include src *.py *.opt
+include requirements.txt
+include LICENSE.txt
+include AUTHORS
