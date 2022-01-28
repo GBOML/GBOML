@@ -7,7 +7,7 @@
 - [About](#about)
 - [Quick start](#quick-start)
 - [Documentation](#documentation)
-- [Contributing](#contributing)
+- [Community guidelines](#community-guidelines)
 - [Citing GBOML](#citing-GBOML)
 - [License](#license)
 
@@ -33,7 +33,7 @@ Documentation is available on Read the Docs:
 
 * [Read the documentation online](https://gboml.readthedocs.io/en/latest/)
 
-## Community Guidelines
+## Community guidelines
 
 To contribute changes:
 

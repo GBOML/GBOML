@@ -34,7 +34,7 @@ This will solve the remote hub problem using CPLEX and save the solution in "exa
 
 .. code-block:: python
 
-    from gboml_script import GbomlGraph
+    from gboml import GbomlGraph
 
     gboml_model = GbomlGraph(24*365)
     nodes, edges = gboml_model.import_all_nodes_and_edges("path_to_GBOML_directory/examples/remote_energy_supply_chain/remote_hub_nowacc.txt")

@@ -204,7 +204,7 @@ This will solve the microgrid problem using CPLEX and save the solution in "exam
 
 .. code-block:: python
 
-    from gboml_script import GbomlGraph
+    from gboml import GbomlGraph
 
     gboml_model = GbomlGraph(24*365)
     nodes, edges = gboml_model.import_all_nodes_and_edges("path_to_GBOML_directory/examples/microgrid/microgrid.txt")
