@@ -615,7 +615,7 @@ class CompilerTests(unittest.TestCase):
 
         """
         _, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, \
-        name_tuples = compile_gboml("test/test23.txt")
+         name_tuples = compile_gboml("test/test23.txt")
         objective_offset = float(indep_terms_c.sum())
         c_sum = np.asarray(vector_c.sum(axis=0), dtype=float)
         self.assertEqual(objective_offset, 0)
@@ -828,7 +828,7 @@ class GBOMLpyTest(unittest.TestCase):
         gboml_model = GbomlGraph()
         node_pv = gboml_model.import_node("examples/microgrid/microgrid.txt",
                                           "SOLAR_PV", copy=True)
-        gboml_model.remove_objective_in_node(node_pv, "hi")
+        gboml_model.remove_objective_in_node(node_pv, "investment")
         self.assertEqual(node_pv.get_objectives(), [])
 
     def test_change_type_variable(self):
@@ -873,7 +873,8 @@ class GBOMLpyTest(unittest.TestCase):
             for i, node in enumerate(nodes):
                 gboml_model_with_1.change_node_name_in_hyperedge(hyperedge,
                                                                  old_names[i],
-                                                                 node.get_name())
+                                                                 node.get_name()
+                                                                 )
 
         gboml_model_with_1.add_nodes_in_model(*nodes)
         gboml_model_with_1.add_hyperedges_in_model(*edges)

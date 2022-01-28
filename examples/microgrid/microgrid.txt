@@ -15,7 +15,7 @@ electricity[t] >= 0;
 electricity[t] <= capacity_factor[mod(t, 24)] * capacity;
 investment_cost == capex * capacity;
 #OBJECTIVES
-min: investment_cost;
+min investment: investment_cost;
 
 #NODE BATTERY
 #PARAMETERS
