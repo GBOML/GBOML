@@ -146,9 +146,13 @@ def dict_values_in_nested_dict(nodes, hyperedges, solution,
             all_info_for_variable = {}
             start_index = identifier.get_index()
             size_variable = identifier.get_size()
-            all_info_for_variable["values"] = \
-                solution[start_index:(start_index + size_variable)]\
-                    .flatten().tolist()
+            values_concerned = solution[start_index:
+                                        (start_index + size_variable)]
+            if type(values_concerned) != list:
+                all_info_for_variable["values"] = values_concerned.flatten().tolist()
+            else:
+                all_info_for_variable["values"] = values_concerned
+
             for variable_info_name, variable_info_values \
                     in variables_info.items():
                 if len(variable_info_values) > 1 and\
