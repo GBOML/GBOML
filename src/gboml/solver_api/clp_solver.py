@@ -1,3 +1,9 @@
+# Copyright (C) 2020 - 2022
+# Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst,
+# University of Liege .
+# Licensed under the MIT License (see LICENSE file).
+
+
 """CLP Solver file, contains the interface to CLP/CBC solver .
 
 Takes the matrix A, the vector b and vector c as input of the problem

@@ -1,3 +1,8 @@
+# Copyright (C) 2020 - 2022
+# Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst,
+# University of Liege .
+# Licensed under the MIT License (see LICENSE file).
+
 from .compiler import parse_file, semantic, check_program_linearity, \
     matrix_generation_a_b, matrix_generation_c, \
     factorize_program, extend_factor, extend_factor_on_multiple_processes

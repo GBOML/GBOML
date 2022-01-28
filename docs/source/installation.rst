@@ -18,7 +18,7 @@ All dependencies (numpy, scipy and ply) will be automatically installed and the 
 Manual Installation
 -------------------
 
-The git repository can be found `here <https://gitlab.uliege.be/smart_grids/public/gboml>`_. The repository can be cloned by typing the following commands in a terminal window:
+The git repository can be found `here <https://gitlab.uliege.be/smart_grids/public/gboml>`__. The repository can be cloned by typing the following commands in a terminal window:
 
 .. code-block:: bash
 
@@ -44,7 +44,7 @@ GBOML currently interfaces with Gurobi, CPLEX, Xpress, Cbc/Clp and DSP. Only one
 Gurobi
 ~~~~~~
 
-To use Gurobi, you must first install it. Instructions can be found `here <https://www.gurobi.com/documentation/9.5/quickstart_windows/software_installation_guid.html>`_. Once the solver is installed, the Python API can be downloaded by typing the following commands in a terminal window:
+To use Gurobi, you must first install it. Instructions can be found `here <https://www.gurobi.com/documentation/9.5/quickstart_windows/software_installation_guid.html>`__. Once the solver is installed, the Python API can be downloaded by typing the following commands in a terminal window:
 
 .. code-block:: bash
 
@@ -54,28 +54,28 @@ Other installation options can be found in `this post <https://support.gurobi.co
 
 CPLEX
 ~~~~~
-To use CPLEX, you must first install it. Instructions can be found `here <https://www.ibm.com/support/pages/downloading-ibm-ilog-cplex-optimization-studio-2010>`_. Once the solver is installed, the Python API can be downloaded by typing the following commands in a terminal window:
+To use CPLEX, you must first install it. Instructions can be found `here <https://www.ibm.com/support/pages/downloading-ibm-ilog-cplex-optimization-studio-2010>`__. Once the solver is installed, the Python API can be downloaded by typing the following commands in a terminal window:
 
 .. code-block:: bash
 
 	pip install cplex
 
-Note that a license is also required to use CPLEX. Licenses can be obtained for free for academics, as discussed in the following `post <https://www.ibm.com/support/pages/ibm-ilog-optimization-academic-initiative>`_.
+Note that a license is also required to use CPLEX. Licenses can be obtained for free for academics, as discussed in the following `post <https://www.ibm.com/support/pages/ibm-ilog-optimization-academic-initiative>`__.
 
 Xpress
 ~~~~~~
-To use Xpress, you must first install it. Instructions can be found `here <https://www.fico.com/fico-xpress-optimization/docs/latest/insight_quick_install/GUID-2D3D6579-9CCA-4605-8C00-E91B6FB846EB.html>`_. Once the solver is installed, the Python API can be downloaded by typing the following commands in a terminal window:
+To use Xpress, you must first install it. Instructions can be found `here <https://www.fico.com/fico-xpress-optimization/docs/latest/insight_quick_install/GUID-2D3D6579-9CCA-4605-8C00-E91B6FB846EB.html>`__. Once the solver is installed, the Python API can be downloaded by typing the following commands in a terminal window:
 
 .. code-block:: bash
 
 	pip install xpress
 
-Additional information can be found `here <https://www.fico.com/fico-xpress-optimization/docs/latest/solver/optimizer/python/HTML/chIntro_sec_secInstall.html>`_. Note that a license is also required to use Xpress.
+Additional information can be found `here <https://www.fico.com/fico-xpress-optimization/docs/latest/solver/optimizer/python/HTML/chIntro_sec_secInstall.html>`__. Note that a license is also required to use Xpress.
 
 Cbc/Clp
 ~~~~~~~
 
-To use Cbc or Clp, you must first install them. Instructions can be found `here <https://github.com/coin-or/Cbc>`_. The CyLP package is used to interface with the solver. This package can be installed by typing the following commands in a terminal window:
+To use Cbc or Clp, you must first install them. Instructions can be found `here <https://github.com/coin-or/Cbc>`__. The CyLP package is used to interface with the solver. This package can be installed by typing the following commands in a terminal window:
 
 .. code-block:: bash
 
@@ -113,4 +113,16 @@ The next installation steps make use of `cmake <https://cmake.org/install/>`_ an
   cmake ..
   make
 
-If the make worked properly, an executable called runDsp and a shared library named libDsp should be created in the *src* subfolder of the build directory. Additional information can be found `here <https://github.com/Argonne-National-Laboratory/DSP/blob/master/docs/install.md>`_.
+If the make worked properly, an executable called runDsp and a shared library named libDsp should be created in the *src* subfolder of the build directory. Additional information can be found `here <https://github.com/Argonne-National-Laboratory/DSP/blob/master/docs/install.md>`__.
+
+
+Testing installation
+--------------------
+
+To test your installation, you can do 
+
+.. code-block:: bash
+
+	python test.py
+
+Note that the file *test.py* tests all the solver's interface also (except DSP as still experimental). Therefore, installing only one solver will not result in all tests being passed successfully. 

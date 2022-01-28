@@ -1,8 +1,16 @@
-"""Compiler directory contains each step from the input file to the matrix generation.
+# Copyright (C) 2020 - 2022
+# Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst,
+# University of Liege .
+# Licensed under the MIT License (see LICENSE file).
+
+
+"""Compiler directory contains each step from the input file to the matrix
+generation.
 
 The compiler directory contains :
 - The Lexer which converts an input file into a stream of tokens
-- The Parser which converts the stream of tokens into a abstract syntax tree (AST)
+- The Parser which converts the stream of tokens into a abstract syntax tree
+(AST)
 - The Semantic Analysis which augments and checks the AST
 - The Matrix Generation which converts the AST to a standard optimization form
 

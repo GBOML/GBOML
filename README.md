@@ -23,7 +23,7 @@ GBOML has been tested on Windows, macOS and Linux. The simplest way to install i
 
     pip install gboml
 
-Please refer to the online documentation for more [information on how to install GBOML](https://gboml-docs-test.readthedocs.io/en/latest/installation.html). Note that optimization solvers are also required to solve GBOML models and installation instructions are also provided in the online documentation.
+Please refer to the online documentation for more [information on how to install GBOML](https://gboml.readthedocs.io/en/latest/installation.html). Note that optimization solvers are also required to solve GBOML models and installation instructions are also provided in the online documentation.
 
 Several examples are provided in this repository ([in the examples directory](examples/)) and explained in the [online documentation](https://gboml.readthedocs.io/en/latest/).
 
@@ -31,22 +31,23 @@ Several examples are provided in this repository ([in the examples directory](ex
 
 Documentation is available on Read the Docs:
 
-* [Read the documentation online](https://gboml-docs-test.readthedocs.io/en/latest/index.html)
+* [Read the documentation online](https://gboml.readthedocs.io/en/latest/)
 
-## Contributing
+## Community Guidelines
 
 To contribute changes:
 
 1. Fork the project on Gitlab
 2. Create a feature branch to work on in your fork (`git checkout -b new-feature`)
 3. Commit your changes to the feature branch
-4. Push the branch to GitHub (`git push origin my-new-feature`)
-5. On GitHub, create a new pull request from the feature branch
+4. Push the branch to Gitlab (`git push origin my-new-feature`)
+5. On Gitlab, create a new pull request from the feature branch
+
+Issues and questions shall be reported in the [issues directory](https://gitlab.uliege.be/smart_grids/public/gboml/-/issues).
 
 ## Citing GBOML
 
 An early version of the GBOML framework was introduced in [a recent paper](https://www.frontiersin.org/articles/10.3389/fenrg.2021.671279/full). GBOML has also been submitted for review to the Journal of Open Source Software.
 
 ## License
-
-Copyright since 2020 Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst, University of Liege. All rights reserved.
+Copyright (C) since 2020 Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst, University of Liege .   Licensed under the MIT License (see LICENSE file).
