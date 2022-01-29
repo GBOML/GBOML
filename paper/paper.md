@@ -1,5 +1,14 @@
 ---
 title: 'GBOML: Graph-Based Optimization Modeling Language'
+tags:
+  - Python
+  - Modeling
+  - Optimization
+  - Mixed-Integer Linear Programming
+  - Linear Programming
+  - Structure Exploitation
+  - Algebraic Modeling Language
+
 authors:
   - name: Bardhyl Miftari^[co-first author, corresponding author]
     orcid: 0000-0001-5334-0234
