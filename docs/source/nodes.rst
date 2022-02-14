@@ -215,7 +215,7 @@ The previous example can be completed by defining an objective function, which y
  external : outflow[T];
  #CONSTRAINTS
  x[t] >= 0;
- x[t] <= a[t] for t in [1:T-2];
+ x[i] <= a[i] for i in [1:T-2];
  x[t] == 0 where t == 0 or t == T-1;
  outflow[0] == x[0];
  outflow[t] == outflow[t-1] + x[t];

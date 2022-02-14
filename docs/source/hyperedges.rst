@@ -77,4 +77,4 @@ Given these syntax rules, the following is an example including valid hyperedge 
    weight = {1/3,2/3};
    #CONSTRAINTS
    node1.x <= weight[0]*node2.y + weight[1]*node3.z;
-   node2.y <= node3.z
+   node2.y <= node3.z;

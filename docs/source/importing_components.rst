@@ -8,7 +8,7 @@ A node can be defined by importing an existing node from a GBOML input file. The
 
 .. code-block:: c
 
- #NODE <new node identifier> = import <imported node identifier> from <filename>
+ #NODE <new node identifier> = import <imported node identifier> from <filename> ;
  #NODE <new node identifier> = import <imported node identifier> from <filename> with <re-definitions>
 
 If the imported node sits at the top of the node hierarchy in the GBOML input file, its identifier should be used as such after the *import* keyword. However, if the imported node happens to be deeper in the hierarchy, a sequence of dot-separated identifiers corresponding to its ancestors should be prefixed to its own identifier.
