@@ -31,7 +31,8 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
                  vector_c: np.ndarray,
                  objective_offset: float,
                  name_tuples: dict,
-                 opt_file: str = None) -> tuple:
+                 opt_file: str = None,
+                 details = False) -> tuple:
     """cplex_solver
 
         takes as input the matrix A, the vectors b and c. It returns
@@ -192,31 +193,32 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
 
     constraints_additional_information = dict()
     variables_additional_information = dict()
-    attributes_to_retrieve_constraints = [
-                                          ["dual",
-                                           model.solution.get_dual_values],
-                                          ["slack",
-                                           model.solution.get_linear_slacks],
-                                          ]
-    attributes_to_retrieve_variables = [
-                                          ["basis",
-                                           model.solution.basis.get_basis, 0],
-                                          ["dual_norms",
-                                           model.solution.basis.get_dual_norms,
-                                           slice(0, 2)]
-                                         ]
+    if details:
+        attributes_to_retrieve_constraints = [
+                                              ["dual",
+                                               model.solution.get_dual_values],
+                                              ["slack",
+                                               model.solution.get_linear_slacks],
+                                              ]
+        attributes_to_retrieve_variables = [
+                                              ["basis",
+                                               model.solution.basis.get_basis, 0],
+                                              ["dual_norms",
+                                               model.solution.basis.get_dual_norms,
+                                               slice(0, 2)]
+                                             ]
 
-    for name, function in attributes_to_retrieve_constraints:
-        try:
-            constraints_additional_information[name] = function()
-        except cplex.exceptions.errors.CplexSolverError:
-            print("Unable to retrieve ", name, " information for constraints")
+        for name, function in attributes_to_retrieve_constraints:
+            try:
+                constraints_additional_information[name] = function()
+            except cplex.exceptions.errors.CplexSolverError:
+                print("Unable to retrieve ", name, " information for constraints")
 
-    for name, function, index in attributes_to_retrieve_variables:
-        try:
-            variables_additional_information[name] = function()[index]
-        except cplex.exceptions.errors.CplexSolverError:
-            print("Unable to retrieve ", name, " information for variables")
+        for name, function, index in attributes_to_retrieve_variables:
+            try:
+                variables_additional_information[name] = function()[index]
+            except cplex.exceptions.errors.CplexSolverError:
+                print("Unable to retrieve ", name, " information for variables")
 
     return solution, objective, status, solver_info, \
            constraints_additional_information, \

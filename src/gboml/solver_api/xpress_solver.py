@@ -27,7 +27,8 @@ from gboml.compiler.utils import flat_nested_list_to_two_level
 def xpress_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
                   vector_c: np.ndarray, objective_offset: float,
                   name_tuples: list,
-                  opt_file: str = None) -> tuple:
+                  opt_file: str = None,
+                  details = False) -> tuple:
     """xpress_solver
 
         takes as input the matrix A, the vectors b and c. It returns
@@ -173,17 +174,18 @@ def xpress_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         ["reduced_cost", model.getRCost],
     ]
 
-    for name, function in attributes_to_retrieve_constraints:
-        try:
-            constraints_additional_information[name] = function()
-        except RuntimeError:
-            print("Unable to retrieve ", name, " information for constraints")
+    if details:
+        for name, function in attributes_to_retrieve_constraints:
+            try:
+                constraints_additional_information[name] = function()
+            except RuntimeError:
+                print("Unable to retrieve ", name, " information for constraints")
 
-    for name, function in attributes_to_retrieve_variables:
-        try:
-            variables_additional_information[name] = function()
-        except RuntimeError:
-            print("Unable to retrieve ", name, " information for variables")
+        for name, function in attributes_to_retrieve_variables:
+            try:
+                variables_additional_information[name] = function()
+            except RuntimeError:
+                print("Unable to retrieve ", name, " information for variables")
 
     return solution, objective, status, solver_info, \
            constraints_additional_information, \

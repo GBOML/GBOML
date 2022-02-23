@@ -124,21 +124,24 @@ def main():
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             cplex_solver(A, b, C_sum, objective_offset, name_tuples, args.opt)
+             cplex_solver(A, b, C_sum, objective_offset, name_tuples, args.opt,
+                          args.detailed_json)
 
         elif args.gurobi:
 
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             gurobi_solver(A, b, C_sum, objective_offset, name_tuples, args.opt)
+             gurobi_solver(A, b, C_sum, objective_offset, name_tuples, args.opt,
+                           args.detailed_json)
 
         elif args.xpress:
 
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             xpress_solver(A, b, C_sum, objective_offset, name_tuples, args.opt)
+             xpress_solver(A, b, C_sum, objective_offset, name_tuples, args.opt,
+                           args.detailed_json)
 
         elif args.dsp_dw:
             x, objective, status, solver_info = \

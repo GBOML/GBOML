@@ -30,7 +30,8 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
                   vector_c: np.ndarray,
                   objective_offset: float,
                   name_tuples: dict,
-                  opt_file: str = None) -> tuple:
+                  opt_file: str = None,
+                  details = False) -> tuple:
     """gurobi_solver
 
         takes as input the matrix A, the vectors b and c. It returns
@@ -187,21 +188,22 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
                                         "SALBLow", "SALBUp", "SAUBLow",
                                         "SAUBUp"]
 
-    for attribute in attributes_to_retrieve_constraints:
-        try:
-            constraints_additional_information[attribute] = \
-                model.getAttr(attribute, model.getConstrs())
-        except grbp.GurobiError:
-            print("Warning : Unable to retrieve ", attribute,
-                  " information for constraints")
+    if details:
+        for attribute in attributes_to_retrieve_constraints:
+            try:
+                constraints_additional_information[attribute] = \
+                    model.getAttr(attribute, model.getConstrs())
+            except grbp.GurobiError:
+                print("Warning : Unable to retrieve ", attribute,
+                      " information for constraints")
 
-    for attribute in attributes_to_retrieve_variables:
-        try:
-            variables_additional_information[attribute] = \
-                model.getAttr(attribute, model.getVars())
-        except grbp.GurobiError:
-            print("Warning : Unable to retrieve ", attribute,
-                  " information for variables")
+        for attribute in attributes_to_retrieve_variables:
+            try:
+                variables_additional_information[attribute] = \
+                    model.getAttr(attribute, model.getVars())
+            except grbp.GurobiError:
+                print("Warning : Unable to retrieve ", attribute,
+                      " information for variables")
 
     return solution, objective, status, solver_info, \
            constraints_additional_information, \

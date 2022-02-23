@@ -239,7 +239,7 @@ def p_name_parameter_redefinition(p):
         list_parameters = []
         list_node_name_redefinition = []
         if len(p) == 3:
-            list_parameters, list_node_name_redefinition = p[3]
+            list_parameters, list_node_name_redefinition = p[2]
         list_parameters.append(parameter)
         p[0] = [list_parameters, list_node_name_redefinition]
 
