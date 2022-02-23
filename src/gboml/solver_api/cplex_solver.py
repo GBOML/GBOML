@@ -63,8 +63,8 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         exit(0)
 
     if opt_file is None:
-        opt_file = 'gboml/solver_api/cplex.opt'
-    print(os.getcwd())
+        opt_file = 'src/gboml/solver_api/cplex.opt'
+
     # Convert to appropriate structure
     matrix_a_zipped = zip(matrix_a.row.tolist(), matrix_a.col.tolist(),
                           matrix_a.data)

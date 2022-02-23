@@ -69,7 +69,7 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         exit(0)
 
     if opt_file is None:
-        opt_file = 'gboml/solver_api/gurobi.opt'
+        opt_file = 'src/gboml/solver_api/gurobi.opt'
 
     solution = None
     objective = None

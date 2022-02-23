@@ -61,7 +61,7 @@ def xpress_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         exit(0)
 
     if opt_file is None:
-        opt_file = 'gboml/solver_api/xpress.opt'
+        opt_file = 'src/gboml/solver_api/xpress.opt'
 
     # Generating the model
     model = xp.problem()
