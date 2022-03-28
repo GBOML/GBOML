@@ -38,9 +38,9 @@ The Graph-Based Optimization Modeling Language (GBOML) is a modeling language fo
 
 Many planning and control problems (e.g., in the field of energy systems) can be formulated as mathematical programs. Notably, many models of practical interest can be viewed as collections of smaller models with some form of coupling between them. Such models display a natural block structure, where each block represents a small model.
 
-Broadly speaking, two classes of tools can be used to implement such models, namely algebraic modeling languages (AMLs) and so-called object-oriented modeling environments (OOEMs). In short, AMLs typically allow users to compactly encode broad classes of optimization problems (e.g., mixed-integer nonlinear programs) while decoupling models and solvers. AMLs can be either stand-alone (e.g., GAMS [@GAMS] or AMPL [@AMPL]) or embedded in general-purpose programming languages, such as JuMP [@JuMP] (in Julia), Pyomo [@Pyomo] and PuLP [@PuLP] (in Python). They may also be open-source (e.g., JuMP, Pyomo and PuLP). On the other hand, OOEMs usually make it easy to construct instances of specific problems from pre-defined components. For instance, in the field of energy systems, established OOEMs include PyPSA (power flow calculations and capacity expansion planning) [@PyPSA], Calliope (multi-energy carrier capacity expansion planning) [@Calliope] or Balmorel (long-term planning and short-term operational analyses) [@Balmorel].
+Broadly speaking, two classes of tools can be used to implement such models, namely algebraic modeling languages (AMLs) and so-called object-oriented modeling environments (OOMEs). In short, AMLs typically allow users to compactly encode broad classes of optimization problems (e.g., mixed-integer nonlinear programs) while decoupling models and solvers. AMLs can be either stand-alone (e.g., GAMS [@GAMS] or AMPL [@AMPL]) or embedded in general-purpose programming languages, such as JuMP [@JuMP] (in Julia), Pyomo [@Pyomo] and PuLP [@PuLP] (in Python). They may also be open-source (e.g., JuMP, Pyomo and PuLP). On the other hand, OOMEs usually make it easy to construct instances of specific problems from pre-defined components. For instance, in the field of energy systems, established OOMEs include PyPSA (power flow calculations and capacity expansion planning) [@PyPSA], Calliope (multi-energy carrier capacity expansion planning) [@Calliope] or Balmorel (long-term planning and short-term operational analyses) [@Balmorel].
 
-Unfortunately, both AMLs and OOEMS suffer from several drawbacks. More precisely, AMLs usually lack modularity, which is defined as the ability to take advantage of problem structure for various purposes, including simplifying problem encoding, enabling model re-use, speeding up model generation (e.g., by parallelising it) and facilitating the use of structure-exploiting solution algorithms. Extensions to established AMLs were proposed to address the latter concern, such as StructJuMP [@StructJuMP], BlockDecomposition.jl [@BlockDecomposition] (extending JuMP), PySP [@PySP] and SML [@SML] (extending Pyomo and AMPL, respectively). However, these extensions were usually designed with the primary aim of exposing very specific problem structures (e.g., dual block angular structures found in stochastic linear  programming models) or facilitating the use of specific structure-exploiting algorithms (e.g., branch-price-and-cut). On the other hand, OOEMs typically lack expressiveness and adding components is often cumbersome. Furthermore, they usually rely on established AMLs themselves and thus automatically inherit any shortcomings of the AML on top of which they are built (e.g., it may not be open-source).
+Unfortunately, both AMLs and OOMEs suffer from several drawbacks. More precisely, AMLs usually lack modularity, which we define as the ability to take advantage of problem structure for various purposes, including simplifying problem encoding, enabling model re-use, speeding up model generation (e.g., by parallelising it) and facilitating the use of structure-exploiting solution algorithms. Extensions to established AMLs were proposed to address the latter concern, such as StructJuMP [@StructJuMP], PySP [@PySP] and SML [@SML] (extending JuMP, Pyomo and AMPL, respectively). However, these extensions were usually designed with the primary aim of exposing very specific problem structures (e.g., dual block angular structures found in stochastic linear  programming models). On the other hand, OOMEs typically lack expressiveness and adding components is often cumbersome. Furthermore, they very often rely on established AMLs themselves and thus automatically inherit any shortcomings of the AML on top of which they are built (e.g., it may not be open-source).
 
 The tools that appear closest in spirit to our own are the recent SMS++ modeling framework [@SMSpp] and Plasmo.jl [@Plasmo] (an extension of JuMP). The former makes it possible to implement fairly general block-structured models and aims to ease the development and deployment of advanced structure-exploiting algorithms. The latter relies on a graph abstraction of optimization models to enable modular model construction, partitioning and the use of structure-exploiting algorithms.
 
@@ -54,54 +54,59 @@ Against this backdrop, GBOML was designed to blend and natively support some key
 - making it easy to re-use and combine components and models
 - interfacing with commercial and open-source solvers, including structure-exploiting ones
 
-Next, we describe a short example illustrating how GBOML works. First, a model must be encoded in a GBOML input file. The code block below displays an input file implementing a stylised microgrid investment planning problem.
-
-	#TIMEHORIZON
-	T = 8760; // planning horizon (hours)
-
-	#GLOBAL
-	n = 20; // lifetime of technologies in microgrid (years)
-
-	#NODE SOLAR_PV
-	#PARAMETERS
-	capex = 600 / n; // annualised capital expenditure per unit capacity
-	capacity_factor = import "pv_gen.csv"; // normalised generation profile
-	#VARIABLES
-	internal: capacity; // capacity of solar PV plant
-	external: power[T]; // power output of solar PV plant
-	#CONSTRAINTS
-	capacity >= 0;
-	power[t] >= 0;
-	power[t] <= capacity_factor[t] * capacity;
-	#OBJECTIVES
-	min: capex * capacity;
-
-	#NODE BATTERY
-	#PARAMETERS
-	capex = 150 / n; // annualised capital expenditure per unit capacity
-	#VARIABLES
-	internal: capacity; // energy capacity of battery storage system
-	internal: energy[T]; // energy stored in battery storage system
-	external: power[T]; // power flow in/out of battery storage system
-	#CONSTRAINTS
-	capacity >= 0;
-	energy[t] >= 0;
-	energy[t] <= capacity;
-	energy[t+1] == energy[t] + power[t];
-	#OBJECTIVES
-	min: capex * capacity;
-
-	#HYPEREDGE POWER_BALANCE
-	#PARAMETERS
-	electrical_load = import "electrical_load.csv";
-	#CONSTRAINTS
-	SOLAR_PV.power[t] == electrical_load[t] + BATTERY.power[t];
-
-In the GBOML input file, the optimization horizon and a global parameter are first defined. Two node blocks then define the solar photovoltaic (PV) and battery storage system models, respectively. Each node has its own parameters, variables, constraints and objectives. Finally, a hyperedge block is used to ensure that power flows in the microgrid are balanced, effectively coupling the solar PV and battery storage system nodes.
-
-Then, either the command-line interface or the Python API may be used to generate the model and solve it. Model generation can be parallelised based on the block structure provided by the user and models can be passed to open-source or commercial solvers. Direct access to several solver APIs is provided, allowing users to tune algorithm parameters and retrieve complementary information (e.g., dual variables, slacks or basis ranges, when available). Finally, results are retrieved and can be either printed to file or used directly in Python. Two file formats are supported at the time of writing, namely CSV and JSON.
-
 An early version of the tool was used in a research article studying the economics of carbon-neutral fuel production in remote areas where renewable resources are abundant [@RemoteHub]. The tool is also used in the context of a research project focusing on the design of the future Belgian energy system.
+
+# Example
+
+Next, we describe a short example illustrating how GBOML works. First, a model must be encoded in a GBOML input file. An input file implementing a stylised microgrid investment planning problem is shown below.
+
+```
+#TIMEHORIZON
+T = 8760; // planning horizon (hours)
+
+#NODE SOLAR_PV
+#PARAMETERS
+capex = 600; // annualised capital expenditure per unit capacity
+capacity_factor = import "pv_gen.csv"; // normalised generation profile
+#VARIABLES
+internal: capacity; // capacity of solar PV plant
+external: power[T]; // power output of solar PV plant
+#CONSTRAINTS
+capacity >= 0;
+power[t] >= 0;
+power[t] <= capacity_factor[t] * capacity;
+#OBJECTIVES
+min: capex * capacity;
+
+#NODE BATTERY
+#PARAMETERS
+capex = 150; // annualised capital expenditure per unit capacity
+#VARIABLES
+internal: capacity; // energy capacity of battery storage system
+internal: energy[T]; // energy stored in battery storage system
+external: power[T]; // power flow in/out of battery storage system
+#CONSTRAINTS
+capacity >= 0;
+energy[t] >= 0;
+energy[t] <= capacity;
+energy[t+1] == energy[t] + power[t];
+#OBJECTIVES
+min: capex * capacity;
+
+#HYPEREDGE POWER_BALANCE
+#PARAMETERS
+electrical_load = import "electrical_load.csv";
+#CONSTRAINTS
+SOLAR_PV.power[t] == electrical_load[t] + BATTERY.power[t];
+```
+
+The optimization horizon is defined at the beginning of the GBOML input file. Two node blocks then define the solar photovoltaic (PV) and battery storage system models, respectively. Each node has its own parameters, variables, constraints and objectives. Finally, a hyperedge block is used to ensure that power flows in the microgrid are balanced and the electricity demand is satisfied.
+
+Then, the command-line interface or the Python API may be used to generate the model and solve it. Model generation can be parallelised based on the block structure provided by the user and models can be passed to open-source or commercial solvers. Direct access to several solver APIs is provided, allowing users to tune algorithm parameters and query complementary information (e.g., dual variables, slacks or basis ranges, when available).
+
+Finally, results are retrieved and can be either printed to file or used directly in Python. Two file formats are supported at the time of writing, namely CSV and JSON.
+
+The full GBOML syntax is described in the online documentation, along with advanced features such as model imports and hierarchical model construction as well as solver options. The data files required to run the example above are available in the GBOML repository.
 
 # Acknowledgements
 
