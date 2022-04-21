@@ -20,7 +20,7 @@ authors:
     orcid: 0000-0003-3081-4833
     equal-contrib: true
     corresponding: true
-    email: Mathias.Berger@uliege.be
+    email: mathias.berger@alumni.duke.edu 
     affiliation: 1
   - name: Hatim Djelassi
     affiliation: 1
