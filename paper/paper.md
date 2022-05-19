@@ -10,11 +10,17 @@ tags:
   - Decomposition Methods
 
 authors:
-  - name: Bardhyl Miftari^[co-first author]
+  - name: Bardhyl Miftari
     orcid: 0000-0001-5334-0234
+    equal-contrib: true
+    corresponding: true
+    email: bmiftari@uliege.be
     affiliation: 1
-  - name: Mathias Berger^[co-first author]
+  - name: Mathias Berger
     orcid: 0000-0003-3081-4833
+    equal-contrib: true
+    corresponding: true
+    email: mathias.berger@alumni.duke.edu 
     affiliation: 1
   - name: Hatim Djelassi
     affiliation: 1
