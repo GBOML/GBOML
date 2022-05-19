@@ -33,7 +33,7 @@ autodoc_mock_imports = ["scipy", "ply", "numpy"]
 
 # -- Project information -----------------------------------------------------
 
-project = 'The Graph-Based Modeling Language'
+project = 'Graph-Based Optimization Modeling Language'
 copyright = '2021-2022, Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst, University of Liege'
 author = 'Bardhyl Miftari, Mathias Berger, Hatim Djelassi'
 
