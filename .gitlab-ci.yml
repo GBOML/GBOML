@@ -37,4 +37,5 @@ test-main:
   stage: test
   script:
     - pip install -r requirements.txt
-    - python src/main.py /test/test28.txt --linprog
+    - cd src
+    - python main.py ../test/test28.txt --linprog
