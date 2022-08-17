@@ -17,7 +17,7 @@ before_script:
 build-job:
   stage: build
   script:
-    - pip install .
+    - python -m pip install .
 
 test-exec:
   stage: test
