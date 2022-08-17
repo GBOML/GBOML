@@ -22,6 +22,7 @@ build-job:
 test-exec:
   stage: test
   script:
+    - python -m pip install .
     - gboml test/test24.txt --linprog
     - gboml test/test25.txt --linprog
     - gboml test/test26.txt --linprog
@@ -31,6 +32,7 @@ test-exec:
 test-graphobject:
   stage: test
   script:
+    - python -m pip install .
     - python -c "import gboml; print(gboml.GbomlGraph())"
 
 test-main:
