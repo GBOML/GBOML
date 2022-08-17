@@ -3,6 +3,11 @@ image: python:latest
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
 
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
 before_script:
   - python --version
   - pip install virtualenv
@@ -17,7 +22,6 @@ build-job:
 test-exec:
   stage: test
   script:
-    - pip install .
     - gboml test/test24.txt --linprog
     - gboml test/test25.txt --linprog
     - gboml test/test26.txt --linprog
@@ -27,12 +31,10 @@ test-exec:
 test-graphobject:
   stage: test
   script:
-    - pip install .
     - python -c "import gboml; print(gboml.GbomlGraph())"
 
 test-main:
   stage: test
   script:
     - pip install -r requirements.txt
-    - cd src
-    - python main.py ../test/test28.txt --linprog
+    - python src/main.py /test/test28.txt --linprog
