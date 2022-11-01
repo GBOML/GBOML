@@ -24,7 +24,7 @@ Several other options exists and can be retrieved by writing :
 
 from .compiler import compile_gboml
 from .solver_api import scipy_solver, clp_solver, \
-    cplex_solver, gurobi_solver, xpress_solver, dsp_solver
+    cplex_solver, gurobi_solver, xpress_solver, dsp_solver, highs_solver
 from .output import generate_json, generate_list_values_tuple, write_csv
 
 import argparse
@@ -66,18 +66,22 @@ def main():
                         action='store_const', const=True)
     parser.add_argument("--dsp_dw", help="DSP Dantzig-Wolf algorithm",
                         action="store_const", const=True)
+    parser.add_argument("--highs", help="Highs Solver",
+                        action="store_const", const=True)
 
     # Output
-    parser.add_argument("--csv", help="Convert results to CSV format",
+    parser.add_argument("--row_csv", help="Convert results to row wise CSV format",
                         action='store_const', const=True)
-    parser.add_argument("--transposed_csv",
-                        help="Convert results to CSV format sorted by columns",
+    parser.add_argument("--col_csv",
+                        help="Convert results to column wise CSV format",
                         action='store_const', const=True)
+
     parser.add_argument("--json", help="Convert results to JSON format",
                         action='store_const', const=True)
-    parser.add_argument("--detailed_json",
-                        help="Convert detailed results to JSON format",
-                        action="store_const", const=True)
+    parser.add_argument("--detailed",
+                        help="get detailed version of the output",
+                        nargs="?",
+                        type=str, default="")
     parser.add_argument("--log", help="Get log in a file",
                         action="store_const", const=True)
     parser.add_argument("--output", help="Output filename", type=str)
@@ -85,6 +89,10 @@ def main():
 
     args = parser.parse_args()
     start_time = time()
+    if args.detailed is None:
+        args.detailed = True
+    elif args.detailed == "":
+        args.detailed = False
 
     if args.input_file:
         if args.nb_processes is None:
@@ -93,7 +101,7 @@ def main():
             print("The number of processes must be strictly positive")
             exit()
 
-        program, A, b, C, indep_terms_c, T, name_tuples = \
+        program, A_eq, b_eq, A_ineq, b_ineq, C, indep_terms_c, alone_term_c, T, name_tuples = \
             compile_gboml(args.input_file, args.log, args.lex,
                           args.parse, args.nb_processes)
 
@@ -101,11 +109,14 @@ def main():
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
         if args.matrix:
-            print("Matrix A ", A)
-            print("Vector b ", b)
+            print("Matrix A_eq ", A_eq)
+            print("Vector b_eq ", b_eq)
+            print("Matrix A_ineq ", A_ineq)
+            print("Vector b_ineq ", b_ineq)
             print("Vector C ", C_sum)
+            print("Offset", indep_terms_c)
 
-        objective_offset = float(indep_terms_c.sum())
+        objective_offset = float(indep_terms_c.sum() + alone_term_c)
         status = None
 
         constraints_additional_information = dict()
@@ -114,47 +125,50 @@ def main():
         if args.linprog:
 
             x, objective, status, solver_info = \
-                scipy_solver(A, b, C_sum, objective_offset, name_tuples)
+                scipy_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples)
         elif args.clp:
 
             x, objective, status, solver_info = \
-                clp_solver(A, b, C_sum, objective_offset, name_tuples)
+                clp_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples)
         elif args.cplex:
-
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             cplex_solver(A, b, C_sum, objective_offset, name_tuples, args.opt,
-                          args.detailed_json)
+             cplex_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
+                          args.opt, details=args.detailed)
 
         elif args.gurobi:
 
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             gurobi_solver(A, b, C_sum, objective_offset, name_tuples, args.opt,
-                           args.detailed_json)
+             gurobi_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
+                           args.opt, args.detailed)
+            print(x)
 
         elif args.xpress:
 
             x, objective, status, solver_info, \
              constraints_additional_information, \
              variables_additional_information = \
-             xpress_solver(A, b, C_sum, objective_offset, name_tuples, args.opt,
-                           args.detailed_json)
+             xpress_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
+                           args.opt, args.detailed)
 
         elif args.dsp_dw:
+            struct_eq, struct_ineq = program.get_first_level_constraints_decomposition()
             x, objective, status, solver_info = \
-                dsp_solver(A, b, C_sum, objective_offset, name_tuples,
-                           program.get_first_level_constraints_decomposition(),
-                           algorithm="dw")
+                dsp_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
+                           struct_eq, struct_ineq, algorithm="dw")
 
         elif args.dsp_de:
+            struct_eq, struct_ineq = program.get_first_level_constraints_decomposition()
             x, objective, status, solver_info = \
-                dsp_solver(A, b, C_sum, objective_offset, name_tuples,
-                           program.get_first_level_constraints_decomposition(),
-                           algorithm="de")
+                dsp_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
+                           struct_eq, struct_ineq, algorithm="de")
 
+        elif args.highs:
+            x, objective, status, solver_info = \
+                highs_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples)
         else:
 
             print("No solver was chosen")
@@ -192,22 +206,12 @@ def main():
             time_str = strftime("%Y_%m_%d_%H_%M_%S", gmtime())
             filename = filename + "_" + time_str
 
-        if args.json or args.detailed_json:
-            if args.json and args.detailed_json:
-                print("Warning: Selected both json and "
-                      "detailed json results in only detailed "
-                      "json being saved")
-            dictionary = dict()
-            if args.json:
-                dictionary = generate_json(program, solver_info, status, x,
-                                           objective, C,
-                                           indep_terms_c)
-            if args.detailed_json:
-                dictionary = generate_json(program, solver_info, status, x,
-                                           objective, C,
-                                           indep_terms_c,
-                                           constraints_additional_information,
-                                           variables_additional_information)
+        if args.json:
+            dictionary = generate_json(program, solver_info, status, x,
+                                       objective, C,
+                                       indep_terms_c,
+                                       constraints_additional_information,
+                                       variables_additional_information)
             try:
                 with open(filename + ".json", 'w') as outfile:
 
@@ -219,11 +223,12 @@ def main():
                 print("WARNING the file " + str(filename)
                       + ".json already exists and is open.")
                 print("Was unable to save the file")
-        if args.csv or args.transposed_csv:
+        if args.row_csv or args.col_csv:
             names_var_and_param, values_var_and_param = \
-                generate_list_values_tuple(program, x)
+                generate_list_values_tuple(program, x, C, indep_terms_c,
+                                           constraints_info=constraints_additional_information)
             write_csv(filename + ".csv", names_var_and_param,
-                      values_var_and_param, transpose=args.transposed_csv)
+                      values_var_and_param, transpose=args.col_csv)
     else:
 
         print('ERROR : expected input file')

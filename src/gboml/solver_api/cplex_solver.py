@@ -19,7 +19,7 @@ and passes it to the cplex solver.
    print("the solution is "+str(solution))
    print("the objective found : "+str(objective))
 """
-from gboml.compiler.utils import flat_nested_list_to_two_level
+from gboml.compiler.utils import flat_nested_list_to_two_level, read_attributes_in_file
 
 import numpy as np
 from scipy.sparse import coo_matrix
@@ -27,12 +27,13 @@ import time
 import os
 
 
-def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
+def cplex_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
+                 matrix_a_ineq: coo_matrix, vector_b_ineq: np.ndarray,
                  vector_c: np.ndarray,
                  objective_offset: float,
                  name_tuples: dict,
                  opt_file: str = None,
-                 details = False) -> tuple:
+                 details=False) -> tuple:
     """cplex_solver
 
         takes as input the matrix A, the vectors b and c. It returns
@@ -40,8 +41,10 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         by the cplex solver
 
         Args:
-            A -> coo_matrix of constraints
-            b -> np.ndarray of independent terms of each constraint
+            matrix_a_eq -> coo_matrix of equality constraints
+            vector_b_eq -> np.ndarray of independent terms of each equality constraint
+            matrix_a_ineq -> coo_matrix of inequality constraints
+            vector_b_eq -> np.ndarray of independent terms of each inequality constraint
             c -> np.ndarray of objective vector
             objective_offset -> float of the objective offset
             name_tuples -> dictionary of <node_name variables> used
@@ -65,17 +68,23 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
     if opt_file is None:
         opt_file = 'src/gboml/solver_api/cplex.opt'
 
+    line_ineq, _ = np.shape(matrix_a_ineq)
+    line_eq, _ = np.shape(matrix_a_eq)
+    matrix_a_row = matrix_a_eq.row + line_ineq
     # Convert to appropriate structure
-    matrix_a_zipped = zip(matrix_a.row.tolist(), matrix_a.col.tolist(),
-                          matrix_a.data)
-    m, n = np.shape(matrix_a)
-    vector_b = list(vector_b.reshape(-1))
-    vector_c = vector_c.tolist()[0]
+    matrix_a_zipped = zip(matrix_a_ineq.row.tolist()+matrix_a_row.tolist(),
+                          matrix_a_ineq.col.tolist()+matrix_a_eq.col.tolist(),
+                          np.concatenate((matrix_a_ineq.data, matrix_a_eq.data)))
 
+
+    vector_b = np.concatenate((vector_b_ineq, vector_b_eq))
+    vector_b = list(vector_b.reshape(-1))
+    _, nb_col = vector_c.shape
+    vector_c = vector_c.tolist()[0]
     # Generate model
     model = cplex.Cplex()
-    model.variables.add(obj=vector_c, lb=[-cplex.infinity]*n,
-                        ub=[cplex.infinity]*n)
+    model.variables.add(obj=vector_c, lb=[-cplex.infinity]*nb_col,
+                        ub=[cplex.infinity]*nb_col)
     flat_name_tuples = flat_nested_list_to_two_level(name_tuples)
 
     for index, _, var_type, var_size in flat_name_tuples:
@@ -95,7 +104,7 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
                 model.variables.set_types(i, model.variables.type.binary)
                 i = i+1
 
-    model.linear_constraints.add(senses=['L']*m, rhs=vector_b)
+    model.linear_constraints.add(senses=['L']*line_ineq+['E']*line_eq, rhs=vector_b)
     model.linear_constraints.set_coefficients(matrix_a_zipped)
     model.objective.set_sense(model.objective.sense.minimize)
     model.objective.set_offset(objective_offset)
@@ -155,7 +164,6 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
                         print("Skipping option \'%s\' with no given value"
                               % option[0])
     solver_info["options"] = option_info
-    print("")
     solution = None
     objective = None
 
@@ -193,33 +201,42 @@ def cplex_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
 
     constraints_additional_information = dict()
     variables_additional_information = dict()
-    if details:
-        attributes_to_retrieve_constraints = [
-                                              ["dual",
-                                               model.solution.get_dual_values],
-                                              ["slack",
-                                               model.solution.get_linear_slacks],
-                                              ]
-        attributes_to_retrieve_variables = [
-                                              ["basis",
-                                               model.solution.basis.get_basis, 0],
-                                              ["dual_norms",
-                                               model.solution.basis.get_dual_norms,
-                                               slice(0, 2)]
-                                             ]
+    constraints_additional_info_ineq = dict()
+    constraints_additional_info_eq = dict()
 
-        for name, function in attributes_to_retrieve_constraints:
-            try:
-                constraints_additional_information[name] = function()
-            except cplex.exceptions.errors.CplexSolverError:
-                print("Unable to retrieve ", name, " information for constraints")
+    if details is not False:
+        if isinstance(details, str):
+            attributes_to_get = read_attributes_in_file(details)
+        else:
+            attributes_to_get = ["dual", "slack", "basis", "dual_norms"]
 
-        for name, function, index in attributes_to_retrieve_variables:
-            try:
-                variables_additional_information[name] = function()[index]
-            except cplex.exceptions.errors.CplexSolverError:
-                print("Unable to retrieve ", name, " information for variables")
+        attributes_constraints = {"dual": model.solution.get_dual_values,
+                                  "slack": model.solution.get_linear_slacks}
+        attributes_variables = {"reduced_cost": [model.solution.get_reduced_costs, slice(None)],
+                                "basis": [model.solution.basis.get_basis, 0],
+                                "dual_norms": [model.solution.basis.get_dual_norms, slice(0, 2)]}
+        for attr_name in attributes_to_get:
+            if attr_name in attributes_constraints.keys():
+                function = attributes_constraints[attr_name]
+                try:
+                    constr_attribute_info = function()
+                    constraints_additional_info_ineq[attr_name] = constr_attribute_info[:line_ineq]
+                    constraints_additional_info_eq[attr_name] = constr_attribute_info[line_ineq:]
+                except cplex.exceptions.errors.CplexSolverError:
+                    print("Unable to retrieve ", attr_name, " information for constraints")
+            elif attr_name in attributes_variables.keys():
+                function, index = attributes_variables[attr_name]
+                try:
+                    variables_additional_information[attr_name] = function()[index]
+                except cplex.exceptions.errors.CplexSolverError:
+                    print("Unable to retrieve ", attr_name, " information for variables")
+            else:
+                print("Warning : Unable to retrieve ", attr_name,
+                      " information")
 
+    constraints_additional_information = {"eq": constraints_additional_info_eq,
+                                          "ineq": constraints_additional_info_ineq}
+    print(constraints_additional_information)
     return solution, objective, status, solver_info, \
            constraints_additional_information, \
            variables_additional_information

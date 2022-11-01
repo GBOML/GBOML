@@ -4,7 +4,7 @@
 # Licensed under the MIT License (see LICENSE file).
 
 
-import ply.yacc as yacc  # type: ignore
+from .ply import yacc  # type: ignore
 from copy import deepcopy
 import os
 

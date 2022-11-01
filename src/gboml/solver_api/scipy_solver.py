@@ -22,11 +22,13 @@ and passes it to the linprog solver.
 
 import numpy as np
 from scipy.sparse import coo_matrix
+from gboml.compiler.utils import flat_nested_list_to_two_level
 
 
-def scipy_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
-                 vector_c: np.ndarray,
-                 objective_offset: float, name_tuples: dict) -> tuple:
+def scipy_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
+                 matrix_a_ineq: coo_matrix, vector_b_ineq: np.ndarray,
+                 vector_c: np.ndarray, objective_offset: float,
+                 name_tuples: dict) -> tuple:
     """scipy_solver
 
         takes as input the matrix A, the vectors b and c. It returns the
@@ -34,9 +36,11 @@ def scipy_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         scipy's linprog solver
 
         Args:
-            A -> coo_matrix of constraints
-            b -> np.ndarray of independent terms of each constraint
-            c -> np.ndarray of objective vector
+            matrix_a_eq -> coo_matrix of equality constraints
+            vector_b_eq -> np.ndarray of independent terms of each equality constraint
+            matrix_a_ineq -> coo_matrix of inequality constraints
+            vector_b_eq -> np.ndarray of independent terms of each inequality constraint
+            vector_c -> np.ndarray of objective vector
             objective_offset -> float of the objective offset
             name_tuples -> dictionary of <node_name variables> used to get
                            the type
@@ -52,12 +56,24 @@ def scipy_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
     from scipy.optimize import linprog
     x0_bounds = (None, None)
 
+    """
+    flat_name_tuples = flat_nested_list_to_two_level(name_tuples)
+    integrality_array = []
+    bounds = []
+    for index, _, var_type, var_size in flat_name_tuples:
+        if var_type == "continuous":
+            integrality_array.append(0)
+            bounds.append((None, None))
+        elif var_type == "integer":
+            integrality_array.append(1)
+            bounds.append((None, None))
+        elif var_type == "binary":
+            integrality_array.append(1)
+            bounds.append((0, 1))
+    """
     # Generate the model
-    result = linprog(vector_c, A_ub=matrix_a.toarray(),
-                     b_ub=vector_b,
-                     bounds=x0_bounds,
-                     options={"lstsq": True, "disp": True,
-                              "cholesky": False, "sym_pos": False})
+    result = linprog(vector_c, A_ub=matrix_a_ineq.toarray(), b_ub=vector_b_ineq, A_eq=matrix_a_eq.toarray(),
+                     b_eq=vector_b_eq, method='highs', bounds=(None, None))
 
     # Retrieve solver info and solution
     solver_info = {"name": "linprog"}
@@ -73,5 +89,4 @@ def scipy_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
     else:
 
         status = "unknown"
-
     return solution, objective, status, solver_info

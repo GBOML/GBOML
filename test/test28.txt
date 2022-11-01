@@ -16,7 +16,7 @@
                 #VARIABLES
                     external : x[T];
                 #CONSTRAINTS
-                    x[t] >= A.param;
+                    d : x[t] >= A.param;
 
             #NODE E
                 #PARAMETERS
@@ -24,7 +24,7 @@
                 #VARIABLES
                     external integer : y[T];
                 #CONSTRAINTS
-                    y[t] >= param;
+                    e: y[t] >= param;
                 #OBJECTIVES
                     min: y[t];
 
@@ -32,7 +32,7 @@
                 #PARAMETERS
                     param = A.param;
                 #CONSTRAINTS
-                    E.y[t]+D.x[t] == param+9;
+                    constr : E.y[t]+D.x[t] == param+9;
 
             #VARIABLES
                 internal : x[T] <- D.x[T];

@@ -79,19 +79,20 @@ def compile_gboml(input_file: str, log: bool = False,
     program, program_variables_dict, definitions = semantic(ast)
     check_program_linearity(program, program_variables_dict, definitions)
     factorize_program(program, program_variables_dict, definitions)
+
     if nb_processes > 1:
         extend_factor_on_multiple_processes(program, definitions, nb_processes)
     else:
         extend_factor(program, definitions)
 
-    matrix_a, vector_b = matrix_generation_a_b(program)
-    vector_c, indep_terms_c = matrix_generation_c(program)
+    matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq = matrix_generation_a_b(program)
+    vector_c, indep_terms_c, alone_term_c = matrix_generation_c(program)
     program.free_factors_objectives()
 
     time_horizon = program.get_time().get_value()
     os.chdir(curr_dir)
-    return program, matrix_a, vector_b, vector_c, indep_terms_c, \
-           time_horizon, program.get_tuple_name()
+    return program, matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq, vector_c, indep_terms_c, \
+           alone_term_c, time_horizon, program.get_tuple_name()
 
 
 def compile_gboml_mdp(input_file: str):

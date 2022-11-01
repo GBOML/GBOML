@@ -1,0 +1,30 @@
+#TIMEHORIZON
+T = 1;
+
+#NODE system
+#PARAMETERS
+c1 = 1.0;
+c2 = 2.0;
+c3 = 10.0;
+b1 = 0.5;
+b2 = 3.0;
+d = 8.0;
+#VARIABLES
+internal: x1;
+internal: x2;
+internal: x3;
+#CONSTRAINTS
+// Dual max : b1 y1 + b2 y2 + d y3
+// st : - y1 + y3 <= c1
+//      - y2 + y3 <= c2
+//      y3 <= c3
+//      y1, y2 >= 0, y3 \in R
+
+x1 >= 0;
+x2 >= 0;
+x3 >= 0;
+x1 <= b1;
+x2 <= b2;
+test_constraint: x1 + x2 + x3 == d;
+#OBJECTIVES
+min: c1 * x1 + c2 * x2 + c3 * x3;

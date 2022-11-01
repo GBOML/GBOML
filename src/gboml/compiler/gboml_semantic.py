@@ -6,7 +6,7 @@
 
 from .classes import Expression, \
     Program, Node, Identifier, Factorize, Hyperedge, Variable, Sizing, State, \
-    Action, Auxiliary, MDPObjective, MDP, Time, Parameter
+    Action, Auxiliary, MDPObjective, MDP, Time, Parameter, Condition
 from .classes.error import RedefinitionError
 
 import numpy as np  # type: ignore
@@ -69,7 +69,6 @@ def semantic(program: Program) -> tuple:
     program.set_nb_var_index(global_index)
     program.set_variables_dict(program_variables_dict)
     program.set_global_parameters(global_param)
-
     return program, program_variables_dict, definitions
 
 
@@ -180,6 +179,7 @@ def check_and_extend_parameters_variables_in_nodes(nodes_list: list,
         _, nested_nodes_variables = get_layer_in_nested_dict(
             program_variables_dict, depth_list, only_dict=True)
         depth_list.remove(node_name)
+        add_node_in_variable_index(node)
         global_index = set_size_variables(node_variables,
                                           flat_branch_dictionary,
                                           global_index,
@@ -188,6 +188,15 @@ def check_and_extend_parameters_variables_in_nodes(nodes_list: list,
         check_names_repetitions(node.get_objectives())
 
     return global_index
+
+
+def add_node_in_variable_index(node):
+    vars = node.get_variables()
+    for var in vars:
+        variable_identifier = var.get_identifier()
+        id_expression = variable_identifier.get_expression()
+        if id_expression is not None:
+            add_node_names_expression(id_expression, node, [])
 
 
 def check_and_extend_parameters_in_edges(edge_list: list,
@@ -266,7 +275,9 @@ def recursive_application_on_nodes_hyperedges(nodes,
         accumulator_dict.pop(node_name)
 
     for link in hyperedges:
-        function_hyperedge(link, variables, definitions)
+        accumulator_dict[link.get_name()] = definitions[link.get_name()]
+        function_hyperedge(link, variables, accumulator_dict)
+        del accumulator_dict[link.get_name()]
 
 
 def factorize_program(program, variables, definitions):
@@ -371,10 +382,6 @@ def check_expressions_dependency(node: Node,
 
         contains_var = predicate_variables_in_expression(expr, variables)
 
-        if contains_var is False:
-            error_(
-                'Objective only depends on constants not on variable at line '
-                + str(expr.get_line()))
         check_linear(expr, variables, parameters_obj)
 
 
@@ -851,8 +858,8 @@ def add_node_names(node: Node):
 
         if condition is not None:
             condition_lhs, condition_rhs = condition.get_children()
-            add_node_names_expression(condition_lhs, node, reserved)
-            add_node_names_expression(condition_rhs, node, reserved)
+            add_node_names_condition(condition_lhs, node, reserved)
+            add_node_names_condition(condition_rhs, node, reserved)
 
         lhs = constraint.get_lhs()
         add_node_names_expression(lhs, node, reserved)
@@ -874,10 +881,18 @@ def add_node_names(node: Node):
         reserved = [index_var]
         if condition is not None:
             condition_lhs, condition_rhs = condition.get_children()
-            add_node_names_expression(condition_lhs, node, reserved)
-            add_node_names_expression(condition_rhs, node, reserved)
+            add_node_names_condition(condition_lhs, node, reserved)
+            add_node_names_condition(condition_rhs, node, reserved)
 
         add_node_names_expression(expr, node, reserved)
+
+
+def add_node_names_condition(condition, node, reserved):
+    if type(condition) == Expression:
+        add_node_names_expression(condition, node, reserved)
+    else:
+        for child in condition.get_children():
+            add_node_names_condition(child, node, reserved)
 
 
 def add_node_names_expression(expr: Expression, node,
@@ -901,6 +916,12 @@ def add_node_names_expression(expr: Expression, node,
             sum_children = sum_expr.get_children()
             time_interval = sum_expr.get_time_interval()
             index_name = time_interval.get_index_name()
+            begin = time_interval.get_begin()
+            step = time_interval.get_step()
+            end = time_interval.get_end()
+            add_node_names_expression(begin, node, reserved_identifiers)
+            add_node_names_expression(step, node, reserved_identifiers)
+            add_node_names_expression(end, node, reserved_identifiers)
             reserved_sum = reserved + [index_name]
             for child in sum_children:
                 add_node_names_expression(child, node, reserved_sum)
@@ -1853,13 +1874,16 @@ def parameter_evaluation(parameter_dict: dict, definitions: dict):
     input_definition = definitions.copy()
     for parameter_name in parameter_dict.keys():
         parameter = parameter_dict[parameter_name]
+        if parameter.read_from_file:
+            input_definition[parameter_name] = parameter
+            continue
         e = parameter.get_expression()
         if e is not None:
 
             value = e.evaluate_expression(input_definition)
-            value = [value]
+            if not isinstance(value, list):
+                value = [value]
         else:
-
             value = evaluate_table(parameter.get_vector(), input_definition)
 
         parameter.set_value(value)

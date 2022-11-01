@@ -10,7 +10,7 @@ class Hyperedge:
 
     def __init__(self, name, parameters=None, expressions=None,
                  constraints=None, line=0):
-
+        self.filename = ""
         self.name = name
         self.parameters = parameters
         self.constraints = constraints
@@ -26,6 +26,8 @@ class Hyperedge:
         self.names_changes = []
         self.parameters_changes = []
         self.constraints_data = {}
+        self.nb_eq_constraints = 0
+        self.nb_ineq_constraints = 0
 
     def get_line(self):
         return self.line
@@ -49,8 +51,8 @@ class Hyperedge:
     def get_expressions(self):
         return self.expressions
 
-    def set_constraints_data(self, constr_data):
-        self.constraints_data = constr_data
+    def set_constraints_data(self, constr_data, type_constr):
+        self.constraints_data[type_constr] = constr_data
 
     def get_constraints_data(self):
         return self.constraints_data
@@ -103,7 +105,7 @@ class Hyperedge:
 
     def get_number_expanded_constraints(self):
 
-        return self.nb_constraint_matrix
+        return self.nb_eq_constraints, self.nb_ineq_constraints
 
     def get_number_constraints(self):
 
@@ -131,6 +133,12 @@ class Hyperedge:
         if "T" in param:
             param.pop("T")
         self.parameter_dict = param
+
+    def set_nb_constraints(self, number, type_constr):
+        if type_constr == "eq":
+            self.nb_eq_constraints = number
+        else:
+            self.nb_ineq_constraints = number
 
     def get_parameter_dict(self):
 

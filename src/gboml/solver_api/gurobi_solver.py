@@ -22,16 +22,17 @@ and passes it to the gurobi solver.
 
 import numpy as np
 from scipy.sparse import coo_matrix
-from gboml.compiler.utils import flat_nested_list_to_two_level
+from gboml.compiler.utils import flat_nested_list_to_two_level, read_attributes_in_file
 import os
 
 
-def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
+def gurobi_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
+                  matrix_a_ineq: coo_matrix, vector_b_ineq: np.ndarray,
                   vector_c: np.ndarray,
                   objective_offset: float,
                   name_tuples: dict,
                   opt_file: str = None,
-                  details = False) -> tuple:
+                  details=False) -> tuple:
     """gurobi_solver
 
         takes as input the matrix A, the vectors b and c. It returns
@@ -39,13 +40,16 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         by the gurobi solver
 
         Args:
-            A -> coo_matrix of constraints
-            b -> np.ndarray of independent terms of each constraint
+            matrix_a_eq -> coo_matrix of equality constraints
+            vector_b_eq -> np.ndarray of independent terms of each equality constraint
+            matrix_a_ineq -> coo_matrix of inequality constraints
+            vector_b_eq -> np.ndarray of independent terms of each inequality constraint
             c -> np.ndarray of objective vector
             objective_offset -> float of the objective offset
             name_tuples -> dictionary of <node_name variables> used to get
                            the type
             opt_file -> optimization parameters file
+            details -> tuple of bool and path to attributes to retrieve
 
         Returns:
             solution -> np.ndarray of the flat solution
@@ -75,16 +79,23 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
     objective = None
 
     # Fix shapes and types of input
-    matrix_a = matrix_a.astype(float)
-    _, n = np.shape(matrix_a)
-    b = vector_b.reshape(-1)
+    matrix_a_eq = matrix_a_eq.astype(float)
+    matrix_a_ineq = matrix_a_ineq.astype(float)
+    nb_eq_constr, _ = matrix_a_eq.shape
+    nb_ineq_constr, _ = matrix_a_ineq.shape
+
+    _, n = np.shape(vector_c)
+    b_eq = vector_b_eq.reshape(-1)
+    b_ineq = vector_b_ineq.reshape(-1)
     vector_c = vector_c.reshape(-1)
 
     # Build Gurobi model
     model = grbp.Model()
     x = model.addMVar(shape=n, lb=-float('inf'), ub=float('inf'),
                       vtype=GRB.CONTINUOUS, name="x")
-    model.addMConstr(matrix_a, x, '<', b)
+
+    model.addMConstr(matrix_a_ineq, x, '<', b_ineq)
+    model.addMConstr(matrix_a_eq, x, '=', b_eq)
     model.setObjective(vector_c @ x + objective_offset, GRB.MINIMIZE)
 
     flat_name_tuples = flat_nested_list_to_two_level(name_tuples)
@@ -180,30 +191,36 @@ def gurobi_solver(matrix_a: coo_matrix, vector_b: np.ndarray,
         print(e)
         status = "error"
 
-    constraints_additional_information = dict()
+    constraints_additional_info_eq = dict()
+    constraints_additional_info_ineq = dict()
     variables_additional_information = dict()
-    attributes_to_retrieve_constraints = ["Pi", "Slack",
-                                          "CBasis", "SARHSLow", "SARHSUp"]
-    attributes_to_retrieve_variables = ["RC", "VBasis", "SAObjLow", "SAObjUp",
-                                        "SALBLow", "SALBUp", "SAUBLow",
-                                        "SAUBUp"]
+    if details is not False:
+        if isinstance(details, str):
+            attributes_to_retrieve = read_attributes_in_file(details)
+        else:
+            attributes_to_retrieve = ["Pi", "Slack",
+                                      "CBasis", "SARHSLow", "SARHSUp",
+                                      "RC", "VBasis", "SAObjLow", "SAObjUp",
+                                      "SALBLow", "SALBUp", "SAUBLow",
+                                      "SAUBUp"]
 
-    if details:
-        for attribute in attributes_to_retrieve_constraints:
+        for attribute in attributes_to_retrieve:
             try:
-                constraints_additional_information[attribute] = \
+                additional_constr_info = \
                     model.getAttr(attribute, model.getConstrs())
-            except grbp.GurobiError:
-                print("Warning : Unable to retrieve ", attribute,
-                      " information for constraints")
 
-        for attribute in attributes_to_retrieve_variables:
-            try:
-                variables_additional_information[attribute] = \
-                    model.getAttr(attribute, model.getVars())
-            except grbp.GurobiError:
-                print("Warning : Unable to retrieve ", attribute,
-                      " information for variables")
+                constraints_additional_info_ineq[attribute] = additional_constr_info[:nb_ineq_constr]
+                constraints_additional_info_eq[attribute] = additional_constr_info[nb_ineq_constr:]
+            except (grbp.GurobiError, AttributeError):
+                try:
+                    variables_additional_information[attribute] = \
+                        model.getAttr(attribute, model.getVars())
+                except (grbp.GurobiError, AttributeError):
+                    print("Warning : Unable to retrieve ", attribute,
+                          " information")
+
+    constraints_additional_information = {"eq": constraints_additional_info_eq,
+                                          "ineq": constraints_additional_info_ineq}
 
     return solution, objective, status, solver_info, \
            constraints_additional_information, \

@@ -15,7 +15,7 @@ Defines the tokens of the GBOML language
 
 """
 
-import ply.lex as lex  # type: ignore
+from .ply import lex  # type: ignore
 import re
 
 

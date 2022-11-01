@@ -2,23 +2,55 @@
 # Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst,
 # University of Liege .
 # Licensed under the MIT License (see LICENSE file).
+import array
 
 from gboml.compiler.utils import error_
 from .objective import Objective
 from .constraint import Constraint
 from .expression import Expression
 from .identifier import Identifier
-from .parameter import Parameter
-from .link import Attribute
 import copy
 import numpy as np
 from scipy.sparse import coo_matrix  # type: ignore
 
 
+class ByteArray:
+    def __init__(self, length):
+        self.array = np.ones(length, dtype=bool)
+
+    def intersect_inplace(self, values):
+        self.array = self.array & values
+
+    def reset(self):
+        self.array = np.ones(len(self.array), dtype=bool)
+
+
+def __f_index2__(expr, all_index, name):
+    max_length = len(name)
+    is_in = np.array(((0 <= expr) & (expr < max_length)), dtype=bool)
+    all_index.array = all_index.array & is_in
+    expr = np.array(expr, dtype=int)
+
+    if not is_in.all():
+        return_value = np.array(name[np.clip(expr, 0, max_length - 1)], dtype=float)
+    else:
+        return_value = np.array(name[expr], dtype=float)
+
+    return return_value
+
+
+def __f_index__(expr, all_index, max_length):
+    nan_cond = expr != np.nan
+    condition = (0 <= expr) & (expr < max_length) & nan_cond
+    all_index.array = all_index.array & condition
+    expr[nan_cond] = 0
+    expr = np.array(expr, dtype=int)
+    return np.clip(expr, 0, max_length-1)
+
+
 def is_index_dependant_expression(expression, index) -> bool:
 
     e_type = expression.get_type()
-    nb_child = expression.get_nb_children()
     children = expression.get_children()
     predicate: bool = False
     if e_type == 'literal':
@@ -37,19 +69,10 @@ def is_index_dependant_expression(expression, index) -> bool:
 
                 predicate = True
 
-        elif type(seed) == Attribute:
-
-            attribute = seed
-            identifier = attribute.get_attribute()
-            if identifier.get_type() == "assign":
-
-                predicate = is_index_dependant_expression(
-                    identifier.get_expression(), index)
     else:
 
-        for i in range(nb_child):
-
-            predicate_i = is_index_dependant_expression(children[i], index)
+        for child in children:
+            predicate_i = is_index_dependant_expression(child, index)
             if predicate_i:
 
                 predicate = predicate_i
@@ -172,23 +195,7 @@ class Factorize:
                     self.variables.append([identifier_node_name,
                                            identifier_name])
 
-            if type(inner_expr) == Attribute:
-
-                attribute = inner_expr
-                attr_node = attribute.get_node_field()
-                attr_id = attribute.get_attribute()
-                if attr_node in variables:
-
-                    dict_var_node = variables[attr_node]
-                    id_name = attr_id.get_name()
-                    if id_name in dict_var_node:
-
-                        var = dict_var_node[id_name]
-                        var_leaves.append([-1, leaf, attr_id, var.get_index(),
-                                           var.get_size()])
-                        self.variables.append([attr_node, id_name])
             elif l_type == "sum":
-
                 fct_constr = Factorize(leaf)
                 is_var = fct_constr.factorize_sum(variables, constants,
                                                   self.index_list)
@@ -214,21 +221,6 @@ class Factorize:
                                        identifier_var.get_size()])
                     self.variables.append([identifier_node_name,
                                            identifier_name])
-            if type(inner_expr) == Attribute:
-
-                attribute = inner_expr
-                attr_node = attribute.get_node_field()
-                attr_id = attribute.get_attribute()
-                if attr_node in variables:
-
-                    dict_var_node = variables[attr_node]
-                    id_name = attr_id.get_name()
-                    if id_name in dict_var_node:
-
-                        var = dict_var_node[id_name]
-                        var_leaves.append([1, leaf, attr_id, var.get_index(),
-                                           var.get_size()])
-                        self.variables.append([attr_node, id_name])
             elif l_type == "sum":
 
                 fct_constr = Factorize(leaf)
@@ -324,29 +316,14 @@ class Factorize:
                     var_leaves.append([leaf, variable_identifier.get_index(),
                                        variable_identifier.get_size()])
                     is_var = True
-                    self.variables.append(identifier_name)
-            elif type(inner_expr) == Attribute:
-
-                attribute = inner_expr
-                attr_node = attribute.get_node_field()
-                attr_id = attribute.get_attribute()
-                if attr_node in variables:
-
-                    dict_var_node = variables[attr_node]
-                    id_name = attr_id.get_name()
-                    if id_name in dict_var_node:
-
-                        var = dict_var_node[id_name]
-                        var_leaves.append([leaf, var.get_index(),
-                                           var.get_size()])
-                        is_var = True
-                        self.variables.append([attr_node, id_name])
+                    self.variables.append([identifier_node_name,
+                                           identifier_name])
             if l_type == "sum":
 
                 fct_constr = Factorize(leaf)
-                is_var = fct_constr.factorize_sum(variables,
-                                                  constants, self.index_list)
-                if is_var is True:
+                is_var_sum = fct_constr.factorize_sum(variables,
+                                                      constants, self.index_list)
+                if is_var_sum is True:
 
                     self.add_child(fct_constr)
                     is_var = True
@@ -365,8 +342,6 @@ class Factorize:
                                                leaf, constants,
                                                stop_expr=expression_sum)
             identifier = leaf.get_name()
-            if type(identifier) == Attribute:
-                identifier = identifier.get_attribute()
             expr = identifier.get_expression()
 
             coef_var.append([expr_coef, index, expr, var_size])
@@ -398,21 +373,7 @@ class Factorize:
                 else:
 
                     expr_acc = copy.copy(expr)
-            if type(seed) == Attribute:
 
-                attribute = seed
-                attr_node = attribute.get_node_field()
-                attr_id = attribute.get_attribute()
-                if attr_node in variables:
-                
-                    dict_var_node = variables[attr_node]
-                    id_name = attr_id.get_name()
-                    if id_name in dict_var_node:
-
-                        is_var = True
-                else:
-                
-                    expr_acc = copy.copy(expr)
         else:
 
             tuple_expr_is_var = []
@@ -578,333 +539,460 @@ class Factorize:
         return self.compute_factor(expr_acc, is_index_dependant, parent_expr,
                                    branch_considered, constants, stop_expr)
 
-    def extend(self, definitions):
-
-        time_horizon_parameter = definitions["T"]
-        time_horizon = time_horizon_parameter.get_value()[0]
-
-        unique_evaluation = False
+    def extend(self, definitions, list_indexes=None):
+        if list_indexes is None:
+            list_indexes = []
+        time_horizon = definitions["T"]
         coef_var_tuples = self.coef_var_tuples
+        new_coef_var_tuples = []
+        for elements in coef_var_tuples:
+            list_elements = []
+            for element in elements:
+                if isinstance(element, Expression):
+                    element = element.turn_to_python_expression()
+                list_elements.append(element)
+            new_coef_var_tuples.append(list_elements)
+        coef_var_tuples = new_coef_var_tuples
         nb_coef_var = len(coef_var_tuples)
         explicit_time_range = False
         children_sums = self.get_children()
-        np_append = np.append
         list_values_columns = []
-
+        gl = {"sum": sum, "range": range, "len": len,
+              "__f_index__": __f_index2__}
+        if self.type_fact != "sum":
+            gl.update(definitions)
         if self.type_fact == "constraint":
-
             constraint = self.obj
-            b_expr = self.get_indep_expr()
+            b_expr = self.get_indep_expr().turn_to_python_expression()
             sign = constraint.get_sign()
             self.extension_type = sign
-            time_range = constraint.get_time_range(definitions)
+            time_range = constraint.get_time_range(gl)
             name_index = constraint.get_index_var()
-            ignored_times_list = []
-            out_of_bounds = []
-
-            if time_range is None:
-
-                t_horizon = time_horizon
-                time_range = range(t_horizon)
-            else:
-
-                explicit_time_range = True
-            if (not is_index_dependant_expression(constraint.get_rhs(),
-                                                  name_index)) and \
-                    (not is_index_dependant_expression(constraint.get_lhs(),
-                                                       name_index)):
-
-                unique_evaluation = True
+            condition = constraint.get_condition()
             all_values = []
             all_columns = []
-            all_rows = []
-            all_independent_terms = []
-            nb_completed_constraints = 0
-            for k in time_range:
-                index_parameter = Parameter(name_index,
-                                            Expression("literal", k))
-                index_parameter.set_value([k])
-                definitions[name_index] = index_parameter
-                flag_out_of_bounds = False
-                if constraint.check_time(definitions) is False:
-                    ignored_times_list.append(k)
-                    continue
-                new_values = np.zeros(nb_coef_var)
-                columns = np.zeros(nb_coef_var)
-                i = 0
-                for mult_sign, expr_coef, index, offset_expr, max_size \
-                        in coef_var_tuples:
-
-                    new_values[i] = \
-                        mult_sign*expr_coef.evaluate_expression(definitions)
-                    if offset_expr is not None:
-
-                        offset = offset_expr.evaluate_expression(definitions)
-                    else:
-
-                        offset = 0
-                    if (offset < 0) or (offset >= max_size):
-
-                        if explicit_time_range:
-
-                            error_("Constraint : "+str(constraint)
-                                   + " at line "+str(constraint.get_line())
-                                   + " has a time range ill-defined as a "
-                                     "variable goes out of bounds for "
-                                   + str(name_index) + " equals "+str(k))
-                        else:
-
-                            out_of_bounds.append(k)
-                        flag_out_of_bounds = True
-                        break
-                    columns[i] = index + offset
-                    i = i+1
-                if not flag_out_of_bounds:
-
-                    for sign_mult, child in children_sums:
-
-                        child.extend(definitions)
-                        tuple_val_col = child.get_extension()
-                        if not tuple_val_col:
-                            error_("Out of bounds sum at line "
-                                   + str(constraint.get_line()))
-                        child_values, child_columns = tuple_val_col
-                        child_values = sign_mult * child_values
-                        new_values = np_append(new_values, child_values)
-                        columns = np_append(columns, child_columns)
-                    if b_expr is not None:
-
-                        constant = b_expr.evaluate_expression(definitions)
-                    else:
-
-                        constant = 0
-
-                    row_indexes = np.zeros(len(new_values))
-                    row_indexes.fill(nb_completed_constraints)
-                    all_rows.append(row_indexes)
-                    nb_completed_constraints += 1
-                    all_values.append(new_values)
-                    all_columns.append(columns)
-                    all_independent_terms.append(constant)
-
-                    if sign == "==":
-                        row_indexes = np.zeros(len(new_values))
-                        row_indexes.fill(nb_completed_constraints)
-                        all_rows.append(row_indexes)
-                        nb_completed_constraints += 1
-                        all_values.append(-new_values)
-                        all_columns.append(columns)
-                        all_independent_terms.append(-constant)
-
-                    # matrix = np.array([new_values, columns])
-
-                    if unique_evaluation is True:
-
-                        break
-            if name_index in definitions:
-
-                definitions.pop(name_index)
-
-            if out_of_bounds:
-
-                print("Warning constraint : "
-                      + str(constraint) + " at line "
-                      + str(constraint.get_line())
-                      + " is ignored for "+str(name_index) + " equal to "
-                      + str(out_of_bounds))
-
-            if not all_rows:
-                self.sparse = None
-
+            if condition is not None:
+                condition_expression = condition.turn_to_python_expression()
             else:
+                condition_expression = True
 
-                rows = np.concatenate(all_rows)
-                columns = np.concatenate(all_columns)
-                values = np.concatenate(all_values)
-                self.independent_terms = np.array(all_independent_terms,
-                                                  dtype=float)
-                self.sparse = coo_matrix((values, (rows, columns)),
-                                         shape=(nb_completed_constraints,
-                                                int(max(columns))+1))
+            if time_range is None:
+                if (not is_index_dependant_expression(constraint.get_rhs(),
+                                                      name_index)) and \
+                        (not is_index_dependant_expression(constraint.get_lhs(),
+                                                           name_index)):
+                    if condition is None:
+                        t_horizon = 1
+                    elif not is_index_dependant_expression(condition, name_index):
+                        t_horizon = 1
+                    else:
+                        t_horizon = time_horizon
+                else:
+                    t_horizon = time_horizon
+
+                time_range = range(t_horizon)
+            else:
+                explicit_time_range = True
+            numpy_range = np.array(time_range)
+            gl[name_index] = numpy_range
+            if condition is not None:
+                cond_eval = None
+                try:
+                    cond_eval = eval(condition_expression, gl, {})
+                except IndexError:
+                    error_("ERROR: error while evaluating the condition at line %s"
+                           % (str(constraint.get_line())))
+                time_range = [time_i for time_i, cond_i in list(zip(time_range, cond_eval)) if cond_i]
+            bit_array = ByteArray(len(time_range))
+            numpy_range = np.array(time_range)
+            gl[name_index] = numpy_range
+            gl["extension_range"] = bit_array
+            for mult_sign, expr_coef, index, offset_expr, max_size \
+                    in coef_var_tuples:
+                coef_values = mult_sign * eval(expr_coef, gl, {})
+                if offset_expr is not None:
+                    offset = eval(offset_expr, gl, {})
+                    offset = np.array(offset, dtype=int)
+                else:
+                    offset = 0
+                bit_array.intersect_inplace((0 <= offset) & (offset < max_size))
+                if not bit_array.array.any() and explicit_time_range:
+                    error_("Constraint : " + str(constraint)
+                           + " at line " + str(constraint.get_line())
+                           + " has a time range ill-defined as a "
+                             "variable goes out of bounds for "
+                           + str(name_index) + " equals " + str(numpy_range[not bit_array.array]))
+                all_values.append(coef_values)
+                all_columns.append(offset + index)
+            previous_child_values = np.array([[]])
+            previous_child_columns = np.array([[]])
+            i = 0
+            child_bool = False
+            if children_sums:
+                child_bool = True
+
+            for sign_mult, child in children_sums:
+                child.extend(gl, list_indexes=[name_index])
+                child_val, child_col = child.get_extension()
+                child_val = sign_mult*child_val
+                if i == 0:
+                    previous_child_values = child_val
+                    previous_child_columns = child_col
+                else:
+                    previous_child_columns = np.concatenate((previous_child_columns, child_col), axis=1)
+                    previous_child_values = np.concatenate((previous_child_values, child_val), axis=1)
+                i = i + 1
+
+            if b_expr is not None:
+                constant = eval(b_expr, gl, {})
+            else:
+                constant = 0
+            valid_indexes = numpy_range[bit_array.array]
+            _, child_nb_col = previous_child_columns.shape
+            nb_valid_indexes = len(valid_indexes)
+            values_flat_array = np.zeros(nb_valid_indexes * (nb_coef_var + child_nb_col))
+            columns_flat_array = np.zeros(nb_valid_indexes * (nb_coef_var + child_nb_col))
+            row_flat_array = np.arange(nb_valid_indexes)
+            row_flat_array = np.repeat(row_flat_array, (nb_coef_var + child_nb_col))
+
+            if isinstance(constant, np.ndarray):
+                independent_term = np.array(constant[bit_array.array], dtype=float)
+            else:
+                independent_term = np.full(nb_valid_indexes, constant, dtype=float)
+            for i in range(nb_coef_var):
+                value_expr = all_values[i]
+                column_expr = all_columns[i]
+                if isinstance(value_expr, np.ndarray):
+                    value_expr_right_index = value_expr[bit_array.array]
+                    for j in range(len(valid_indexes)):
+                        values_flat_array[j * (nb_coef_var + child_nb_col) + i] = value_expr_right_index[j]
+                else:
+                    for j in range(len(valid_indexes)):
+                        values_flat_array[j * (nb_coef_var + child_nb_col) + i] = value_expr
+
+                if isinstance(column_expr, np.ndarray):
+                    column_expr_right_index = column_expr[bit_array.array]
+                    for j in range(len(valid_indexes)):
+                        columns_flat_array[j * (nb_coef_var + child_nb_col) + i] = column_expr_right_index[j]
+                else:
+                    for j in range(len(valid_indexes)):
+                        columns_flat_array[j * (nb_coef_var + child_nb_col) + i] = column_expr
+
+            if child_bool:
+                value_expr_child_right_index = previous_child_values[bit_array.array]
+                col_expr_child_right_index = previous_child_columns[bit_array.array]
+                for j in range(len(valid_indexes)):
+                    start_index_value = j * (nb_coef_var + child_nb_col) + nb_coef_var
+                    end_index_value = j * (nb_coef_var + child_nb_col) + nb_coef_var + child_nb_col
+                    values_flat_array[start_index_value:end_index_value] = value_expr_child_right_index[j]
+                    columns_flat_array[start_index_value:end_index_value] = col_expr_child_right_index[j]
+
+            if not bit_array.array.any():
+                print("Warning constraint : %s at line %s is ignored for %s equal to %s"
+                      % (str(constraint), str(constraint.get_line()), str(name_index),
+                         str(numpy_range[not bit_array.array])))
+
+            if nb_valid_indexes == 0:
+                self.sparse = None
+            else:
+                #if self.obj.get_type() == "==":
+                #    nb_values = len(values_flat_array)
+                #    values_flat_array = np.tile(values_flat_array, 2)
+                #    values_flat_array[nb_values:] = -values_flat_array[nb_values:]
+                #    columns_flat_array = np.tile(columns_flat_array, 2)
+                #   row_flat_array = np.tile(row_flat_array, 2)
+                #   row_flat_array[nb_values:] = row_flat_array[nb_values:] + np.max(row_flat_array) + 1
+                #   nb_valid_indexes = nb_valid_indexes*2
+                #   nb_indep_values = len(independent_term)
+                #   independent_term = np.tile(independent_term, 2)
+                #   independent_term[nb_indep_values:] = -independent_term[nb_indep_values:]
+
+                self.independent_terms = independent_term
+                self.sparse = coo_matrix((values_flat_array, (row_flat_array, columns_flat_array)),
+                                         shape=(nb_valid_indexes,
+                                                int(np.max(columns_flat_array)) + 1))
                 self.sparse.sum_duplicates()
                 self.sparse.eliminate_zeros()
 
         elif self.type_fact == "objective":
-
             objective = self.obj
             obj_expr = objective.get_expression()
             obj_range = objective.get_time_range(definitions)
             name_index = objective.get_index_var()
             obj_type = objective.get_type()
             self.extension_type = obj_type
-            b_expr = self.get_indep_expr()
-            out_of_bounds = []
-            ignored_times_list = []
+            b_expr = self.get_indep_expr().turn_to_python_expression()
+            condition = objective.get_condition()
+            if condition is not None:
+                obj_condition = condition.turn_to_python_expression()
+            else:
+                obj_condition = True
 
             if obj_range is None:
-
-                t_horizon = time_horizon
+                if (not is_index_dependant_expression(obj_expr,
+                                                      name_index)):
+                    t_horizon = 1
+                else:
+                    t_horizon = time_horizon
                 obj_range = range(t_horizon)
             else:
-
                 explicit_time_range = True
-            if not is_index_dependant_expression(obj_expr, name_index):
+            numpy_range = np.array(obj_range)
+            gl[name_index] = numpy_range
 
-                unique_evaluation = True
+            if condition is not None:
+                cond_eval = None
+                try:
+                    cond_eval = eval(obj_condition, gl, {})
+                except IndexError:
+                    error_("ERROR: error while evaluating the condition at line %s"
+                           % (str(objective.get_line())))
+                obj_range = [time_i for time_i, cond_i in list(zip(obj_range, cond_eval)) if cond_i]
 
+            bit_array = ByteArray(len(obj_range))
+            numpy_range = np.array(obj_range)
+            gl[name_index] = numpy_range
+            gl["extension_range"] = bit_array
             all_values = []
             all_columns = []
-            all_rows = []
-            all_independent_terms = []
-            nb_completed_objectives = 0
+            for expr_coef, index, offset_expr, max_size in coef_var_tuples:
+                coef_values = eval(expr_coef, gl, {})
+                if offset_expr is not None:
+                    offset = eval(offset_expr, gl, {})
+                else:
+                    offset = 0
+                bit_array.intersect_inplace((0 <= offset) & (offset < max_size))
+                if not bit_array.array.any() and explicit_time_range:
+                    error_("Constraint : " + str(objective)
+                           + " at line " + str(objective.get_line())
+                           + " has a time range ill-defined as a "
+                             "variable goes out of bounds for "
+                           + str(name_index) + " equals " + str(numpy_range[not bit_array.array]))
+                all_values.append(coef_values)
+                all_columns.append(offset + index)
+            previous_child_values = np.array([[]])
+            previous_child_columns = np.array([[]])
+            i = 0
+            child_bool = False
+            if children_sums:
+                child_bool = True
+            for child in children_sums:
+                child.extend(gl, list_indexes=[name_index])
+                child_val, child_col = child.get_extension()
+                if i == 0:
+                    previous_child_values = child_val
+                    previous_child_columns = child_col
+                else:
+                    previous_child_columns = np.concatenate((previous_child_columns, child_col), axis=1)
+                    previous_child_values = np.concatenate((previous_child_values, child_val), axis=1)
+                i = i + 1
+            if b_expr is not None:
+                constant = eval(b_expr, gl, {})
+            else:
+                constant = 0
+            valid_indexes = numpy_range[bit_array.array]
+            _, child_nb_col = previous_child_columns.shape
+            nb_valid_indexes = len(valid_indexes)
+            values_flat_array = np.zeros(nb_valid_indexes * (nb_coef_var + child_nb_col))
+            columns_flat_array = np.zeros(nb_valid_indexes * (nb_coef_var + child_nb_col))
+            row_flat_array = np.arange(nb_valid_indexes)
+            row_flat_array = np.repeat(row_flat_array, (nb_coef_var + child_nb_col))
+            if isinstance(constant, np.ndarray):
+                independent_term = np.array(constant[valid_indexes], dtype=float)
+            else:
+                independent_term = np.full(nb_valid_indexes, constant, dtype=float)
+            for i in range(nb_coef_var):
+                value_expr = all_values[i]
+                column_expr = all_columns[i]
+                if isinstance(value_expr, np.ndarray):
+                    value_expr_right_index = value_expr[bit_array.array]
+                    for j in range(len(valid_indexes)):
+                        values_flat_array[j * (nb_coef_var + child_nb_col) + i] = value_expr_right_index[j]
+                else:
+                    for j in range(len(valid_indexes)):
+                        values_flat_array[j * (nb_coef_var + child_nb_col) + i] = value_expr
 
-            for k in obj_range:
+                if isinstance(column_expr, np.ndarray):
+                    column_expr_right_index = column_expr[bit_array.array]
+                    for j in range(len(valid_indexes)):
+                        columns_flat_array[j * (nb_coef_var + child_nb_col) + i] = column_expr_right_index[j]
+                else:
+                    for j in range(len(valid_indexes)):
+                        columns_flat_array[j * (nb_coef_var + child_nb_col) + i] = column_expr
 
-                index_parameter = Parameter(name_index,
-                                            Expression("literal", k))
-                index_parameter.set_value([k])
-                definitions[name_index] = index_parameter
-                flag_out_of_bounds = False
-                if objective.check_time(definitions) is False:
+            if child_bool:
+                value_expr_child_right_index = previous_child_values[bit_array.array]
+                col_expr_child_right_index = previous_child_columns[bit_array.array]
+                for j in range(len(valid_indexes)):
+                    start_index_value = j * (nb_coef_var + child_nb_col) + nb_coef_var
+                    end_index_value = j * (nb_coef_var + child_nb_col) + nb_coef_var + child_nb_col
+                    values_flat_array[start_index_value:end_index_value] = value_expr_child_right_index[j]
+                    columns_flat_array[start_index_value:end_index_value] = col_expr_child_right_index[j]
 
-                    ignored_times_list.append(k)
-                    continue
-                new_values = np.zeros(nb_coef_var)
-                columns = np.zeros(nb_coef_var)
-                i = 0
-                for expr_coef, index, offset_expr, max_size in coef_var_tuples:
+            if not bit_array.array.any():
+                print("Warning constraint : %s at line %s is ignored for %s equal to %s"
+                      % (str(objective), str(objective.get_line()), str(name_index),
+                         str(numpy_range[not bit_array.array])))
 
-                    new_values[i] = expr_coef.evaluate_expression(definitions)
-                    if offset_expr is not None:
-
-                        offset = offset_expr.evaluate_expression(definitions)
-                    else:
-
-                        offset = 0
-                    if (offset < 0) or (offset >= max_size):
-
-                        if explicit_time_range:
-
-                            error_("Constraint : "+str(objective)
-                                   + " at line "+str(objective.get_line())
-                                   + " has a time range ill-defined as a "
-                                     "variable goes out of bounds for "
-                                   + str(name_index) + " equals "+str(k))
-                        else:
-
-                            out_of_bounds.append(k)
-
-                        flag_out_of_bounds = True
-                        break
-                    columns[i] = index + offset
-                    i = i+1
-                if not flag_out_of_bounds:
-
-                    for child in children_sums:
-
-                        child.extend(definitions)
-                        tuple_val_col = child.get_extension()
-                        if not tuple_val_col:
-                            error_("Out of bounds sum at line "
-                                   + str(objective.get_line()))
-                        child_values, child_columns = tuple_val_col
-                        new_values = np.append(new_values, child_values)
-                        columns = np.append(columns, child_columns)
-
-                    constant = b_expr.evaluate_expression(definitions)
-
-                    row_indexes = np.zeros(len(new_values))
-                    row_indexes.fill(nb_completed_objectives)
-                    all_rows.append(row_indexes)
-                    nb_completed_objectives += 1
-                    all_values.append(new_values)
-                    all_columns.append(columns)
-                    all_independent_terms.append(constant)
-
-                    if unique_evaluation is True:
-
-                        break
-            if name_index in definitions:
-
-                definitions.pop(name_index)
-            if out_of_bounds:
-
-                print("Warning objective : "+str(objective)
-                      + " at line "+str(objective.get_line()) +
-                      " is ignored for "+str(name_index) + " equal to "
-                      + str(out_of_bounds))
-
-            if not all_rows:
+            if nb_valid_indexes == 0 or len(values_flat_array) == 0:
                 self.sparse = None
-
+                self.independent_terms = np.array(independent_term,
+                                                  dtype=float)
             else:
 
-                rows = np.concatenate(all_rows)
-                columns = np.concatenate(all_columns)
-                values = np.concatenate(all_values)
-                self.independent_terms = np.array(all_independent_terms,
+                rows = row_flat_array
+                columns = columns_flat_array
+                values = values_flat_array
+
+                self.independent_terms = np.array(independent_term,
                                                   dtype=float)
                 self.sparse = coo_matrix((values, (rows, columns)),
-                                         shape=(nb_completed_objectives,
-                                                int(max(columns))+1))
+                                         shape=(int(np.max(rows))+1,
+                                                int(np.max(columns))+1))
                 self.sparse.sum_duplicates()
                 self.sparse.eliminate_zeros()
-        elif self.type_fact == "sum":
 
+        elif self.type_fact == "sum":
             expr_sum = self.obj
             time_interval = expr_sum.get_time_interval()
             name_index = time_interval.get_index_name()
-            range_index = time_interval.get_range(definitions)
-            new_values = np.zeros(nb_coef_var*len(range_index))
-            columns = np.zeros(nb_coef_var*len(range_index))
-            multiplicator = self.mult_expr.evaluate_expression(definitions)
-            flag_out_of_bounds = False
-            i = 0
-            for k in range_index:
+            range_index = time_interval.get_range(definitions, list_indexes=list_indexes)
+            nan_vector = np.isnan(range_index)
+            range_index[nan_vector] = 0
+            not_nan_vector = np.bitwise_not(nan_vector)
+            # nan_bool = nan_vector.any()
+            nb_lines, nb_col = range_index.shape
+            condition = expr_sum.get_condition()
+            range_index = range_index.flatten()
+            definitions[name_index] = range_index
 
-                index_parameter = Parameter(name_index,
-                                            Expression("literal", k))
-                index_parameter.set_value([k])
-                definitions[name_index] = index_parameter
-                if expr_sum.check_time(definitions) is False:
-                    continue
+            if condition is not None:
+                obj_condition = condition.turn_to_python_expression()
+            else:
+                obj_condition = True
 
-                for expr_coef, index, offset_expr, max_size in coef_var_tuples:
+            if condition is not None:
+                cond_eval = None
+                try:
+                    cond_eval = eval(obj_condition, definitions, {})
+                except IndexError:
+                    error_("ERROR: error while evaluating the condition at line %s"
+                           % (str(expr_sum.get_line())))
+                cond_eval = cond_eval.reshape(nb_lines, nb_col)
+                not_nan_vector = cond_eval & not_nan_vector
+                cond_eval = cond_eval & not_nan_vector
+                nb_true_cond_eval = not_nan_vector.sum(axis=1)
+                max_nb_true = max(nb_true_cond_eval)
+                for i in range(nb_lines):
+                    if nb_true_cond_eval[i] < max_nb_true:
+                        nb_to_add = max_nb_true - nb_true_cond_eval[i]
+                        for j in range(nb_col):
+                            if cond_eval[i][j] == False:
+                                cond_eval[i][j] = True
+                                nb_to_add -= 1
+                            if nb_to_add == 0:
+                                break
+                nb_col = max_nb_true
+                not_nan_vector = not_nan_vector[cond_eval].reshape((nb_lines, nb_col))
+                cond_eval = cond_eval.flatten()
+                range_index = range_index[cond_eval.flatten()]
+                definitions[name_index] = range_index
+                nan_vector = np.bitwise_not(not_nan_vector)
 
-                    new_values[i] = expr_coef.evaluate_expression(definitions)
-                    if offset_expr is not None:
+            previous_values_dict = dict()
+            multiplicator = eval(self.mult_expr.turn_to_python_expression(), definitions, {})
+            if isinstance(multiplicator, np.ndarray):
+                multiplicator = multiplicator.reshape(1, -1)
 
-                        offset = offset_expr.evaluate_expression(definitions)
-                    else:
+            for i in list_indexes:
+                val = definitions[i]
+                previous_values_dict[i] = val
+                definitions[i] = np.repeat(definitions[i], nb_col)
 
-                        offset = 0
-                    if (offset < 0) or (offset >= max_size):
+            # definitions[name_index] = np.tile(range_index, repetition_length)
+            bit_array = definitions["extension_range"]
+            bit_array.array = np.repeat(bit_array.array, nb_col)
+            all_values = []
+            all_columns = []
+            for expr_coef, index, offset_expr, max_size in coef_var_tuples:
+                coef_values = eval(expr_coef, definitions, {})
+                if offset_expr is not None:
+                    offset = eval(offset_expr, definitions, {})
+                else:
+                    offset = 0
+                bit_array.intersect_inplace((0 <= offset) & (offset < max_size))
+                if not bit_array.array.any():
+                    error_("Out of bounds sum at line "
+                           + str(expr_sum.get_line()))
+                all_values.append(coef_values)
+                all_columns.append(offset+index)
+            previous_column = np.array([]*nb_lines)
+            previous_value = np.array([]*nb_lines)
+            for i in range(nb_coef_var):
 
-                        flag_out_of_bounds = True
-                        break
-                    columns[i] = index + offset
-                    i = i+1
-                if flag_out_of_bounds:
-                    
-                    break
-            if not flag_out_of_bounds:
-                
-                for child in children_sums:
+                current_value = all_values[i]
+                if isinstance(current_value, np.ndarray):
+                    current_value = np.reshape(current_value, (nb_lines, nb_col))
+                    current_value[nan_vector] = 0
+                else:
+                    fill_value = current_value
+                    current_value = np.zeros((nb_lines, nb_col))
+                    current_value.fill(fill_value)
+                    current_value[nan_vector] = 0
 
-                    for k in range_index: 
+                current_column = all_columns[i]
+                if isinstance(current_column, np.ndarray):
+                    current_column = np.reshape(current_column, (nb_lines, nb_col))
+                else:
+                    fill_value = current_column
+                    current_column = np.zeros((1, nb_lines))
+                    current_column.fill(fill_value)
+                    current_value = np.reshape(current_value.sum(axis=1), (1, -1))
 
-                        definitions[name_index] = [k]
-                        child.extend(definitions)
-                        tuple_val_col = child.get_extension()
-                        if not tuple_val_col:
-                            error_("Out of bounds sum at line "
-                                   + str(expr_sum.get_line()))
-                        child_values, child_columns = tuple_val_col
-                        new_values = np.append(new_values, child_values)
-                        columns = np.append(columns, child_columns)
-                new_values = new_values*multiplicator
-                list_values_columns = [new_values, columns]
+                if i == 0:
+                    previous_column = current_column
+                    previous_value = current_value
+                else:
+                    previous_value = np.concatenate((previous_value, current_value), axis=1)
+                    previous_column = np.concatenate((previous_column, current_column), axis=1)
+            flatten_nan_vector = nan_vector.flatten()
+            for child in children_sums:
+                list_indexes.append(name_index)
+                child.extend(definitions, list_indexes=list_indexes)
+                tuple_val_col = child.get_extension()
+                if not tuple_val_col:
+                    error_("Out of bounds sum at line "
+                           + str(expr_sum.get_line()))
+                val_child, col_child = tuple_val_col
+                val_child[flatten_nan_vector][:] = 0
+                val_child = val_child.reshape(nb_lines, -1)
+                col_child = col_child.reshape(nb_lines, -1)
+                if previous_value:
+                    previous_value = np.concatenate((previous_value, val_child), axis=1)
+                    previous_column = np.concatenate((previous_column, col_child), axis=1)
+                else:
+                    previous_value = val_child
+                    previous_column = col_child
+                list_indexes.pop(-1)
+            for i in list_indexes:
+                definitions[i] = previous_values_dict[i]
             if name_index in definitions:
+                del definitions[name_index]
+            bit_array.array = np.reshape(bit_array.array,
+                                         (nb_lines, nb_col))
+            current_bit_array = bit_array.array
+            bit_array.array[nan_vector] = True
+            current_bit_array[nan_vector] = False
+            bit_array.array = bit_array.array.all(axis=1)
+            current_bit_array = current_bit_array.all(axis=1)
+            values = np.reshape(previous_value, (nb_lines, -1))
+            if isinstance(multiplicator, np.ndarray):
+                values = np.multiply(values, multiplicator.T)
+            else:
+                values = multiplicator * values
+            columns = np.reshape(previous_column, (nb_lines, -1))
 
-                definitions.pop(name_index)
+            if not current_bit_array.any():
+                error_("Error: No index in sum at line " + str(expr_sum.get_line()) + " works")
+            list_values_columns = [values, columns]
         self.extension = list_values_columns

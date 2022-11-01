@@ -253,17 +253,32 @@ class Program:
         return self.link_list
 
     def get_first_level_constraints_decomposition(self):
-        per_block_constraint_indexes = []
-        start_index = 0
-        current_index = 0
+        per_block_ineq_constraint_indexes = []
+        per_block_eq_constraint_indexes = []
+
+        start_index_eq = 0
+        current_index_eq = 0
+        start_index_ineq = 0
+        current_index_ineq = 0
+
         nodes = self.vector_nodes
         hyperedges = self.links
         for node in nodes:
-            current_index += node.get_number_expanded_constraints(True)
-            per_block_constraint_indexes.append([start_index, current_index-1])
-            start_index = current_index
+            nb_eq_constr, nb_ineq_constr = node.get_number_expanded_constraints(True)
+            current_index_eq += nb_eq_constr
+            current_index_ineq += nb_ineq_constr
+
+            per_block_ineq_constraint_indexes.append(slice(start_index_ineq, current_index_ineq))
+            per_block_eq_constraint_indexes.append(slice(start_index_eq, current_index_eq))
+
+            start_index_ineq = current_index_ineq
+            start_index_eq = current_index_eq
 
         for hyperedge in hyperedges:
-            current_index += hyperedge.get_number_expanded_constraints()
-        per_block_constraint_indexes.append([start_index, current_index-1])
-        return per_block_constraint_indexes
+            nb_eq_constr, nb_ineq_constr = hyperedge.get_number_expanded_constraints()
+            current_index_eq += nb_eq_constr
+            current_index_ineq += nb_ineq_constr
+
+        per_block_ineq_constraint_indexes.append(slice(start_index_ineq, current_index_ineq))
+        per_block_eq_constraint_indexes.append(slice(start_index_eq, current_index_eq))
+        return per_block_eq_constraint_indexes, per_block_ineq_constraint_indexes

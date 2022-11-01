@@ -16,7 +16,8 @@ from gboml import GbomlGraph, VariableType
 from gboml.compiler.classes import Parameter, Expression, Node, Hyperedge,\
     Time, Program
 from gboml.compiler import compile_gboml
-from gboml.solver_api import gurobi_solver, cplex_solver, xpress_solver
+from gboml.solver_api import gurobi_solver, cplex_solver, xpress_solver, \
+    highs_solver
 
 import unittest
 import subprocess
@@ -431,9 +432,9 @@ class CompilerTests(unittest.TestCase):
                                  stdout=subprocess.PIPE,
                                  universal_newlines=True)
         output_split = process.stdout.split("\n")
-        self.assertEqual(output_split[2], 'Matrix A    (0, 9)\t-1.0')
-        self.assertEqual(output_split[3], 'Vector b  [-0.]')
-        self.assertEqual(output_split[4],
+        self.assertEqual(output_split[4], 'Matrix A_ineq    (0, 9)\t-1.0')
+        self.assertEqual(output_split[5], 'Vector b_ineq  [-0.]')
+        self.assertEqual(output_split[6],
                          "Vector C  [[0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]]")
         return_code = process.returncode
         self.assertEqual(return_code, 0)
@@ -449,9 +450,9 @@ class CompilerTests(unittest.TestCase):
                                  stdout=subprocess.PIPE,
                                  universal_newlines=True)
         output_split = process.stdout.split("\n")
-        self.assertEqual(output_split[2], 'Matrix A    (0, 9)\t-1.0')
-        self.assertEqual(output_split[3], 'Vector b  [-0.]')
-        self.assertEqual(output_split[4],
+        self.assertEqual(output_split[4], 'Matrix A_ineq    (0, 9)\t-1.0')
+        self.assertEqual(output_split[5], 'Vector b_ineq  [-0.]')
+        self.assertEqual(output_split[6],
                          "Vector C  [[0. 0. 0. 0. 0. 0. 0. 0. 0. 1.]]")
         return_code = process.returncode
         self.assertEqual(return_code, 0)
@@ -503,7 +504,7 @@ class CompilerTests(unittest.TestCase):
                                  stdout=subprocess.PIPE,
                                  universal_newlines=True)
         output_split = process.stdout.split("\n")
-        self.assertEqual(output_split[9], "Vector C  [[6. 0. 0. 1. 0. 0.]]")
+        self.assertEqual(output_split[11], "Vector C  [[6. 0. 0. 1. 0. 0.]]")
         return_code = process.returncode
         self.assertEqual(return_code, 0)
 
@@ -529,7 +530,7 @@ class CompilerTests(unittest.TestCase):
                                  stdout=subprocess.PIPE,
                                  universal_newlines=True)
         output_split = process.stdout.split("\n")
-        self.assertEqual(output_split[13],
+        self.assertEqual(output_split[15],
                          "Vector C  [[1. 1. 1. 1. 1. 1. 1. 1. 1. 1. "
                          "0. 0. 0. 0. 0. 0. 0. 0. 0. 0.]]")
         return_code = process.returncode
@@ -588,7 +589,7 @@ class CompilerTests(unittest.TestCase):
         Tests that the global parameters are present through-out the file
 
         """
-        process = subprocess.run(['gboml', 'test/test21.txt', "--cplex",
+        process = subprocess.run(['gboml', 'test/test21.txt', "--gurobi",
                                   "--json", "--output", "test/test21"],
                                  stdout=subprocess.PIPE,
                                  universal_newlines=True)
@@ -619,38 +620,26 @@ class CompilerTests(unittest.TestCase):
         """
         global PATH
         os.chdir(PATH)
-        _, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, \
-         name_tuples = compile_gboml("test/test23.txt")
+
+        _, matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq, vector_c, indep_terms_c, \
+         alone_term_c, time_horizon, name_tuples = compile_gboml("test/test23.txt")
         objective_offset = float(indep_terms_c.sum())
         c_sum = np.asarray(vector_c.sum(axis=0), dtype=float)
         self.assertEqual(objective_offset, 0)
-        self.assertEqual(c_sum.all(), np.array([1., 1., 0., 0., 0., 0.]).all())
-        self.assertEqual(vector_b.all(),
-                         np.array([120., -120., -0., 1000., 0., 0., 0., 0., 6.9,
-                                   -6.9, 6.4, -6.4]).all())
-        expected_matrix_a = [[1., 0., 0., 0., 0., 0.],
-                             [-1., 0., 0., 0., 0., 0.],
-                             [-1., 0., 0., 0., 0., 0.],
-                             [1., 0., 0., 0., 0., 0.], [0., 0., 1., 0., 0., 0.],
-                             [0., 0., 0., 1., 0., 0.],
-                             [-3.14, 1., 0., 0., 0., 0.],
-                             [3.14, -1., 0., 0., 0., 0.],
-                             [0., 0., 0., 0., 1., 0.],
-                             [0., 0., 0., 0., -1., 0.],
-                             [0., 0., 0., 0., 0., 1.],
-                             [0., 0., 0., 0., 0., -1.]]
-        self.assertEqual(matrix_a.todense().all(),
-                         np.array(expected_matrix_a).all())
-        x, objective, _, _, _, _ = gurobi_solver(matrix_a, vector_b, c_sum,
-                                                 objective_offset, name_tuples)
-        self.assertEqual(np.array([120., 376.8, 0., 0., 6.9, 6.4]).all(),
-                         x.all())
+        self.assertTrue(np.allclose(c_sum, np.array([1., 1., 0., 0., 0., 0., 0., 0., 0., 0.])))
+        self.assertTrue(np.allclose(vector_b_eq,
+                                    np.array([120., 0., 0., 0., 6.9, 6.4])))
+        expected_matrix_a = [[1., 0., 0., 0., 0., 0., 0., 0., 0., 0.],
+                             [0., 0., -1., 1., -0.75, 0., 1.33333333, 0., 0., 0.],
+                             [0., 0., 1., -1., 0., 0., 0., 0., 0., 0.],
+                             [-3.14, 1., 0., 0., 0., 0., 0., 0., 0., 0.],
+                             [0., 0., 0., 0., 0., 0., 0., 0., 1., 0.],
+                             [0., 0., 0., 0., 0., 0., 0., 0., 0., 1.]]
+        self.assertTrue(((matrix_eq.todense() - np.array(expected_matrix_a)) <= 0.1).all())
+        x, objective, _, _, _, _ = gurobi_solver(matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq,
+                                                 c_sum, objective_offset, name_tuples)
+        self.assertTrue((np.array([120., 376.8, 0., 0., 0., 0., 0., 0., 6.9, 6.4]) == x).all())
         self.assertEqual(objective, 496.8)
-        x, objective, _, _, _, _ = cplex_solver(matrix_a, vector_b, c_sum,
-                                                objective_offset, name_tuples)
-        self.assertEqual(np.array([120., 376.8, 0., 0., 6.9, 6.4]).all(),
-                         x.all())
-        self.assertLessEqual(abs(objective - 496.8), 0.01)
 
     def test_encapsulation_with_hyperedge(self):
         """ test_encapsulation_with_hyperedge
@@ -660,14 +649,13 @@ class CompilerTests(unittest.TestCase):
         """
         global PATH
         os.chdir(PATH)
-        _, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, \
-         name_tuples = compile_gboml("test/test24.txt")
+        _, matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq, vector_c, indep_terms_c, \
+         alone_term_c, time_horizon, name_tuples = compile_gboml("test/test24.txt")
         objective_offset = float(indep_terms_c.sum())
         c_sum = np.asarray(vector_c.sum(axis=0), dtype=float)
-        x, objective, _, _, _, _ = cplex_solver(matrix_a, vector_b, c_sum,
+        x, objective, _, _, _, _ = gurobi_solver(matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq, c_sum,
                                                 objective_offset, name_tuples)
-        self.assertEqual(np.array([120., 1080., 0., 0., 6.9, 6.4, 118.]).all(),
-                         x.all())
+        self.assertTrue((np.array([120., 1080., 0., 0., 0., 0., 0., 0., 6.9, 6.4, 118]) == x).all())
         self.assertEqual(objective, 1200)
 
     def test_import_hyperedge(self):
@@ -678,13 +666,13 @@ class CompilerTests(unittest.TestCase):
         """
         global PATH
         os.chdir(PATH)
-        _, matrix_a, vector_b, vector_c, indep_terms_c, time_horizon, \
-         name_tuples = compile_gboml("test/test25.txt")
-        objective_offset = float(indep_terms_c.sum())
+        _, matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq, vector_c, indep_terms_c, \
+         alone_term_c, time_horizon, name_tuples = compile_gboml("test/test25.txt")
+        objective_offset = float(indep_terms_c.sum())+alone_term_c
         c_sum = np.asarray(vector_c.sum(axis=0), dtype=float)
-        x, objective, _, _, _, _ = cplex_solver(matrix_a, vector_b, c_sum,
-                                                objective_offset, name_tuples)
-        self.assertEqual(np.array([6., 5.]).all(), x.all())
+        x, objective, _, _, _, _ = xpress_solver(matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq,
+                                                 c_sum, objective_offset, name_tuples)
+        self.assertTrue((np.array([6., 5.]) == x).all())
         self.assertEqual(11, objective)
 
     def test_nested_nodes_accessing_to_one_variable_and_parent_parameters(self):
@@ -695,19 +683,20 @@ class CompilerTests(unittest.TestCase):
         """
         global PATH
         os.chdir(PATH)
-        _, matrix_a, vector_b, vector_c, indep_terms_c, _, _ = compile_gboml(
-            "test/test26.txt")
-        objective_offset = float(indep_terms_c.sum())
+        # program, matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq, vector_c, indep_terms_c, \
+        #            alone_term_c, time_horizon, program.get_tuple_name()
+        _, matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq, vector_c, \
+         indep_terms_c, alone_term_c, _, _ = compile_gboml("test/test26.txt")
+        objective_offset = float(indep_terms_c.sum())+alone_term_c
         c_sum = np.asarray(vector_c.sum(axis=0), dtype=float)
         self.assertEqual(objective_offset, 1)
-        self.assertEqual(np.array([[1.], [-1.]]).all(),
-                         matrix_a.todense().all())
+        self.assertTrue((np.array([[1.], [-1.]]) == matrix_ineq.todense()).all())
         self.assertEqual(c_sum.all(), np.array([1]))
-        self.assertEqual(vector_b.all(), np.array([6., -1.]).all())
+        self.assertTrue((vector_b_ineq == np.array([6., -1.])).all())
 
     def test_nested_nodes_accessing_to_array_variable_and_parent_parameters(
             self):
-        """ test_nested_nodes_accessing_to_one_variable_and_parent_parameters
+        """ test_nested_nodes_accessing_to_array_variable_and_parent_parameters
 
         Tests a series of nested nodes with only one variable defined and
         parameters intertwined
@@ -715,41 +704,89 @@ class CompilerTests(unittest.TestCase):
         """
         global PATH
         os.chdir(PATH)
-        _, matrix_a, vector_b, vector_c, indep_terms_c, _, name_tuples = \
-            compile_gboml("test/test27.txt")
+        _, matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq, vector_c, \
+         indep_terms_c, alone_term_c, _, name_tuples = compile_gboml("test/test27.txt")
         objective_offset = float(indep_terms_c.sum())
         c_sum = np.asarray(vector_c.sum(axis=0), dtype=float)
         self.assertEqual(objective_offset, 0)
-        solution = xpress_solver(matrix_a, vector_b, c_sum, objective_offset,
-                                 name_tuples=name_tuples)
-        self.assertEqual(solution[0].all(),
-                         np.array([1., 1., 1., 1., 1.]).all())
+        solution = cplex_solver(matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq,
+                                 c_sum, objective_offset, name_tuples)
+        self.assertTrue((solution[0] == np.array([1., 1., 1., 1., 1.])).all())
 
     def test_nested_nodes_with_hyperedge_and_parent_parameters(self):
-        """ test_nested_nodes_accessing_to_one_variable_and_parent_parameters
+        """ test_nested_nodes_with_hyperedge_and_parent_parameters
 
         Tests a series of nested nodes with two low level nodes and a hyperedge
 
         """
         global PATH
         os.chdir(PATH)
-        _, matrix_a, vector_b, vector_c, indep_terms_c, _, name_tuples = \
-            compile_gboml("test/test28.txt")
+        _, matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, \
+        indep_terms_c, alone_term_c, _, name_tuples = compile_gboml("test/test28.txt")
         objective_offset = float(indep_terms_c.sum())
         c_sum = np.asarray(vector_c.sum(axis=0), dtype=float)
-        expected_constraint_matrix = np.array(
-            [[0, 0, 1, 0], [0, 0, 0, 1], [-1, 0, 0, 0], [0, -1, 0, 0],
-             [0, 0, -1, 0], [0, 0, 0, -1], [1, 0, 1, 0], [-1, 0, -1, 0],
-             [0, 1, 0, 1], [0, -1, 0, -1]])
+        expected_constraint_matrix_eq = np.array([[1, 0, 1, 0], [0, 1, 0, 1]])
+        expected_constraint_matrix_ineq = np.array([[0, 0, 1, 0], [0, 0, 0, 1], [-1, 0, 0, 0],
+                                                    [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]])
+
+        expected_vector_b_eq = np.array([10, 10])
+        expected_vector_b_ineq = np.array([6, 6, -5.5, -5.5, -1, -1])
         expected_vector_c = np.array([[1, 1, 1, 1]])
-        expected_vector_b = np.array(
-            [6, 6, -5.5, -5.5, -1, -1, 10, -10, 10, -10])
 
         self.assertEqual(objective_offset, 0)
-        self.assertEqual(expected_vector_c.all(), c_sum.all())
-        self.assertEqual(expected_vector_b.all(), vector_b.all())
-        self.assertEqual(matrix_a.todense().all(),
-                         expected_constraint_matrix.all())
+        self.assertTrue((expected_vector_c.all() == c_sum).all())
+        self.assertTrue((expected_vector_b_eq == vector_b_eq).all())
+        self.assertTrue((expected_vector_b_ineq == vector_b_ineq).all())
+        self.assertTrue((matrix_a_eq.todense() == expected_constraint_matrix_eq).all())
+        self.assertTrue((matrix_a_ineq.todense() == expected_constraint_matrix_ineq).all())
+
+    def test_dual(self):
+        """ test_dual
+
+        Tests the dual value of a constraint
+
+        """
+
+        process = subprocess.run(
+            ['gboml', 'test/test29_duals.txt', "--gurobi", "--json", "--detailed",
+             "--output", "test/test29"],
+            stdout=subprocess.PIPE,
+            universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+        with open("test/test29.json", 'r') as j:
+            contents = json.loads(j.read())
+            solution = contents["solution"]
+            nodes = solution["elements"]
+            node_system = nodes["system"]
+            constraints = node_system["constraints"]
+            test_constraint = constraints["test_constraint"]
+            dual_value = test_constraint["Pi"]
+            self.assertEqual(dual_value[0], 10.0)
+
+    def test_import_five(self):
+        """ test_import_five
+
+        Tests import five times the same node and sum in hyperedge
+
+        """
+
+        process = subprocess.run(
+            ['gboml', 'test/test30_import5.txt', "--gurobi", "--json",
+             "--output", "test/test30"],
+            stdout=subprocess.PIPE,
+            universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+        with open("test/test30.json", 'r') as j:
+            contents = json.loads(j.read())
+            solution = contents["solution"]
+            nodes = solution["elements"]
+            node_system = nodes["Demande"]
+            variables = node_system["variables"]
+            tot_score = variables["score_total"]["values"]
+            self.assertEqual(tot_score[0], 0.6)
+
 
 
 class GBOMLpyTest(unittest.TestCase):
@@ -844,7 +881,8 @@ class GBOMLpyTest(unittest.TestCase):
         node_pv = gboml_model.import_node("examples/microgrid/microgrid.txt",
                                           "SOLAR_PV", copy=True)
         gboml_model.remove_objective_in_node(node_pv, "investment")
-        self.assertEqual(node_pv.get_objectives(), [])
+        for objective in node_pv.get_objectives():
+            self.assertTrue(objective.get_name() != "investment")
 
     def test_change_type_variable(self):
         """ test_change_type_variable
@@ -875,7 +913,7 @@ class GBOMLpyTest(unittest.TestCase):
 
         gboml_model = GbomlGraph()
         gboml_model_with_1 = GbomlGraph()
-        nodes, edges = gboml_model.import_all_nodes_and_edges(
+        nodes, edges, global_params = gboml_model.import_all_nodes_and_edges(
             "examples/microgrid/microgrid.txt")
 
         old_names = []
@@ -893,8 +931,9 @@ class GBOMLpyTest(unittest.TestCase):
 
         gboml_model_with_1.add_nodes_in_model(*nodes)
         gboml_model_with_1.add_hyperedges_in_model(*edges)
+        gboml_model_with_1.add_global_parameters_objects(global_params)
         gboml_model_with_1.build_model()
-        solution_with_1 = gboml_model_with_1.solve_cplex()
+        solution_with_1 = gboml_model_with_1.solve_gurobi()
         f.close()
         sys.stdout = temp
         self.assertEqual(solution_with_1[0].all(), np.array(
@@ -914,7 +953,7 @@ class GBOMLpyTest(unittest.TestCase):
         sys.stdout = f
 
         gboml_model = GbomlGraph()
-        nodes, edges = gboml_model.import_all_nodes_and_edges(
+        nodes, edges, global_param = gboml_model.import_all_nodes_and_edges(
             "examples/microgrid/microgrid.txt")
         parent = gboml_model.import_node("test/test6.txt", "H", copy=True)
         for node in nodes:
@@ -924,8 +963,9 @@ class GBOMLpyTest(unittest.TestCase):
             gboml_model.add_sub_hyperedge(edge, parent)
 
         gboml_model.add_nodes_in_model(parent)
+        gboml_model.add_global_parameters_objects(global_param)
         gboml_model.build_model()
-        solution = gboml_model.solve_cplex()
+        solution = gboml_model.solve_gurobi()
         f.close()
         sys.stdout = temp
         self.assertEqual(solution[0].all(), np.array(
@@ -945,7 +985,7 @@ class GBOMLpyTest(unittest.TestCase):
         sys.stdout = f
         timehorizon = 3
         gboml_model = GbomlGraph(timehorizon)
-        nodes, edges = gboml_model.import_all_nodes_and_edges(
+        nodes, edges, global_params = gboml_model.import_all_nodes_and_edges(
             "examples/microgrid/microgrid.txt")
         old_names = []
         for node in nodes:
@@ -968,9 +1008,10 @@ class GBOMLpyTest(unittest.TestCase):
 
         gboml_model.redefine_parameters_from_keywords(parent, b=6)
         gboml_model.add_nodes_in_model(parent)
+        gboml_model.add_global_parameters_objects(global_params)
         gboml_model.build_model()
         x, objective, status, solver_info, constraints_additional_information, \
-         variables_additional_information = gboml_model.solve_cplex()
+         variables_additional_information = gboml_model.solve_gurobi()
         f.close()
         sys.stdout = temp
         self.assertEqual(x.all(), np.array(

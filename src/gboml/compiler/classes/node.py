@@ -22,7 +22,7 @@ class Node:
     """
 
     def __init__(self, name, line=0):
-
+        self.filename = ""
         self.name = name
         self.constraints = []
         self.variables = []
@@ -33,6 +33,8 @@ class Node:
         self.v_matrix = None
         self.c_triplet_list = []
         self.objective_list = []
+        self.nb_eq_constraints = 0
+        self.nb_ineq_constraints = 0
         self.nb_constraint_matrix = 0
         self.nb_objective_matrix = 0
         self.param_dict = None
@@ -83,8 +85,8 @@ class Node:
     def get_objectives_data(self):
         return self.objectives_data
 
-    def set_constraints_data(self, constr_data):
-        self.constraints_data = constr_data
+    def set_constraints_data(self, constr_data, type_constr):
+        self.constraints_data[type_constr] = constr_data
 
     def get_constraints_data(self):
         return self.constraints_data
@@ -117,6 +119,12 @@ class Node:
     def set_constraint_factors(self, fact_list):
 
         self.constr_factors = fact_list
+
+    def set_nb_constraints(self, number, type_constr):
+        if type_constr == "eq":
+            self.nb_eq_constraints = number
+        else:
+            self.nb_ineq_constraints = number
 
     def update_internal_dict(self):
 
@@ -207,18 +215,23 @@ class Node:
 
     def get_number_expanded_constraints(self, with_sub_nodes_and_edges=False):
 
-        total_number_of_constraint = self.nb_constraint_matrix
+        nb_eq_constr = self.nb_eq_constraints
+        nb_ineq_constr = self.nb_ineq_constraints
 
         if with_sub_nodes_and_edges:
             for sub_node in self.get_sub_nodes():
-                total_number_of_constraint += \
+                nb_eq_, nb_ineq_ = \
                     sub_node.get_number_expanded_constraints(True)
+                nb_eq_constr += nb_eq_
+                nb_ineq_constr += nb_ineq_
 
             for sub_hyperedge in self.get_sub_hyperedges():
-                total_number_of_constraint += \
+                nb_eq_, nb_ineq_ = \
                     sub_hyperedge.get_number_expanded_constraints()
+                nb_eq_constr += nb_eq_
+                nb_ineq_constr += nb_ineq_
 
-        return total_number_of_constraint
+        return nb_eq_constr, nb_ineq_constr
 
     def get_parameter_dict(self):
 

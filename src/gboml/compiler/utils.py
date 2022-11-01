@@ -17,6 +17,7 @@ Defines useful functions that are used throughout the project.
 
 """
 import sys
+import numpy as np
 import os
 
 
@@ -164,6 +165,19 @@ def get_only_objects_in_nested_dict_layer(dictionary):
         if type(dictionary[key]) != dict:
             only_object_dict[key] = dictionary[key]
     return only_object_dict
+
+
+def read_attributes_in_file(filename):
+    with open(filename) as f:
+        file_content = f.readlines()
+    attributes = []
+    for line in file_content:
+        line = line.replace("\n", " ")
+        line = line.replace(",", " ")
+        line = line.replace(";", " ")
+        line = line.split()
+        attributes += line
+    return attributes
 
 
 def error_(message: str) -> None:

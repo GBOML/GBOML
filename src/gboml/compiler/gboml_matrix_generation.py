@@ -11,6 +11,24 @@ from scipy.sparse import coo_matrix  # type: ignore
 import multiprocessing as mp
 
 
+def flatten_definitions_and_get_values(definitions):
+    flatten_dict = {}
+    for key, value in definitions.items():
+        if isinstance(value, dict):
+            for sub_key, sub_param in value.items():
+                flatten_key = key+"."+sub_key
+                if sub_param.get_type() == "expression":
+                    flatten_dict[flatten_key] = sub_param.get_value()[0]
+                else:
+                    flatten_dict[flatten_key] = np.array(sub_param.get_value())
+        else:
+            if value.get_type() == "expression":
+                flatten_dict[key] = value.get_value()[0]
+            else:
+                flatten_dict[key] = np.array(value.get_value())
+    return flatten_dict
+
+
 def get_flat_nodes_edges_ordered(nodes, hyperedges, without_hyperedges=False):
     all_nodes_edges = []
     for node in nodes:
@@ -82,13 +100,15 @@ def extend_factor_on_multiple_processes(root: Program,
         get_flat_nodes_edges_and_definition(nodes, hyperlinks, definitions,
                                             accumulator_dict)
     for node, node_definition in node_definition_tuples:
+        flat_node_definitions = flatten_definitions_and_get_values(node_definition)
         obj_fact_list = node.get_objective_factors()
         constr_fact_list = node.get_constraint_factors()
-        all_tuples.append([obj_fact_list + constr_fact_list, node_definition])
+        all_tuples.append([obj_fact_list + constr_fact_list, flat_node_definitions])
 
     for link, link_definition in edge_definition_tuples:
+        flat_link_definitions = flatten_definitions_and_get_values(link_definition)
         constr_fact_list = link.get_constraint_factors()
-        all_tuples.append([constr_fact_list, link_definition])
+        all_tuples.append([constr_fact_list, flat_link_definitions])
 
     with mp.Pool(processes=nb_processes) as pool:
         results = pool.map(extend_node_factors_mapping, all_tuples)
@@ -112,17 +132,19 @@ def extend_factor(root: Program, definitions) -> None:
         get_flat_nodes_edges_and_definition(nodes, hyperlinks, definitions,
                                             accumulator_dict)
     for node, node_definition in node_definition_tuples:
+        flat_node_definitions = flatten_definitions_and_get_values(node_definition)
         obj_fact_list = node.get_objective_factors()
         for i, object_fact in enumerate(obj_fact_list):
-            object_fact.extend(node_definition)
+            object_fact.extend(flat_node_definitions)
         constr_fact_list = node.get_constraint_factors()
         for constr_fact in constr_fact_list:
-            constr_fact.extend(node_definition)
+            constr_fact.extend(flat_node_definitions)
 
     for link, link_definition in edge_definition_tuples:
+        flat_link_definitions = flatten_definitions_and_get_values(link_definition)
         constr_fact_list = link.get_constraint_factors()
         for constr_fact in constr_fact_list:
-            constr_fact.extend(link_definition)
+            constr_fact.extend(flat_link_definitions)
 
 
 def matrix_generation_c(root: Program) -> tuple:
@@ -165,6 +187,7 @@ def matrix_generation_c(root: Program) -> tuple:
     values_offset = 0
     independent_terms_offset = 0
     objective_offset = 0
+    alone_indep_terms = 0
 
     for node in nodes:
         node_objectives = {}
@@ -174,15 +197,30 @@ def matrix_generation_c(root: Program) -> tuple:
         for objective_index, objective_factor in \
                 enumerate(objective_factors_list):
 
+            optimization_type = objective_factor.extension_type
             internal_sparse: coo_matrix = objective_factor.sparse
+            name_objective = objective_factor.get_name()
             if internal_sparse is None:
+                independent_terms = objective_factor.independent_terms
+                if independent_terms and len(independent_terms) != 0:
+                    if optimization_type == "max":
+                        independent_terms = - independent_terms
+                    if isinstance(independent_terms, np.ndarray):
+                        alone_indep_terms += independent_terms.sum()
+                    else:
+                        alone_indep_terms += independent_terms
+                obj_data = dict()
+                obj_data["type"] = "no_variables"
+                obj_data["indexes"] = None
+                obj_data["values"] = independent_terms.sum()
+                if name_objective is not None:
+                    obj_data["name"] = name_objective
+                node_objectives[objective_index] = obj_data
                 continue
             number_objectives, _ = internal_sparse.shape
-            optimization_type = objective_factor.extension_type
             values, rows, columns = \
                 internal_sparse.data, internal_sparse.row, internal_sparse.col
             independent_terms = objective_factor.independent_terms
-            name_objective = objective_factor.get_name()
             rows += objective_offset
 
             number_of_values = len(values)
@@ -222,24 +260,10 @@ def matrix_generation_c(root: Program) -> tuple:
 
     sparse_matrix = coo_matrix((all_values, (all_rows, all_columns)),
                                shape=(number_of_objectives, nb_variables))
-    return sparse_matrix, indep_terms
+    return sparse_matrix, indep_terms, alone_indep_terms
 
 
-def matrix_generation_a_b(root: Program) -> tuple:
-    """
-    matrix_generationAb function: takes as input a program object and
-    returns a tuple composed of a sparse matrix of constraints A and
-    a vector of independent terms b.
-    INPUT:  Program object
-    OUTPUT: A -> Sparse coo matrix of the constraints
-            b -> Np.ndarray of the independent term of each constraint
-    """
-
-    number_of_variables = root.get_nb_var_index()
-    nodes = root.get_nodes()
-    hyperlinks = root.get_links()
-    graph_elements = get_flat_nodes_edges_ordered(nodes, hyperlinks,
-                                                  without_hyperedges=False)
+def get_constraints_matrix_and_rhs(graph_elements, type_to_get="eq"):
     length_values = 0
     length_independent_terms = 0
     number_of_constraints = 0
@@ -250,13 +274,15 @@ def matrix_generation_a_b(root: Program) -> tuple:
             internal_sparse: coo_matrix = constr_fact.sparse
             if internal_sparse is None:
                 continue
-            number_constraints, _ = internal_sparse.shape
-            independent_terms = constr_fact.independent_terms
-            values = internal_sparse.data
+            if (type_to_get == "eq" and constr_fact.obj.get_type() == "==") or \
+                    (type_to_get != "eq" and constr_fact.obj.get_type() != "=="):
+                number_constraints, _ = internal_sparse.shape
+                independent_terms = constr_fact.independent_terms
+                values = internal_sparse.data
 
-            length_values += len(values)
-            number_of_constraints += number_constraints
-            length_independent_terms += len(independent_terms)
+                length_values += len(values)
+                number_of_constraints += number_constraints
+                length_independent_terms += len(independent_terms)
 
     all_values = np.zeros(length_values)
     all_rows = np.zeros(length_values)
@@ -271,7 +297,9 @@ def matrix_generation_a_b(root: Program) -> tuple:
         number_node_constraints = 0
         factor_mapping = {}
         for constr_fact in constr_fact_list:
-
+            if (type_to_get == "eq" and constr_fact.obj.get_type() != "==") or \
+                    (type_to_get != "eq" and constr_fact.obj.get_type() == "=="):
+                continue
             internal_sparse: coo_matrix = constr_fact.sparse
             if internal_sparse is None:
                 continue
@@ -307,13 +335,43 @@ def matrix_generation_a_b(root: Program) -> tuple:
                     = slice(constraint_offset - number_constraints,
                             constraint_offset)
         if factor_mapping:
-            obj.set_constraints_data(factor_mapping)
+            obj.set_constraints_data(factor_mapping, type_to_get)
+        obj.set_nb_constraints(number_node_constraints, type_to_get)
+    return all_values, all_rows, all_columns, all_rhs, number_of_constraints
+
+
+def free_factors(graph_elements):
+    for obj in graph_elements:
         obj.free_factors_constraints()
         obj.c_triplet_list = None
-        obj.nb_constraint_matrix = number_node_constraints
-    root.link_constraints = None
-    sparse_matrix = coo_matrix((all_values, (all_rows, all_columns)),
-                               shape=(number_of_constraints,
-                                      number_of_variables))
 
-    return sparse_matrix, all_rhs
+
+def matrix_generation_a_b(root: Program) -> tuple:
+    """
+    matrix_generationAb function: takes as input a program object and
+    returns a tuple composed of a sparse matrix of constraints A and
+    a vector of independent terms b.
+    INPUT:  Program object
+    OUTPUT: A -> Sparse coo matrix of the constraints
+            b -> Np.ndarray of the independent term of each constraint
+    """
+
+    number_of_variables = root.get_nb_var_index()
+    nodes = root.get_nodes()
+    hyperlinks = root.get_links()
+    graph_elements = get_flat_nodes_edges_ordered(nodes, hyperlinks,
+                                                  without_hyperedges=False)
+    all_values_eq, all_rows_eq, all_columns_eq, all_rhs_eq, number_of_constraints_eq = \
+        get_constraints_matrix_and_rhs(graph_elements, type_to_get="eq")
+    all_values_ineq, all_rows_ineq, all_columns_ineq, all_rhs_ineq, number_of_constraints_ineq = \
+        get_constraints_matrix_and_rhs(graph_elements, type_to_get="ineq")
+    root.link_constraints = None
+    sparse_matrix_eq = coo_matrix((all_values_eq, (all_rows_eq, all_columns_eq)),
+                                  shape=(number_of_constraints_eq,
+                                         number_of_variables))
+
+    sparse_matrix_ineq = coo_matrix((all_values_ineq, (all_rows_ineq, all_columns_ineq)),
+                                    shape=(number_of_constraints_ineq,
+                                           number_of_variables))
+    free_factors(graph_elements)
+    return sparse_matrix_eq, all_rhs_eq, sparse_matrix_ineq, all_rhs_ineq

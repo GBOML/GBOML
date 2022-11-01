@@ -1,0 +1,44 @@
+#TIMEHORIZON T=10;
+
+#GLOBAL
+consommation_journaliere = 200;
+consommation_annuelle = T*consommation_journaliere;
+impact_environnemental = 0.6;
+
+#NODE hydrogen_jaune = import Hydrogen_template from "template_hydrogen.txt" with
+    cout_reel_par_kg = 4;
+    score_par_kg = 0.3;
+
+#NODE hydrogen_bleu = import Hydrogen_template from "template_hydrogen.txt" with
+    cout_reel_par_kg = 2.27;
+    score_par_kg = 0.3;
+
+#NODE hydrogen_gris = import Hydrogen_template from "template_hydrogen.txt" with
+    cout_reel_par_kg = 2.08;
+    score_par_kg = 1;
+
+#NODE hydrogen_vert = import Hydrogen_template from "template_hydrogen.txt" with
+    cout_reel_par_kg = 5.89;
+    score_par_kg = 0.1;
+
+#NODE hydrogen_biomass = import Hydrogen_template from "template_hydrogen.txt" with
+    cout_reel_par_kg = 6;
+    score_par_kg = 0.25;
+
+#NODE Demande
+    #VARIABLES
+    external: demand[T];
+    external: score_total;
+    #CONSTRAINTS
+    demand[t] == global.consommation_journaliere;
+
+#HYPEREDGE Balance
+#CONSTRAINTS
+Demande.score_total == 1/(global.consommation_annuelle)*sum(hydrogen_bleu.impact_environnemental[i]+
+                                     hydrogen_jaune.impact_environnemental[i]+
+                                     hydrogen_gris.impact_environnemental[i]+
+                                     hydrogen_vert.impact_environnemental[i]+
+                                     hydrogen_biomass.impact_environnemental[i] for i in [0:T-1]);
+
+Demande.score_total <= global.impact_environnemental;
+hydrogen_bleu.quantite_necessaire[t]+ hydrogen_jaune.quantite_necessaire[t]+ hydrogen_gris.quantite_necessaire[t]+ hydrogen_vert.quantite_necessaire[t]+hydrogen_biomass.quantite_necessaire[t] == Demande.demand[t];

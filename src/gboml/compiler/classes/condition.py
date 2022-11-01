@@ -25,6 +25,7 @@ class Condition(Type):
         Type.__init__(self, type_id, line)
         self.type = type_id
         self.children = children
+        self.python_ast = None
 
     def __str__(self) -> str:
     
@@ -38,7 +39,7 @@ class Condition(Type):
     def get_children(self) -> list:
     
         return self.children
-    
+
     def check(self, definitions: dict) -> bool:
     
         predicate = False
@@ -77,3 +78,61 @@ class Condition(Type):
                 predicate = (value0 != value1)
 
         return predicate
+
+    def to_python_ast(self):
+        import ast
+
+        condition_type = self.get_type()
+        children = self.children
+        ast_form = None
+        if condition_type == "and":
+            ast_form = ast.BinOp(left=children[0].to_python_ast(),
+                                 op=ast.BitAnd(),
+                                 right=children[1].to_python_ast())
+        elif condition_type == "or":
+            ast_form = ast.BinOp(left=children[0].to_python_ast(),
+                                 op=ast.BitOr(),
+                                 right=children[1].to_python_ast())
+        elif condition_type == "not":
+            ast_form = ast.UnaryOp(op=ast.Not(),
+                                   operand=children[0].to_python_ast())
+        elif condition_type == "==":
+            ast_form = ast.Compare(left=children[0].to_python_ast(),
+                                   ops=[ast.Eq()],
+                                   comparators=[children[1].to_python_ast()]
+                                   )
+        elif condition_type == "<=":
+            ast_form = ast.Compare(left=children[0].to_python_ast(),
+                                   ops=[ast.LtE()],
+                                   comparators=[children[1].to_python_ast()]
+                                   )
+        elif condition_type == ">=":
+            ast_form = ast.Compare(left=children[0].to_python_ast(),
+                                   ops=[ast.GtE()],
+                                   comparators=[children[1].to_python_ast()]
+                                   )
+        elif condition_type == "<":
+            ast_form = ast.Compare(left=children[0].to_python_ast(),
+                                   ops=[ast.Lt()],
+                                   comparators=[children[1].to_python_ast()]
+                                   )
+        elif condition_type == ">":
+            ast_form = ast.Compare(left=children[0].to_python_ast(),
+                                   ops=[ast.Gt()],
+                                   comparators=[children[1].to_python_ast()]
+                                   )
+        elif condition_type == "!=":
+            ast_form = ast.Compare(left=children[0].to_python_ast(),
+                                   ops=[ast.NotEq()],
+                                   comparators=[children[1].to_python_ast()]
+                                   )
+        return ast_form
+
+    def turn_to_python_expression(self):
+        import ast
+        condition_ast = self.to_python_ast()
+        expr_ast = ast.Expression(condition_ast)
+        expr_ast = ast.fix_missing_locations(expr_ast)
+        compiled_expr = compile(expr_ast, "", mode="eval")
+        self.python_ast = compiled_expr
+        return compiled_expr

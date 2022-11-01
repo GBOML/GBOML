@@ -41,6 +41,8 @@ from .xpress_solver import xpress_solver
 from .scipy_solver import scipy_solver
 from .dsppy import DSPpy
 from .dsp_solver import dsp_solver
+from .pyhighs import PyHighs
+from .highs_solver import highs_solver
 
 __all__ = ["gurobi_solver", "clp_solver", "cplex_solver", "xpress_solver",
-           "scipy_solver", "DSPpy", "dsp_solver"]
+           "scipy_solver", "DSPpy", "dsp_solver", "PyHighs", "highs_solver"]

@@ -85,7 +85,6 @@ class Identifier(Symbol):
 
             size = 1
         else:
-
             size = self.expression.evaluate_expression(dictionary)
         if size <= 0:
             error_('ERROR : wrong size for variable : '
@@ -122,9 +121,47 @@ class Identifier(Symbol):
     def set_index(self, value):
 
         self.index = value
-
         return value + self.size
 
     def get_index(self):
 
         return self.index 
+
+    def to_python_ast(self):
+        import ast
+        type_id = self.get_type()
+        identifier_name = self.get_name()
+        node_name = self.get_node_name()
+
+        if node_name != "":
+            identifier_name = node_name+"."+identifier_name
+
+        output = None
+        if type_id == "basic":
+            output = ast.Name(id=identifier_name, ctx=ast.Load())
+        elif type_id == "assign":
+            output = ast.Call(func=ast.Name(id="__f_index__", ctx=ast.Load()),
+                              args=[
+                                  self.expression.to_python_ast(),
+                                  ast.Name(id='extension_range', ctx=ast.Load()),
+                                  ast.Name(id=identifier_name, ctx=ast.Load())
+                              ],
+                              keywords=[])
+
+            """
+            output = ast.Subscript(value=ast.Name(id=identifier_name, ctx=ast.Load()),
+                                   slice=ast.Index(
+                                       value=ast.Call(
+                                            func=ast.Name(id='__f_index__', ctx=ast.Load()),
+                                            args=[
+                                                self.expression.to_python_ast(),
+                                                ast.Name(id='extension_range', ctx=ast.Load()),
+                                                ast.Call(
+                                                    func=ast.Name(id='len', ctx=ast.Load()),
+                                                    args=[
+                                                        ast.Name(id=identifier_name, ctx=ast.Load())],
+                                                    keywords=[])],
+                                            keywords=[]),
+                                       ctx=ast.Load()), ctx=ast.Load())
+            """
+        return output

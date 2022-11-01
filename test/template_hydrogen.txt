@@ -1,0 +1,16 @@
+#TIMEHORIZON T = 12;
+
+#NODE Hydrogen_template
+#PARAMETERS
+    cout_reel_par_kg = 12;
+    score_par_kg = 1;
+    capacite_max_par_kg_par_timestep = 150;
+#VARIABLES
+    external: quantite_necessaire[T];
+    external: impact_environnemental[T];
+#CONSTRAINTS
+    quantite_necessaire[t]>=0;
+    quantite_necessaire[t]<=capacite_max_par_kg_par_timestep;
+    impact_environnemental[t] == quantite_necessaire[t]*score_par_kg;
+#OBJECTIVES
+    min: cout_reel_par_kg*quantite_necessaire[t];

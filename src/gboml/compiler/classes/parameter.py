@@ -18,6 +18,8 @@ class Parameter(Symbol):
     def __init__(self, name: str, expression, line=0):
 
         self.vector = None
+        self.read_from_file = False
+        self.value = None
         if expression is None:
 
             type_para = "table"
@@ -31,7 +33,6 @@ class Parameter(Symbol):
             type_para = "expression"
         Symbol.__init__(self, name, type_para, line)
         self.expression = expression
-        self.value = None
 
     def __str__(self):
         
@@ -49,16 +50,30 @@ class Parameter(Symbol):
         return self.value
 
     def set_value(self, value):
+        if len(value) >= 2 and isinstance(value, list):
+            self.type = "table"
         self.value = value
 
     def get_values_from_file(self, expression):
-        from .expression import Expression
+        # from .expression import Expression
+        """
+        from numpy import genfromtxt, nan
+        self.read_from_file = True
+        if (os.path.isfile('./' + expression)) is False:
+            error_("No such file as " + str(expression))
+        value = genfromtxt('./'+expression, delimiter=',;\n ')
+        if value[-1] == nan:
+            value = value[:-1]
 
+        self.value = value
+        self.vector = value
+
+        """
+        self.read_from_file = True
         self.vector = []
         if type(expression) is str:
 
             if(os.path.isfile('./'+expression)) is False:
-
                 error_("No such file as "+str(expression))
             f = open('./'+expression, "r", encoding="ISO-8859-1")
             for line in f:
@@ -75,13 +90,14 @@ class Parameter(Symbol):
                     try:
 
                         number = float(nb)
-                        expr = Expression('literal', number)
-                        self.vector.append(expr)
+                        self.vector.append(number)
                     except ValueError:
 
                         error_("file "+expression
                                + " contains values that are not numbers "+nb)
             f.close()
+            self.value = self.vector
+
 
     def get_expression(self):
         

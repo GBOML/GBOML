@@ -13,7 +13,7 @@ pi = 3.14;
     #NODE B = import DEMAND from "../examples/microgrid/microgrid.txt" with
         consumption internal;
 
-    #NODE PV = import SOLAR_PV from "../examples/microgrid/microgrid.txt" with
+    #NODE PV = import BATTERY from "../examples/microgrid/microgrid.txt" with
         capex = global.pi;
 
     #VARIABLES

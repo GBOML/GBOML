@@ -10,7 +10,7 @@ from .compiler.classes import Parameter, Expression, Node, Hyperedge, Time, \
     Program
 from .compiler.utils import error_, move_to_directory
 from .solver_api import cplex_solver, gurobi_solver, clp_solver, dsp_solver, \
-    xpress_solver
+    xpress_solver, highs_solver
 from .output import generate_json
 
 from enum import Enum
@@ -66,10 +66,13 @@ class GbomlGraph:
         self.list_hyperedges = []
         self.timehorizon: Time = Time("T", Expression('literal', timehorizon))
         self.node_hyperedge_dict = {}
+        self.global_parameters = []
 
         self.program = None
-        self.matrix_a = None
-        self.matrix_b = None
+        self.matrix_a_ineq = None
+        self.matrix_b_ineq = None
+        self.matrix_a_eq = None
+        self.matrix_b_eq = None
         self.vector_c = None
         self.indep_term_c = None
 
@@ -204,7 +207,7 @@ class GbomlGraph:
         """
 
         program = Program(self.list_nodes, timescale=self.timehorizon,
-                          links=self.list_hyperedges)
+                          links=self.list_hyperedges, global_param=self.global_parameters)
         program, program_variables_dict, definitions = semantic(program)
         check_program_linearity(program, program_variables_dict, definitions)
         factorize_program(program, program_variables_dict, definitions)
@@ -214,13 +217,15 @@ class GbomlGraph:
         else:
             extend_factor(program, definitions)
 
-        matrix_a, vector_b = matrix_generation_a_b(program)
-        vector_c, indep_terms_c = matrix_generation_c(program)
+        matrix_eq, vector_b_eq, matrix_ineq, vector_b_ineq = matrix_generation_a_b(program)
+        vector_c, indep_terms_c, alone_term_c = matrix_generation_c(program)
         program.free_factors_objectives()
 
         self.program = program
-        self.matrix_a = matrix_a
-        self.matrix_b = vector_b
+        self.matrix_a_ineq = matrix_ineq
+        self.matrix_b_ineq = vector_b_ineq
+        self.matrix_a_eq = matrix_eq
+        self.matrix_b_eq = vector_b_eq
         self.vector_c = vector_c
         self.indep_term_c = indep_terms_c
 
@@ -247,7 +252,8 @@ class GbomlGraph:
         """
         vector_c = np.asarray(self.vector_c.sum(axis=0), dtype=float)
         objective_offset = float(self.indep_term_c.sum())
-        return solver_function(self.matrix_a, self.matrix_b, vector_c,
+        return solver_function(self.matrix_a_eq, self.matrix_b_eq,
+                               self.matrix_a_ineq, self.matrix_b_ineq, vector_c,
                                objective_offset, self.program.get_tuple_name())
 
     def solve_gurobi(self, opt_file: str = None, details=False):
@@ -268,9 +274,9 @@ class GbomlGraph:
 
         """
         gurobi_solver_function = \
-            lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
-                gurobi_solver(matrix_a, vector_b, vector_c, objective_offset,
-                              name_tuples, opt_file, details)
+            lambda matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset, name_tuples: \
+            gurobi_solver(matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset,
+                          name_tuples, opt_file, details)
         return self.__solve(gurobi_solver_function)
 
     def solve_cplex(self, opt_file: str = None, details=False):
@@ -291,8 +297,8 @@ class GbomlGraph:
 
         """
         cplex_solver_function = \
-            lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
-                cplex_solver(matrix_a, vector_b, vector_c, objective_offset,
+            lambda matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset, name_tuples: \
+                cplex_solver(matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset,
                               name_tuples, opt_file, details)
         return self.__solve(cplex_solver_function)
 
@@ -313,8 +319,8 @@ class GbomlGraph:
             variables_information (dict) : dict of additional information concerning variables
         """
         xpress_solver_function = \
-            lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
-                xpress_solver(matrix_a, vector_b, vector_c, objective_offset,
+            lambda matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset, name_tuples: \
+                xpress_solver(matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset,
                               name_tuples, opt_file, details)
         return self.__solve(xpress_solver_function)
 
@@ -330,6 +336,20 @@ class GbomlGraph:
 
         """
         return self.__solve(clp_solver)
+
+    def solve_highs(self):
+        """
+        bound method solving the flattened optimization problem with Highs
+
+        Returns:
+            solution (ndarray) : flattened solution
+            objective (flat) : float of the objective value
+            status (str) : solver exit status
+            solver_info (dict) : dictionary storing solver information
+
+        """
+
+        return self.__solve(highs_solver)
 
     def solve_dsp(self, algorithm="dw"):
         """
@@ -348,8 +368,8 @@ class GbomlGraph:
         """
 
         dsp_solver_function = \
-            lambda matrix_a, vector_b, vector_c, objective_offset, name_tuples:\
-                dsp_solver(matrix_a, vector_b, vector_c, objective_offset,
+            lambda matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset, name_tuples:\
+                dsp_solver(matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset,
                            name_tuples, self.program.
                            get_first_level_constraints_decomposition(),
                            algorithm=algorithm)
@@ -386,6 +406,73 @@ class GbomlGraph:
                              solution, objective, self.vector_c,
                              self.indep_term_c, constraint_info, variables_info)
 
+    def add_global_parameters_objects(self, global_parameters):
+        """
+        Add global parameters objects from list of parameters objects
+        Warning this function will be removed in future release !
+        Use add_global_parameters instead
+
+        Args:
+           global_parameters (list) : list of global parameters
+
+        Returns:
+
+        """
+        print("THIS FUNCTION WILL BE REMOVED SOON, use add_global_parameters instead")
+        for param in global_parameters:
+            if isinstance(param, Parameter):
+                self.global_parameters.append(param)
+
+    def add_global_parameters(self, global_parameters):
+        """
+        Add global parameters objects to the graph
+
+        Args:
+           global_parameters (list) : list of Parameter object or
+                                      tuples of <parameter_name, values> where values
+                                      can be an int/float/list <int/float> or a string to import from.
+
+        Returns:
+
+        """
+        for param in global_parameters:
+            if isinstance(param, Parameter):
+                self.global_parameters.append(param)
+            else:
+                identifier, value = param
+                self.add_global_parameter(identifier, value)
+
+    def add_global_parameter(self, identifier, value):
+        """
+        Add one global parameter objects to the graph
+
+        Args:
+           identifier (str) : parameter name
+           value (int|float|str) : value associated to the parameter (if string it expects a filename to read from)
+        Returns:
+
+        """
+        parameter = None
+        if isinstance(value, Parameter):
+            parameter = value
+        elif isinstance(value, str):
+            parameter = Parameter(identifier, value)
+        elif isinstance(value, float) or isinstance(value, int):
+            expr = Expression('literal', value)
+            parameter = Parameter(identifier, expr)
+        elif isinstance(value, list):
+            expression_values = []
+            expr = None
+            for val in value:
+                expr = Expression('literal', val)
+                expression_values.append(expr)
+            parameter = Parameter(identifier, None)
+            parameter.set_vector(expression_values)
+        else:
+            error_("Unaccepted type value for global parameter "
+                   + str(type(value)))
+        self.global_parameters.append(parameter)
+
     @staticmethod
     def import_all_nodes_and_edges(filename):
         """
@@ -397,6 +484,7 @@ class GbomlGraph:
         Returns:
             all_nodes (list) : list of nodes contained in file
             all_hyperedges (list) : list of hyperedges contained in file
+            all_global_param(list) : list of global parameters in file
 
         """
         old_dir, cut_filename = move_to_directory(filename)
@@ -406,12 +494,13 @@ class GbomlGraph:
         for node in all_nodes:
             to_return_nodes.append(deepcopy(node))
 
+        to_return_global_param = filename_graph.get_global_parameters()
         all_hyperedges = filename_graph.get_links()
         to_return_edges = []
         for edge in all_hyperedges:
             to_return_edges.append(deepcopy(edge))
         os.chdir(old_dir)
-        return to_return_nodes, to_return_edges
+        return to_return_nodes, to_return_edges, to_return_global_param
 
     @staticmethod
     def import_node(filename: str, *imported_node_identifier: str,
@@ -698,7 +787,7 @@ class GbomlGraph:
                                                            parameter_name,
                                                            value)
             elif isinstance(value, list):
-                GbomlGraph.redefine_parameter_from_values(node_or_hyperedge,
+                GbomlGraph.__redefine_parameter_from_values(node_or_hyperedge,
                                                           parameter_name,
                                                           value)
             else:
@@ -780,3 +869,4 @@ class GbomlGraph:
         """
         change_tuple = [old_node_name, new_node_name, None]
         hyperedge.add_name_change(change_tuple)
+
