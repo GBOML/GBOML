@@ -3,7 +3,11 @@
 %import common.FLOAT -> FLOAT
 %import common.CNAME -> ID
 %import common.WS
+%import common.CPP_COMMENT -> SINGLE_LINE_COMMENT
+%import common.C_COMMENT -> MULTI_LINE_COMMENT
 %ignore WS
+%ignore SINGLE_LINE_COMMENT
+%ignore MULTI_LINE_COMMENT
 
 //MACROS
 _separated_list{sub, sep}: sub (sep sub)*
