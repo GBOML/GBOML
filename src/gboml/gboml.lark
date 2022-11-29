@@ -1,0 +1,109 @@
+%import common.ESCAPED_STRING -> STRING
+%import common.INT -> INT
+%import common.FLOAT -> FLOAT
+%import common.CNAME -> ID
+%import common.WS
+%ignore WS
+
+//MACROS
+_separated_list{sub, sep}: sub (sep sub)*
+separated_list{sub, sep}: _separated_list{sub, sep}
+plist{content}: content*
+
+// HEADER
+start: [time_horizon] global_block program_block
+program_block: _program*
+?time_horizon: "#TIMEHORIZON" "T" "=" INT ";"
+global_block: ("#GLOBAL" definition*)?
+_program: node | hyperedge
+
+// NODES
+?node: node_definition | node_import
+node_definition: "#NODE" ID \
+                  parameters_block \
+                  program_block \
+                  variables_block \
+                  constraints_block \
+                  objectives_block
+
+parameters_block: ("#PARAMETERS" definition*)?
+variables_block: "#VARIABLES" variable_definition*
+constraints_block: ("#CONSTRAINTS" constraint*)?
+objectives_block: ("#OBJECTIVES" objective*)?
+
+node_import: "#NODE" ID "=" "import" var_or_param "from" STRING node_redefs
+node_redefs: ("with" redefinition*) | ";"
+?redefinition: variable_scope_change | definition
+variable_scope_change: ID SCOPE ";"
+
+// HYPEREDGES
+?hyperedge: hyperedge_definition | hyperedge_import
+
+hyperedge_definition: "#HYPEREDGE" ID \
+                      parameters_block \
+                      constraints_block
+
+hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hyperedge_redefs
+hyperedge_redefs: "with" definition* | ";"
+
+// VARIABLES
+variable_definition: SCOPE [VTYPE] ":" var_or_param ["<-" var_or_param] ";"
+SCOPE: "internal" | "external"
+VTYPE: "binary" | "continuous" | "integer"
+
+// CONSTRAINTS
+?constraint: constraint_sos | constraint_std
+constraint_std: [ID ":"] expression CTR_OPERATOR expression [loop] ";"
+CTR_OPERATOR: "<=" | ">=" | "=="
+constraint_sos: [ID ":"] SOS_TYPE "{" separated_list{var_or_param, ","} "}" [loop] ";"
+SOS_TYPE.1: "SOS1" | "SOS2"
+
+// OBJECTIVES
+objective: OBJ_TYPE [ID] ":" expression [loop] ";"
+OBJ_TYPE: "min" | "max"
+
+// LOOPS
+loop: "for" ID "in" "[" expression ":" expression [":" expression] "]" ["where" bool_expression]
+
+// BOOLEAN EXPRESSIONS
+?bool_expression: bool_expression_or
+?bool_expression_or: _separated_list{bool_expression_and, "or"}
+?bool_expression_and: _separated_list{_maybe_not, "and"}
+_maybe_not: bool_expression_not | _maybe_bool_parenthesis
+bool_expression_not: "not" _maybe_bool_parenthesis
+_maybe_bool_parenthesis: "(" bool_expression ")" | bool_expression_comparison
+bool_expression_comparison: expression (COMPARISON_OPERATOR | CTR_OPERATOR) expression
+COMPARISON_OPERATOR:  "<" | ">" | "!="
+
+// DEFINITIONS
+definition: ID "=" _definition_rhs ";"
+_definition_rhs: import | STRING | expression | array
+import: "import" STRING
+
+// ARRAYS
+array: "{" _separated_list{_array_entry, ","} "}"
+_array_entry: generated_expression | STRING | array
+
+// EXPRESSIONS
+?expression: substraction
+?substraction: _separated_list{sum, "-"}
+?sum: _separated_list{division, "+"}
+?division: _separated_list{product, "/"}
+?product: _separated_list{modulo, "*"}
+?modulo: _separated_list{exponent, "%"}
+?exponent: _separated_list{_maybe_unary_minus, "**"}
+_maybe_unary_minus: value | unary_minus
+unary_minus: "-" value
+?value: function | var_or_param | INT | FLOAT | ("(" expression ")")
+
+// FUNCTIONS
+function: ID "(" separated_list{_expression_or_array, ","} ")"
+_expression_or_array: generated_expression | array
+
+// GENERATOR
+?generated_expression: expression loop?
+
+// VAR OR PARAM LINK
+var_or_param: separated_list{var_or_param_leaf, "."}
+var_or_param_leaf: ID plist{index}
+?index: "[" (expression | STRING) "]"
