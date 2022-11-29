@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from gboml.ast.base import GBOMLObject
 
@@ -20,8 +20,7 @@ class BoolExpression(GBOMLObject):
 @dataclass
 class VarOrParamLeaf(GBOMLObject):
     name: str
-    indices: list[Expression]
-
+    indices: list[Expression] = field(default_factory=list)
 
 @dataclass
 class VarOrParam(ExpressionObj):
