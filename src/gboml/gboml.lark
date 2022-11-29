@@ -51,9 +51,10 @@ hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hypere
 hyperedge_redefs: "with" definition* | ";"
 
 // VARIABLES
-variable_definition: SCOPE [VTYPE] ":" var_or_param ["<-" var_or_param] ";"
+variable_definition: SCOPE [VTYPE] ":" var_or_param [_LARROW var_or_param] ";"
 SCOPE: "internal" | "external"
 VTYPE: "binary" | "continuous" | "integer"
+_LARROW.1: "<-"
 
 // CONSTRAINTS
 ?constraint: constraint_sos | constraint_std
