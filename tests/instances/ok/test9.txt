@@ -9,5 +9,5 @@ d = import "inexistant.txt";
 internal : a;
 #CONSTRAINTS 
 a >=10;
-#OBJECTIVE 
+#OBJECTIVES
 min: a;

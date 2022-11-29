@@ -1,6 +1,6 @@
 // Error as variable is a scalar but used as vector
 
-#TIMEHORIZON t = 1;
+#TIMEHORIZON T = 1;
 
 #NODE H
 #VARIABLES 
