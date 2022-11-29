@@ -1,0 +1,12 @@
+// Only there to check if any addition prints occur
+
+#TIMEHORIZON
+T = 10;
+
+#NODE A
+#VARIABLES 
+internal : x[T];
+#CONSTRAINTS
+x[t]>=0;
+#OBJECTIVES
+min: x[t];

@@ -1,0 +1,19 @@
+
+#TIMEHORIZON T = 2;
+
+#GLOBAL
+pi = 9;
+
+
+#NODE B
+#VARIABLES
+external integer : b;
+#CONSTRAINTS
+b >= global.pi;
+
+#NODE A = import A from "test23.txt" with
+x external;
+
+#HYPEREDGE H
+#CONSTRAINTS
+A.x <= B.b+2;

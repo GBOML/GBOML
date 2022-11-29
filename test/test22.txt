@@ -1,0 +1,17 @@
+// Test a normal equality node
+
+#TIMEHORIZON
+    T = 4;
+
+#NODE O 
+
+    #VARIABLES
+        external integer : x[T];
+        internal : acc[T];
+
+    #CONSTRAINTS
+        acc[t]==2;
+        x[t] == 1;
+    
+    #OBJECTIVES
+        min: acc[t];

@@ -1,0 +1,21 @@
+#TIMEHORIZON
+    T = 2;
+#GLOBAL
+
+#NODE PV_PANEL
+    #PARAMETERS
+        nb_price_steps = 4;
+    #VARIABLES
+        internal: a[PV_PANEL.nb_price_steps];
+    #CONSTRAINTS
+        a[i] <= 0 for i in [0:PV_PANEL.nb_price_steps-1];
+    #OBJECTIVES
+        min: a[0];
+
+#NODE MEMBER
+    #PARAMETERS
+        demand_quarter = import "a.csv";
+    #NODE METER = import METER from "meter.gboml" with
+        demand_quarter = MEMBER.demand_quarter;
+    #VARIABLES
+        internal: a;

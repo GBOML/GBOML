@@ -1,0 +1,46 @@
+
+#TIMEHORIZON T = 2;
+
+#NODE A
+    #PARAMETERS
+        param = 1;
+    #NODE B
+        #PARAMETERS
+            param = 2;
+        #NODE C
+            #PARAMETERS
+                param = 3;
+            #NODE D
+                #PARAMETERS
+                    param = 4;
+                #VARIABLES
+                    external : x[T];
+                #CONSTRAINTS
+                    x[t] >= A.param;
+
+            #NODE E
+                #PARAMETERS
+                    param = 5.5;
+                #VARIABLES
+                    external integer : y[T];
+                #CONSTRAINTS
+                    y[t] >= param;
+                #OBJECTIVES
+                    min: y[t];
+
+            #LINK H
+                #PARAMETERS
+                    param = A.param;
+                #CONSTRAINTS
+                    E.y[t]+D.x[t] == param+9;
+
+            #VARIABLES
+                internal : x[T] <- D.x[T];
+            #CONSTRAINTS
+                x[t] <= B.param+A.param+param;
+        #VARIABLES
+            internal : x[T] <- C.x[T];
+    #VARIABLES
+        internal : x[T] <- B.x[T];
+    #OBJECTIVES
+        min : x[t] ;

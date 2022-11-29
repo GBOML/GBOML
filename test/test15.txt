@@ -1,0 +1,31 @@
+//Testing hyperedges
+
+#TIMEHORIZON T = 1;
+
+#NODE A 
+#VARIABLES 
+external : b ;
+external : a ;
+external : c;
+
+#CONSTRAINTS 
+a >=0;
+b >=1;
+c >=2;
+#OBJECTIVES
+min : a ;
+
+#NODE R
+#VARIABLES
+external : f;
+external : d;
+external: h;
+external : ff;
+
+#HYPEREDGE links
+#CONSTRAINTS
+A.b == R.f;
+A.b == R.ff;
+R.h == A.a;
+A.c == R.d;
+

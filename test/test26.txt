@@ -1,0 +1,29 @@
+
+#TIMEHORIZON T = 1;
+
+#NODE A
+    #PARAMETERS
+        a = 1;
+    #NODE B
+        #PARAMETERS
+            b = 2;
+        #NODE C
+            #PARAMETERS
+                c = 3;
+            #NODE D
+                #PARAMETERS
+                    d = 4;
+                #VARIABLES
+                    internal : x;
+                #CONSTRAINTS
+                    x >= A.a;
+            #VARIABLES
+                internal : x <- D.x;
+            #CONSTRAINTS
+                x <= B.b+A.a+c;
+        #VARIABLES
+            internal : x <- C.x;
+    #VARIABLES
+        internal : x <- B.x;
+    #OBJECTIVES
+        min : x + a;

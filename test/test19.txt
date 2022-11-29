@@ -1,0 +1,13 @@
+// Test explicit objective extension
+
+#TIMEHORIZON
+T = 10;
+
+#NODE A 
+#VARIABLES
+internal : x[1000];
+#CONSTRAINTS
+x[i]>=0 for i in [0:999];
+x[i] == 10 for i in [0:999] where i == 100;
+#OBJECTIVES
+min : x[i] for i in [0:999]; 

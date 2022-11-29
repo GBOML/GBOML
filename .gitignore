@@ -1,0 +1,12 @@
+__pycache__
+parsetab.py
+parser.out
+*.pyc
+.venv/
+junk.py
+speedtest.py
+try_files/
+examples/example1.json
+src/gboml.egg-info/
+.idea
+.DS_Store

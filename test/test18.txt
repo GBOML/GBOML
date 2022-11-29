@@ -1,0 +1,13 @@
+// Test objective declared as sum
+
+#TIMEHORIZON
+T = 10;
+
+#NODE C
+#VARIABLES
+internal : x[T];
+external : y[T];
+#CONSTRAINTS
+x[t]>=0;
+#OBJECTIVES
+min: sum(x[i] for i in [0:T-1]);

@@ -1,0 +1,12 @@
+//Testing the constraint loop iteration
+
+#TIMEHORIZON
+T = 10;
+
+#NODE A
+#VARIABLES 
+internal : x[T];
+#CONSTRAINTS
+x[i]>=0 for i in [9:9];
+#OBJECTIVES
+min: x[T-1];

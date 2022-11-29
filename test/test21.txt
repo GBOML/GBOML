@@ -1,0 +1,32 @@
+// Test linking with global parameters
+
+#TIMEHORIZON
+    T = 2;
+
+#GLOBAL
+    a = 2;
+    b = 3;
+
+#NODE O 
+    #PARAMETERS
+        p1 = global.a;
+        p2 = global.b;
+
+    #VARIABLES
+        external integer : x[2];
+
+    #CONSTRAINTS
+        x[0]==(global.a+p1)/2;
+        x[1]==(global.b+p2)/2;
+    
+    #OBJECTIVES
+        min: x[t]*global.a/2;
+
+
+#NODE D
+    #VARIABLES
+        external integer : y[T];
+
+#HYPEREDGE l1
+    #CONSTRAINTS
+        O.x[t] <= global.a *D.y[t];

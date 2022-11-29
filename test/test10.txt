@@ -1,0 +1,12 @@
+// Non linearity in constraint ERROR
+
+#TIMEHORIZON
+T = 10;
+
+#NODE A
+#VARIABLES 
+internal : x[T];
+#CONSTRAINTS
+x[t]/x[t]>=0;
+#OBJECTIVES
+min: x[t];

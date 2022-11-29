@@ -1,0 +1,12 @@
+// Test working constrainting and optimizing only one element of vector
+
+#TIMEHORIZON
+T = 10;
+
+#NODE A
+#VARIABLES 
+internal : x[T];
+#CONSTRAINTS
+x[T-1]>=0;
+#OBJECTIVES
+min: x[T-1];

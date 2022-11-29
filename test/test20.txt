@@ -1,0 +1,21 @@
+// Test linking with explicit extension
+
+#TIMEHORIZON
+T = 10;
+
+#NODE A 
+#VARIABLES 
+external : x[T];
+#CONSTRAINTS
+x[t]>=2;
+#OBJECTIVES
+min:x[t];
+
+#NODE B 
+#VARIABLES 
+external : y[T];
+external : w[T];
+
+#HYPEREDGE link
+#CONSTRAINTS
+A.x[i] == B.y[i] + B.w[i] for i in [0:5];

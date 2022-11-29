@@ -1,0 +1,3 @@
+// Only timehorizon defined nothing else
+
+#TIMEHORIZON T=10;

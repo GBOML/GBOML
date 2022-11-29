@@ -1,0 +1,47 @@
+{
+    "version": "0.0.4",
+    "model": {
+        "horizon": 1,
+        "number_nodes": 1,
+        "global_parameters": {},
+        "nodes": {
+            "H": {
+                "number_parameters": 0,
+                "number_variables": 1,
+                "number_constraints": 1,
+                "number_expanded_constraints": 1,
+                "number_objectives": 1,
+                "number_expanded_objectives": 1,
+                "parameters": {},
+                "variables": [
+                    "x"
+                ]
+            }
+        },
+        "hyperedges": {}
+    },
+    "solver": {
+        "name": "linprog",
+        "status": true
+    },
+    "solution": {
+        "status": "optimal",
+        "objective": 4.0,
+        "elements": {
+            "H": {
+                "variables": {
+                    "x": {
+                        "values": [
+                            -4.0
+                        ]
+                    }
+                },
+                "objectives": {
+                    "unnamed": [
+                        -4.0
+                    ]
+                }
+            }
+        }
+    }
+}

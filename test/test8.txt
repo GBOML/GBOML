@@ -1,0 +1,11 @@
+// Non linearity error
+
+#TIMEHORIZON T = 2;
+
+#NODE A
+#VARIABLES
+internal : x ;
+#CONSTRAINTS
+x*x==10;
+#OBJECTIVES
+min: x;

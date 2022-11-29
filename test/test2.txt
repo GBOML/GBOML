@@ -1,0 +1,11 @@
+// Error as variable is a scalar but used as vector
+
+#TIMEHORIZON t = 1;
+
+#NODE H
+#VARIABLES 
+internal : x;
+#CONSTRAINTS
+x[0]>=0;
+#OBJECTIVES
+min : x[0];

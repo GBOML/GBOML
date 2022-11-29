@@ -1,0 +1,13 @@
+// working example of a minimization of un-constrainted variable
+// No solution
+
+#TIMEHORIZON T = 10;
+
+#NODE H
+#VARIABLES 
+internal : y[T];
+internal : x[T];
+#CONSTRAINTS
+x[t]==0;
+#OBJECTIVES
+min : y[t];
