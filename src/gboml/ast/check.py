@@ -13,6 +13,9 @@ def _check_type(value, typ):
     if isinstance(typ, str):
         typ = eval(typ)
 
+    if isinstance(typ, typing.ForwardRef):
+        typ = eval(typ.__forward_arg__)
+
     if isinstance(typ, types.GenericAlias) and typ.__origin__ == list:
         subtyp = typing.get_args(typ)[0]
         if not isinstance(value, list):
@@ -21,7 +24,7 @@ def _check_type(value, typ):
             _check_type(x, subtyp)
         return
 
-    if isinstance(typ, types.UnionType):
+    if isinstance(typ, types.UnionType) or ("_name" in typ.__dict__ and typ._name == "Optional"):
         for subtyp in typing.get_args(typ):
             try:
                 _check_type(value, subtyp)
@@ -43,12 +46,9 @@ def _check_type(value, typ):
             raise NotOfType(f"{value} is not an instance of {typ}")
         check(value)
         return
-    try:
-        if not isinstance(value, typ):
-            raise NotOfType(f"{value} is not an instance of {typ}")
-    except TypeError:
-        print(typ)
-    return
+
+    if not isinstance(value, typ):
+        raise NotOfType(f"{value} is not an instance of {typ}")
 
 
 def check(t: GBOMLObject):
