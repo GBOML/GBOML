@@ -14,7 +14,8 @@ def parse_file(filename: str) -> GBOMLGraph:
         filename: path to the GBOML-formatted text to parse
     Returns: a GBOMLGraph
     """
-    return parse(open(filename).read(), filename)
+    with open(filename) as f:
+        return parse(f.read(), filename)
 
 
 def parse(text: str, filename: Optional[str] = None) -> GBOMLGraph:
@@ -82,9 +83,9 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "bool_expression_not": bool_op_transform(Operator.b_not),
             "bool_expression_comparison": BoolExpressionComparison,
             "function": Function,
-            "generated_expression": GeneratedExpression,
-            "import": Import,
-            "variable_scope_change": ScopeChange
+            "import": ImportFile,
+            "variable_scope_change": ScopeChange,
+            "generated_rvalue": GeneratedRValue
         }
 
         def __default__(self, data, children, _):

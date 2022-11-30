@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from gboml.ast.base import GBOMLObject
 from gboml.ast.constraints import Constraint
-from gboml.ast.expressions import VarOrParam
+from gboml.ast.path import VarOrParam
 from gboml.ast.variables import Definition
 
 

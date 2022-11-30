@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from lark.load_grammar import Definition
-
+from gboml.ast.variables import Definition
 from gboml.ast.base import GBOMLObject
 from gboml.ast.hyperedges import HyperEdge
 from gboml.ast.nodes import Node

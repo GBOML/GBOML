@@ -83,13 +83,10 @@ bool_expression_comparison: expression (COMPARISON_OPERATOR | CTR_OPERATOR) expr
 COMPARISON_OPERATOR:  "<" | ">" | "!="
 
 // DEFINITIONS
-definition: ID "=" _definition_rhs ";"
-_definition_rhs: import | STRING | expression | array
-import: "import" STRING
+definition: ID "=" rvalue ";"
 
 // ARRAYS
-array: "{" _separated_list{_array_entry, ","} "}"
-_array_entry: generated_expression | STRING | array
+array: "{" _separated_list{generated_rvalue, ","} "}"
 
 // EXPRESSIONS
 ?expression: substraction
@@ -104,13 +101,14 @@ unary_minus: "-" value
 ?value: function | var_or_param | INT | FLOAT | ("(" expression ")")
 
 // FUNCTIONS
-function: ID "(" separated_list{_expression_or_array, ","} ")"
-_expression_or_array: generated_expression | array
-
-// GENERATOR
-?generated_expression: expression loop?
+function: ID "(" separated_list{generated_rvalue, ","} ")"
 
 // VAR OR PARAM LINK
 var_or_param: separated_list{var_or_param_leaf, "."}
 var_or_param_leaf: ID plist{index}
-?index: "[" (expression | STRING) "]"
+?index: "[" rvalue "]"
+
+//rvalue: anything that can be assigned to a parameter
+?rvalue: import | array | expression | STRING
+import: "import" STRING
+?generated_rvalue: rvalue loop?

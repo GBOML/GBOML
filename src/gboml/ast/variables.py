@@ -3,7 +3,8 @@ from enum import Enum
 from typing import Optional
 
 from gboml.ast.base import GBOMLObject
-from gboml.ast.expressions import Expression, Array, VarOrParam
+from gboml.ast.path import VarOrParam
+from gboml.ast.rvalue import RValue
 
 
 class VarScope(Enum):
@@ -18,14 +19,9 @@ class VarType(Enum):
 
 
 @dataclass
-class Import(GBOMLObject):
-    filename: str
-
-
-@dataclass
 class Definition(GBOMLObject):
     name: str
-    value: Expression | Array | Import | str
+    value: RValue
 
 
 @dataclass

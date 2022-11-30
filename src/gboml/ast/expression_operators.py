@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from gboml.ast.expressions import ExpressionObj, Expression, Array, BoolExpression
-from gboml.ast.loops import GeneratedExpression
+from gboml.ast.expressions import ExpressionObj, Expression, BoolExpression
 
 
 class Operator(Enum):
@@ -29,15 +28,12 @@ class ExpressionOp(ExpressionObj):
     operator: Operator
     operands: list[Expression]
 
-@dataclass
-class Function(ExpressionObj):
-    name: str
-    operands: list[GeneratedExpression | Expression | Array | str]
 
 @dataclass
 class BoolExpressionOp(BoolExpression):
     operator: Operator
     operands: list[BoolExpression]
+
 
 @dataclass
 class BoolExpressionComparison(BoolExpression):

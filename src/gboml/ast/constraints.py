@@ -2,10 +2,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
+from gboml.ast.arrays import Array
 from gboml.ast.base import GBOMLObject
 from gboml.ast.expression_operators import Operator
 from gboml.ast.expressions import Expression
-from gboml.ast.loops import Loop, GeneratedExpression
+from gboml.ast.loops import Loop
 
 
 class SOSType(Enum):
@@ -29,5 +30,5 @@ class StdConstraint(Constraint):
 @dataclass
 class SOSConstraint(Constraint):
     type: SOSType
-    content: list[GeneratedExpression | Expression]
+    content: Array
     loop: Optional[Loop]
