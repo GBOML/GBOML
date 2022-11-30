@@ -1,6 +1,8 @@
 import unittest
 from pathlib import Path
 
+from lark.exceptions import UnexpectedCharacters, UnexpectedToken
+
 from gboml.ast.check import check
 from gboml.parsing import parse_file
 
@@ -25,13 +27,18 @@ class TestParsing(unittest.TestCase):
         """ Checks if the file (doesn't) parses """
         for filename in should_pass:
             with self.subTest(filename=filename):
-                check(parse_file(str(filename)))
+                out = parse_file(str(filename))
+                check(out)
 
-    @unittest.expectedFailure
     def test_not_parse(self):
         for filename in should_not_pass:
             with self.subTest(filename=filename):
-                parse_file(str(filename))
+                try:
+                    out = parse_file(str(filename))
+                    check(out)
+                except:
+                    continue
+                raise Exception("Shouldn't success")
 
 
 if __name__ == '__main__':
