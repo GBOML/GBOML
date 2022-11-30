@@ -69,7 +69,7 @@ OBJ_TYPE: "min" | "max"
 
 // LOOPS
 ?loop: full_loop | implicit_loop
-full_loop: "for" ID "in" "[" expression ":" expression [":" expression] "]" ["where" bool_expression]
+full_loop: "for" ID "in" iterable ["where" bool_expression]
 implicit_loop: "where" bool_expression
 
 // BOOLEAN EXPRESSIONS
@@ -87,6 +87,9 @@ definition: ID "=" rvalue ";"
 
 // ARRAYS
 array: "{" _separated_list{generated_rvalue, ","} "}"
+
+// RANGE
+range: "[" expression ":" expression [":" expression] "]"
 
 // EXPRESSIONS
 ?expression: substraction
@@ -109,6 +112,7 @@ var_or_param_leaf: ID plist{index}
 ?index: "[" rvalue "]"
 
 //rvalue: anything that can be assigned to a parameter
-?rvalue: import | array | expression | STRING
+?rvalue: import | array | expression | range | STRING
 import: "import" STRING
 ?generated_rvalue: rvalue loop?
+?iterable: array | range | function | var_or_param

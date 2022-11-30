@@ -5,7 +5,8 @@ __all__ = [
     "BoolExpressionComparison", "ScopeChange", "ImportFile", "Definition", "Constraint",
     "StdConstraint", "SOSConstraint", "Objective", "VariableDefinition", "Node",
     "HyperEdge", "NodeDefinition", "NodeImport", "HyperEdgeDefinition", "HyperEdgeImport",
-    "ExpressionOp", "GBOMLGraph", "ImplicitLoop", "RValue", "RValueWithGen", "GeneratedRValue"
+    "ExpressionOp", "GBOMLGraph", "ImplicitLoop", "RValue", "RValueWithGen", "GeneratedRValue",
+    "Range"
 ]
 
 from gboml.ast.arrays import *

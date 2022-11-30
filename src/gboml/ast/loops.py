@@ -1,24 +1,23 @@
 from dataclasses import dataclass, field
 from typing import Optional
 
+from gboml.ast.functions import Function
+from gboml.ast.arrays import Array, Range
 from gboml.ast.base import GBOMLObject
-from gboml.ast.expressions import BoolExpression, Expression
+from gboml.ast.expressions import BoolExpression
 from gboml.ast.path import VarOrParam, VarOrParamLeaf
 
+Iterable = Function | Array | Range | VarOrParam
 
 @dataclass
 class Loop(GBOMLObject):
     varid: str
-    start: Expression
-    end: Expression
-    step: Optional[Expression]
+    on: Iterable
     condition: Optional[BoolExpression]
 
 
 @dataclass
 class ImplicitLoop(Loop):
     varid: str = field(default="t", init=False)
-    start: Expression = field(default=0, init=False)
-    end: Expression = field(default_factory=lambda: VarOrParam([VarOrParamLeaf("T")]), init=False)
-    step: Optional[Expression] = field(default=None, init=False)
+    on: Iterable = field(default_factory=lambda: Range(0, VarOrParam([VarOrParamLeaf("T")])), init=False)
     condition: BoolExpression

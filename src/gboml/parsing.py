@@ -85,7 +85,8 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "function": Function,
             "import": ImportFile,
             "variable_scope_change": ScopeChange,
-            "generated_rvalue": GeneratedRValue
+            "generated_rvalue": GeneratedRValue,
+            "range": Range
         }
 
         def __default__(self, data, children, _):
