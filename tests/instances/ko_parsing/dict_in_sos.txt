@@ -1,0 +1,14 @@
+// Working example where x = -4
+
+#TIMEHORIZON T = 1;
+
+#NODE H
+    #PARAMETERS
+        a = {2: 2};
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        SOS2 {2: x};
+        x <= -4;
+    #OBJECTIVES
+        max : x;

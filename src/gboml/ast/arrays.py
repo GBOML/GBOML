@@ -5,9 +5,26 @@ from gboml.ast.base import GBOMLObject
 from gboml.ast.expressions import Expression
 
 if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import RValueWithGen
+    from gboml.ast.rvalue import RValueWithGen, RValue
+    from gboml.ast.loops import Loop
 
-Array = list["RValueWithGen"]
+
+@dataclass
+class Array(GBOMLObject):
+    content: list["RValueWithGen"]
+
+
+@dataclass
+class DictEntry(GBOMLObject):
+    key: "RValue"
+    value: "RValue"
+    loop: typing.Optional["Loop"] = None
+
+
+@dataclass
+class Dictionary(GBOMLObject):
+    content: list[DictEntry]
+
 
 @dataclass
 class Range(GBOMLObject):

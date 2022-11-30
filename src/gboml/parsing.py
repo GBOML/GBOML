@@ -53,8 +53,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         as_list = {
             "objectives_block", "constraints_block", "variables_block",
             "parameters_block", "global_block", "plist", "node_redefs",
-            "hyperedge_redefs", "separated_list", "separated_maybe_empty_list",
-            "array"
+            "hyperedge_redefs", "separated_list", "separated_maybe_empty_list"
         }
 
         #
@@ -87,7 +86,10 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "import": ImportFile,
             "variable_scope_change": ScopeChange,
             "generated_rvalue": GeneratedRValue,
-            "range": Range
+            "range": Range,
+            "dict_entry": DictEntry,
+            "array": Array,
+            "dict": Dictionary
         }
 
         def __default__(self, data, children, _):
@@ -138,5 +140,12 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
 
         def multi_loop(self, meta: Meta, *loops: Tuple[Loop]):
             return MultiLoop(list(loops), meta=meta)
+
+        def array_or_dict(self, meta: Meta, entries: list[RValueWithGen | DictEntry]):
+            if all(isinstance(x, DictEntry) for x in entries):
+                return Dictionary(entries, meta=meta)
+            if all(not isinstance(x, DictEntry) for x in entries):
+                return Array(entries, meta=meta)
+            raise Exception("An array cannot contain dictionary entries (and conversely)")
 
     return GBOMLLarkTransformer().transform(tree)

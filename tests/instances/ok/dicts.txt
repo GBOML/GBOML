@@ -1,0 +1,16 @@
+// Working example where x = -4
+
+#TIMEHORIZON T = 1;
+
+#NODE H
+    #PARAMETERS
+        a = {2: 2};
+        b = {2: x};
+        c = {x: 2};
+        d = {i: i*2 for i in [0:12]};
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x <= -4;
+    #OBJECTIVES
+        max : x;

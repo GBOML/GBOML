@@ -62,7 +62,7 @@ _LARROW.1: "<-"
 ?constraint: constraint_sos | constraint_std
 constraint_std: [ID ":"] expression CTR_OPERATOR expression [loop] ";"
 CTR_OPERATOR: "<=" | ">=" | "=="
-constraint_sos: [ID ":"] SOS_TYPE "{" separated_list{var_or_param, ","} "}" [loop] ";"
+constraint_sos: [ID ":"] SOS_TYPE array [loop] ";"
 SOS_TYPE.1: "SOS1" | "SOS2"
 
 // OBJECTIVES
@@ -89,7 +89,11 @@ COMPARISON_OPERATOR:  "<" | ">" | "!="
 definition: ID "=" rvalue ";"
 
 // ARRAYS
-array: "{" _separated_maybe_empty_list{generated_rvalue, ","} "}"
+array_or_dict: "{" separated_maybe_empty_list{_array_or_dict_entry, ","} "}"
+array: "{" separated_maybe_empty_list{generated_rvalue, ","} "}"
+dict: "{" separated_maybe_empty_list{dict_entry, ","} "}"
+_array_or_dict_entry: generated_rvalue | dict_entry
+dict_entry: rvalue ":" rvalue [loop]
 
 // RANGE
 range: "[" expression ":" expression [":" expression] "]"
@@ -115,7 +119,7 @@ var_or_param_leaf: ID plist{index}
 ?index: "[" rvalue "]"
 
 //rvalue: anything that can be assigned to a parameter
-?rvalue: import | array | expression | range | STRING
+?rvalue: import | array_or_dict | expression | range | STRING
 import: "import" STRING
 ?generated_rvalue: rvalue loop?
 ?iterable: array | range | function | var_or_param
