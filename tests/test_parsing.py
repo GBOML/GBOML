@@ -1,6 +1,7 @@
 import unittest
 from pathlib import Path
 
+from gboml.ast.check import check
 from gboml.parsing import parse_file
 
 instance_dir = Path(__file__).parent / "instances"
@@ -24,7 +25,7 @@ class TestParsing(unittest.TestCase):
         """ Checks if the file (doesn't) parses """
         for filename in should_pass:
             with self.subTest(filename=filename):
-                parse_file(str(filename))
+                check(parse_file(str(filename)))
 
     @unittest.expectedFailure
     def test_not_parse(self):
