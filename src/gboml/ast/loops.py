@@ -11,13 +11,23 @@ Iterable = Function | Array | Range | VarOrParam
 
 @dataclass
 class Loop(GBOMLObject):
+    pass
+
+
+@dataclass
+class BaseLoop(Loop):
     varid: str
     on: Iterable
     condition: Optional[BoolExpression]
 
 
 @dataclass
-class ImplicitLoop(Loop):
+class ImplicitLoop(BaseLoop):
     varid: str = field(default="t", init=False)
     on: Iterable = field(default_factory=lambda: Range(0, VarOrParam([VarOrParamLeaf("T")])), init=False)
     condition: BoolExpression
+
+
+@dataclass
+class MultiLoop(Loop):
+    sub: list[BaseLoop]

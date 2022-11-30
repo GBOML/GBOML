@@ -70,8 +70,9 @@ objective: OBJ_TYPE [ID] ":" expression [loop] ";"
 OBJ_TYPE: "min" | "max"
 
 // LOOPS
-?loop: full_loop | implicit_loop
-full_loop: "for" ID "in" iterable ["where" bool_expression]
+?loop: multi_loop | implicit_loop
+?multi_loop: base_loop+
+base_loop: "for" ID "in" iterable ["where" bool_expression]
 implicit_loop: "where" bool_expression
 
 // BOOLEAN EXPRESSIONS

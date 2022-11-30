@@ -2,7 +2,7 @@ import pathlib
 
 from lark import Lark, Tree, Token, Transformer, v_args
 from gboml.ast import *
-from typing import Optional
+from typing import Optional, Tuple
 from collections import namedtuple
 
 parser = Lark(open((pathlib.Path(__file__).parent / "gboml.lark").resolve()).read(), start="start", parser="lalr")
@@ -70,7 +70,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "constraint_std": StdConstraint,
             "constraint_sos": SOSConstraint,
             "objective": Objective,
-            "full_loop": Loop,
+            "base_loop": BaseLoop,
             "implicit_loop": ImplicitLoop,
             "substraction": op_transform(Operator.minus),
             "sum": op_transform(Operator.plus),
@@ -135,5 +135,8 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
 
         def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], name: VarOrParam, import_from: Optional[VarOrParam]):
             return VariableDefinition(scope, type or VarType.continuous, name, import_from, meta=meta)
+
+        def multi_loop(self, meta: Meta, *loops: Tuple[Loop]):
+            return MultiLoop(list(loops), meta=meta)
 
     return GBOMLLarkTransformer().transform(tree)
