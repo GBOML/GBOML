@@ -53,7 +53,8 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         as_list = {
             "objectives_block", "constraints_block", "variables_block",
             "parameters_block", "global_block", "plist", "node_redefs",
-            "hyperedge_redefs", "separated_list", "array"
+            "hyperedge_redefs", "separated_list", "separated_maybe_empty_list",
+            "array"
         }
 
         #

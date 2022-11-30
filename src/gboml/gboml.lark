@@ -12,6 +12,8 @@
 //MACROS
 _separated_list{sub, sep}: sub (sep sub)*
 separated_list{sub, sep}: _separated_list{sub, sep}
+_separated_maybe_empty_list{sub, sep}: _separated_list{sub, sep}?
+separated_maybe_empty_list{sub, sep}: _separated_list{sub, sep}?
 plist{content}: content*
 
 // HEADER
@@ -86,7 +88,7 @@ COMPARISON_OPERATOR:  "<" | ">" | "!="
 definition: ID "=" rvalue ";"
 
 // ARRAYS
-array: "{" _separated_list{generated_rvalue, ","} "}"
+array: "{" _separated_maybe_empty_list{generated_rvalue, ","} "}"
 
 // RANGE
 range: "[" expression ":" expression [":" expression] "]"
@@ -104,7 +106,7 @@ unary_minus: "-" value
 ?value: function | var_or_param | INT | FLOAT | ("(" expression ")")
 
 // FUNCTIONS
-function: ID "(" separated_list{generated_rvalue, ","} ")"
+function: ID "(" separated_maybe_empty_list{generated_rvalue, ","} ")"
 
 // VAR OR PARAM LINK
 var_or_param: separated_list{var_or_param_leaf, "."}

@@ -1,0 +1,15 @@
+// Working example where x = -4
+
+#TIMEHORIZON T = 1;
+
+#NODE H
+    #PARAMETERS
+        a = {};
+        b = len({});
+        c = myfunc();
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x <= -4;
+    #OBJECTIVES
+        max : x;
