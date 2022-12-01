@@ -308,7 +308,7 @@ def p_define_parameters(p):
 
 def p_parameter(p):
     """parameter : ID EQUAL expr SEMICOLON
-                 | ID EQUAL LCBRAC term more_values RCBRAC SEMICOLON
+                 | ID EQUAL LCBRAC expr more_values RCBRAC SEMICOLON
                  | ID EQUAL IMPORT FILENAME SEMICOLON"""
 
     parameter_id = p[1]
@@ -336,7 +336,7 @@ def p_parameter(p):
 
 
 def p_more_values(p):
-    """more_values : COMMA term more_values
+    """more_values : COMMA expr more_values
                     | empty"""
 
     # if no more values are used

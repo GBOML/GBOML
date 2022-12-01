@@ -1929,6 +1929,8 @@ def evaluate_table(list_values: list, definitions: dict) -> list:
                     error_('Parameter does not exit at this index : ' + str(
                         value_i))
                 value_i = values[index]
+        elif type(value) == Expression:
+            value_i = value.evaluate_expression(definitions)
         all_values.append(value_i)
     return all_values
 

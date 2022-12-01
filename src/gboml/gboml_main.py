@@ -180,6 +180,7 @@ def main():
         if status == "unbounded":
 
             print("Problem is unbounded")
+            exit()
         elif status == "optimal":
 
             print("Optimal solution found")
@@ -189,6 +190,7 @@ def main():
         elif status == "infeasible":
 
             print("Problem is infeasible")
+            exit()
         elif status == "error":
 
             print("An error occurred")
