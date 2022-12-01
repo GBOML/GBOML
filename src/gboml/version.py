@@ -8,4 +8,4 @@
 The graph-based optimization modeling language (GBOML) version of the language.
 """
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
