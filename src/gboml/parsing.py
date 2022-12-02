@@ -118,7 +118,13 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def program_block(self, meta: Meta, *childrens: list[Node | HyperEdge]) -> NodesAndHyperEdges:
             return self.NodesAndHyperEdges([x for x in childrens if isinstance(x, Node)], [x for x in childrens if isinstance(x, HyperEdge)])
 
-        def hyperedge_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], param_block: list[Definition], constraint_block: list[Constraint]):
+        def hyperedge_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop],
+                                 param_block: list[Definition] = None, constraint_block: list[Constraint] = None):
+            if constraint_block is None:
+                constraint_block = []
+            if param_block is None:
+                param_block = []
+
             if loop is None:
                 if len(name.path) != 1 or len(name.path[0].indices) != 0:
                     raise Exception(f"Invalid name for node: {name}")
@@ -126,9 +132,21 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             else:
                 return HyperEdgeGenerator(name, loop, param_block, constraint_block, meta=meta)
 
-        def node_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], param_block: list[Definition], subprogram_block: NodesAndHyperEdges,
-                            variable_block: list[VariableDefinition], constraint_block: list[Constraint],
-                            objectives_block: list[Objective]):
+        def node_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop],
+                            param_block: list[Definition] = None, subprogram_block: NodesAndHyperEdges = None,
+                            variable_block: list[VariableDefinition] = None, constraint_block: list[Constraint] = None,
+                            objectives_block: list[Objective] = None):
+            if objectives_block is None:
+                objectives_block = []
+            if constraint_block is None:
+                constraint_block = []
+            if variable_block is None:
+                variable_block = []
+            if param_block is None:
+                param_block = []
+            if subprogram_block is None:
+                subprogram_block = self.NodesAndHyperEdges([], [])
+
             if loop is None:
                 if len(name.path) != 1 or len(name.path[0].indices) != 0:
                     raise Exception(f"Invalid name for node: {name}")

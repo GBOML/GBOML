@@ -15,8 +15,10 @@
     c internal;
 #NODE nodeL[i] for i in [0:10]
     #VARIABLES
+        pass;
 #HYPEREDGE E[i] for i in [0:10]
     #CONSTRAINTS
+        pass;
 #NODE node1
     #PARAMETERS
         a = 2;

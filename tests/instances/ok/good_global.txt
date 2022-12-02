@@ -1,0 +1,16 @@
+#GLOBAL
+    pass;
+
+#NODE x
+    #VARIABLES
+        internal: a;
+
+#NODE y
+    pass;
+
+#NODE z;
+
+#HYPEREDGE e;
+
+#HYPEREDGE e2
+    pass;
