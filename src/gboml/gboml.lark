@@ -25,7 +25,7 @@ _program: node | hyperedge
 
 // NODES
 ?node: node_definition | node_import
-node_definition: "#NODE" ID \
+node_definition: "#NODE" var_or_param [loop] \
                   parameters_block \
                   program_block \
                   variables_block \
@@ -45,7 +45,7 @@ variable_scope_change: ID SCOPE ";"
 // HYPEREDGES
 ?hyperedge: hyperedge_definition | hyperedge_import
 
-hyperedge_definition: "#HYPEREDGE" ID \
+hyperedge_definition: "#HYPEREDGE" var_or_param [loop] \
                       parameters_block \
                       constraints_block
 

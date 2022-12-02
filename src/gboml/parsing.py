@@ -61,7 +61,6 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         # obj(*children, meta=meta)
         #
         to_obj = {
-            "hyperedge_definition": HyperEdgeDefinition,
             "hyperedge_import": HyperEdgeImport,
             "definition": Definition,
             "var_or_param_leaf": VarOrParamLeaf,
@@ -119,13 +118,31 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def program_block(self, meta: Meta, *childrens: list[Node | HyperEdge]) -> NodesAndHyperEdges:
             return self.NodesAndHyperEdges([x for x in childrens if isinstance(x, Node)], [x for x in childrens if isinstance(x, HyperEdge)])
 
-        def node_definition(self, meta: Meta, name: str, param_block: list[Definition], subprogram_block: NodesAndHyperEdges,
+        def hyperedge_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], param_block: list[Definition], constraint_block: list[Constraint]):
+            if loop is None:
+                if len(name.path) != 1 or len(name.path[0].indices) != 0:
+                    raise Exception(f"Invalid name for node: {name}")
+                return HyperEdgeDefinition(name.path[0].name, param_block, constraint_block, meta=meta)
+            else:
+                return HyperEdgeGenerator(name, loop, param_block, constraint_block, meta=meta)
+
+        def node_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], param_block: list[Definition], subprogram_block: NodesAndHyperEdges,
                             variable_block: list[VariableDefinition], constraint_block: list[Constraint],
                             objectives_block: list[Objective]):
-            return NodeDefinition(name, param_block,
-                                  subprogram_block.nodes, subprogram_block.hyperedges,
-                                  variable_block, constraint_block,
-                                  objectives_block, meta=meta)
+            if loop is None:
+                if len(name.path) != 1 or len(name.path[0].indices) != 0:
+                    raise Exception(f"Invalid name for node: {name}")
+                return NodeDefinition(name.path[0].name,
+                                      param_block,
+                                      subprogram_block.nodes, subprogram_block.hyperedges,
+                                      variable_block, constraint_block,
+                                      objectives_block, meta=meta)
+            else:
+                return NodeGenerator(name, loop,
+                                     param_block,
+                                     subprogram_block.nodes, subprogram_block.hyperedges,
+                                     variable_block, constraint_block,
+                                     objectives_block, meta=meta)
 
         def node_import(self, meta: Meta, name: str, imported_name: VarOrParam, imported_from: str, redef: list[ScopeChange | Definition]):
             return NodeImport(name, imported_name, imported_from,

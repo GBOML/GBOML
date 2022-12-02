@@ -13,6 +13,10 @@
     a = 2;
     b external;
     c internal;
+#NODE nodeL[i] for i in [0:10]
+    #VARIABLES
+#HYPEREDGE E[i] for i in [0:10]
+    #CONSTRAINTS
 #NODE node1
     #PARAMETERS
         a = 2;

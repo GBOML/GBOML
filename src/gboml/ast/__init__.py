@@ -6,7 +6,7 @@ __all__ = [
     "StdConstraint", "SOSConstraint", "Objective", "VariableDefinition", "Node",
     "HyperEdge", "NodeDefinition", "NodeImport", "HyperEdgeDefinition", "HyperEdgeImport",
     "ExpressionOp", "GBOMLGraph", "ImplicitLoop", "RValue", "RValueWithGen", "GeneratedRValue",
-    "Range", "MultiLoop", "DictEntry", "Dictionary"
+    "Range", "MultiLoop", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator"
 ]
 
 from gboml.ast.arrays import *
