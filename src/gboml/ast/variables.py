@@ -18,9 +18,14 @@ class VarType(Enum):
     binary = "binary"
 
 
+class DefinitionType(Enum):
+    constant = "="
+    expression = "<-"
+
 @dataclass
 class Definition(GBOMLObject):
     name: str
+    type: DefinitionType
     value: RValue
     tags: list[str] = field(default_factory=list)
 

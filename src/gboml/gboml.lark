@@ -91,7 +91,8 @@ bool_expression_comparison: expression (COMPARISON_OPERATOR | CTR_OPERATOR) expr
 COMPARISON_OPERATOR:  "<" | ">" | "!="
 
 // DEFINITIONS
-definition: ID "=" rvalue tags ";"
+definition: ID DEF_TYPE rvalue tags ";"
+DEF_TYPE: "=" | "<-"
 
 // ARRAYS
 array_or_dict: "{" separated_maybe_empty_list{_array_or_dict_entry, ","} "}"

@@ -5,7 +5,7 @@
     b = 2.2;
     c = 2e2;
     d = -1;
-    e = 2e-2;
+    e <- 2e-2;
     f = [0:2];
     g = [0:10:2];
 #NODE nodeI  = import nodeA from "hello.gboml";

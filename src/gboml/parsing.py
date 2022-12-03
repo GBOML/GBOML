@@ -114,6 +114,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def COMPARISON_OPERATOR(self, token): return Operator(token.value)
         def STRING(self, token): return token.value[1:-1].replace('\\"', '"')
         def VTYPE(self, token): return VarType(token.value)
+        def DEF_TYPE(self, token): return DefinitionType(token.value)
 
         NodesAndHyperEdges = namedtuple("NodesAndHyperEdges", ["nodes", "hyperedges"])
 
