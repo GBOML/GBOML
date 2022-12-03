@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from gboml.ast import Loop
 from gboml.ast.base import GBOMLObject
@@ -15,16 +15,18 @@ class HyperEdge(GBOMLObject):
 @dataclass
 class HyperEdgeDefinition(HyperEdge):
     name: str
-    parameters: list[Definition]
-    constraints: list[Constraint]
+    parameters: list[Definition] = field(default_factory=list)
+    constraints: list[Constraint] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
 class HyperEdgeGenerator(HyperEdge):
     name: VarOrParam
     loop: Loop
-    parameters: list[Definition]
-    constraints: list[Constraint]
+    parameters: list[Definition] = field(default_factory=list)
+    constraints: list[Constraint] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass

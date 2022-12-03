@@ -26,13 +26,18 @@ program_block: _program*
 global_block: _block_repeat_or_pass{"#GLOBAL",definition}?
 _program: node | hyperedge
 
+// TAGS
+tags: TAG*
+TAG: /@[a-zA-Z\-_]+/
+
 // NODES
 ?node: node_definition | node_import
 node_definition: _block_shortcut{_node_header, _node_content}
-_node_header: "#NODE" var_or_param [loop]
+_node_header: "#NODE" var_or_param [loop] tags
 _node_content: parameters_block program_block variables_block constraints_block objectives_block
 
-parameters_block: (_block_repeat_or_pass{"#PARAMETERS",definition})?
+parameters_block: (_block_repeat_or_pass{_opt_param_header,definition})?
+_opt_param_header: "#PARAMETERS"?
 variables_block: _block_repeat_or_pass{"#VARIABLES",variable_definition}
 constraints_block: (_block_repeat_or_pass{"#CONSTRAINTS",constraint})?
 objectives_block: (_block_repeat_or_pass{"#OBJECTIVES",objective})?
@@ -46,27 +51,27 @@ variable_scope_change: ID SCOPE ";"
 ?hyperedge: hyperedge_definition | hyperedge_import
 
 hyperedge_definition: _block_shortcut{_hyperedge_header, _hyperedge_content}
-_hyperedge_header: "#HYPEREDGE" var_or_param [loop]
+_hyperedge_header: "#HYPEREDGE" var_or_param [loop] tags
 _hyperedge_content: parameters_block constraints_block
 
 hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hyperedge_redefs
 hyperedge_redefs: "with" definition* | ";"
 
 // VARIABLES
-variable_definition: SCOPE [VTYPE] ":" var_or_param [_LARROW var_or_param] ";"
+variable_definition: SCOPE [VTYPE] ":" var_or_param [_LARROW var_or_param] tags ";"
 SCOPE: "internal" | "external"
 VTYPE: "binary" | "continuous" | "integer"
 _LARROW.1: "<-"
 
 // CONSTRAINTS
 ?constraint: constraint_sos | constraint_std
-constraint_std: [ID ":"] expression CTR_OPERATOR expression [loop] ";"
+constraint_std: [ID ":"] expression CTR_OPERATOR expression [loop] tags ";"
 CTR_OPERATOR: "<=" | ">=" | "=="
-constraint_sos: [ID ":"] SOS_TYPE array [loop] ";"
+constraint_sos: [ID ":"] SOS_TYPE array [loop] tags ";"
 SOS_TYPE.1: "SOS1" | "SOS2"
 
 // OBJECTIVES
-objective: OBJ_TYPE [ID] ":" expression [loop] ";"
+objective: OBJ_TYPE [ID] ":" expression [loop] tags ";"
 OBJ_TYPE: "min" | "max"
 
 // LOOPS
@@ -86,7 +91,7 @@ bool_expression_comparison: expression (COMPARISON_OPERATOR | CTR_OPERATOR) expr
 COMPARISON_OPERATOR:  "<" | ">" | "!="
 
 // DEFINITIONS
-definition: ID "=" rvalue ";"
+definition: ID "=" rvalue tags ";"
 
 // ARRAYS
 array_or_dict: "{" separated_maybe_empty_list{_array_or_dict_entry, ","} "}"
@@ -115,7 +120,7 @@ function: ID "(" separated_maybe_empty_list{generated_rvalue, ","} ")"
 
 // VAR OR PARAM LINK
 var_or_param: separated_list{var_or_param_leaf, "."}
-var_or_param_leaf: ID plist{index}
+var_or_param_leaf: (ID | TAG) plist{index}
 ?index: "[" rvalue "]"
 
 //rvalue: anything that can be assigned to a parameter

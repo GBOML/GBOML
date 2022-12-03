@@ -13,7 +13,9 @@
     a = 2;
     b external;
     c internal;
-#NODE nodeL[i] for i in [0:10]
+#NODE nodeL[i] for i in [0:10] @hello
+    x = 3;
+    x = @test @test;
     #VARIABLES
         pass;
 #HYPEREDGE E[i] for i in [0:10]

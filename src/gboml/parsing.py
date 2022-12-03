@@ -53,7 +53,8 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         as_list = {
             "objectives_block", "constraints_block", "variables_block",
             "parameters_block", "global_block", "plist", "node_redefs",
-            "hyperedge_redefs", "separated_list", "separated_maybe_empty_list"
+            "hyperedge_redefs", "separated_list", "separated_maybe_empty_list",
+            "tags"
         }
 
         #
@@ -105,6 +106,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def INT(self, token): return int(token.value)
         def FLOAT(self, token): return float(token.value)
         def ID(self, token): return token.value
+        def TAG(self, token): return token.value
         def SCOPE(self, token): return VarScope(token.value)
         def SOS_TYPE(self, token): return SOSType(token.value)
         def CTR_OPERATOR(self, token): return Operator(token.value)
@@ -118,7 +120,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def program_block(self, meta: Meta, *childrens: list[Node | HyperEdge]) -> NodesAndHyperEdges:
             return self.NodesAndHyperEdges([x for x in childrens if isinstance(x, Node)], [x for x in childrens if isinstance(x, HyperEdge)])
 
-        def hyperedge_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop],
+        def hyperedge_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], tags: list[str],
                                  param_block: list[Definition] = None, constraint_block: list[Constraint] = None):
             if constraint_block is None:
                 constraint_block = []
@@ -128,11 +130,11 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             if loop is None:
                 if len(name.path) != 1 or len(name.path[0].indices) != 0:
                     raise Exception(f"Invalid name for node: {name}")
-                return HyperEdgeDefinition(name.path[0].name, param_block, constraint_block, meta=meta)
+                return HyperEdgeDefinition(name.path[0].name, param_block, constraint_block, tags, meta=meta)
             else:
-                return HyperEdgeGenerator(name, loop, param_block, constraint_block, meta=meta)
+                return HyperEdgeGenerator(name, loop, param_block, constraint_block, tags, meta=meta)
 
-        def node_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop],
+        def node_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], tags: list[str],
                             param_block: list[Definition] = None, subprogram_block: NodesAndHyperEdges = None,
                             variable_block: list[VariableDefinition] = None, constraint_block: list[Constraint] = None,
                             objectives_block: list[Objective] = None):
@@ -154,13 +156,13 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
                                       param_block,
                                       subprogram_block.nodes, subprogram_block.hyperedges,
                                       variable_block, constraint_block,
-                                      objectives_block, meta=meta)
+                                      objectives_block, tags, meta=meta)
             else:
                 return NodeGenerator(name, loop,
                                      param_block,
                                      subprogram_block.nodes, subprogram_block.hyperedges,
                                      variable_block, constraint_block,
-                                     objectives_block, meta=meta)
+                                     objectives_block, tags, meta=meta)
 
         def node_import(self, meta: Meta, name: str, imported_name: VarOrParam, imported_from: str, redef: list[ScopeChange | Definition]):
             return NodeImport(name, imported_name, imported_from,
@@ -170,8 +172,9 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):
             return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
 
-        def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], name: VarOrParam, import_from: Optional[VarOrParam]):
-            return VariableDefinition(scope, type or VarType.continuous, name, import_from, meta=meta)
+        def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], name: VarOrParam,
+                                import_from: Optional[VarOrParam], tags: list[str]):
+            return VariableDefinition(scope, type or VarType.continuous, name, import_from, tags, meta=meta)
 
         def multi_loop(self, meta: Meta, *loops: Tuple[Loop]):
             return MultiLoop(list(loops), meta=meta)

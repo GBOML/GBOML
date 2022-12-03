@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
@@ -22,6 +22,7 @@ class VarType(Enum):
 class Definition(GBOMLObject):
     name: str
     value: RValue
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -29,7 +30,8 @@ class VariableDefinition(GBOMLObject):
     scope: VarScope
     type: VarType
     name: VarOrParam
-    import_from: Optional[VarOrParam]
+    import_from: Optional[VarOrParam] = None
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass

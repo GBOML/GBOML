@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
@@ -24,11 +24,13 @@ class StdConstraint(Constraint):
     lhs: Expression
     op: Operator
     rhs: Expression
-    loop: Optional[Loop]
+    loop: Optional[Loop] = None
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
 class SOSConstraint(Constraint):
     type: SOSType
     content: Array
-    loop: Optional[Loop]
+    loop: Optional[Loop] = None
+    tags: list[str] = field(default_factory=list)
