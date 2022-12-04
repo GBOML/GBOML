@@ -8,31 +8,10 @@ before_script:
   - pip install virtualenv
   - virtualenv venv
   - source venv/bin/activate
-
-build-job:
-  stage: build
-  script:
-    - pip install .
+  - pip install -r requirements.txt
 
 test-exec:
   stage: test
   script:
-    - pip install .
-    - gboml test/test24.txt --linprog
-    - gboml test/test25.txt --linprog
-    - gboml test/test26.txt --linprog
-    - gboml test/test27.txt --linprog
-    - gboml test/test28.txt --linprog
-
-test-graphobject:
-  stage: test
-  script:
-    - pip install .
-    - python -c "import gboml; print(gboml.GbomlGraph())"
-
-test-main:
-  stage: test
-  script:
-    - pip install -r requirements.txt
-    - cd src
-    - python main.py ../test/test28.txt --linprog
+    - export PYTHONPATH=src
+    - python -m unittest discover tests
