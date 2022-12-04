@@ -1,8 +1,9 @@
 import pathlib
+from itertools import repeat
 
 from lark import Lark, Tree, Token, Transformer, v_args
 from gboml.ast import *
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Iterable
 from collections import namedtuple
 
 parser = Lark(open((pathlib.Path(__file__).parent / "gboml.lark").resolve()).read(), start="start", parser="lalr")
@@ -51,8 +52,8 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         # These rules will be converted to lists
         #
         as_list = {
-            "objectives_block", "constraints_block", "variables_block",
-            "parameters_block", "global_block", "plist", "node_redefs",
+            "objectives_block", "constraints_block",
+            "parameters_block", "global_block", "olist", "mlist", "node_redefs",
             "hyperedge_redefs", "separated_list", "separated_maybe_empty_list",
             "tags"
         }
@@ -173,9 +174,16 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):
             return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
 
-        def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], name: VarOrParam,
-                                import_from: Optional[VarOrParam], tags: list[str]):
-            return VariableDefinition(scope, type or VarType.continuous, name, import_from, tags, meta=meta)
+        def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[VarOrParam],
+                                imports_from: Optional[list[VarOrParam]], tags: list[str]):
+            if imports_from is not None and len(imports_from) != len(names):
+                raise Exception("Invalid variable import, numbers of variables on the left and on the right-side of "
+                                "`<-` don't match")
+            for name, import_from in zip(names, imports_from or repeat(None, len(names))):
+                yield VariableDefinition(scope, type or VarType.continuous, name, import_from, tags, meta=meta)
+
+        def variables_block(self, _: Meta, *defs: list[Iterable[VariableDefinition]]):
+            return [vd for iterable in defs for vd in iterable]
 
         def multi_loop(self, meta: Meta, *loops: Tuple[Loop]):
             return MultiLoop(list(loops), meta=meta)

@@ -1,0 +1,15 @@
+// Working example where x = -4
+
+#TIMEHORIZON T = 1;
+
+#NODE P
+    #NODE C
+        #VARIABLES
+            internal: x;
+            internal: y;
+    #VARIABLES
+        internal : x, y <- C.x, C.y;
+    #CONSTRAINTS
+        x <= -4;
+    #OBJECTIVES
+        max : x;

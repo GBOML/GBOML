@@ -14,7 +14,8 @@ _separated_list{sub, sep}: sub (sep sub)*
 separated_list{sub, sep}: _separated_list{sub, sep}
 _separated_maybe_empty_list{sub, sep}: _separated_list{sub, sep}?
 separated_maybe_empty_list{sub, sep}: _separated_list{sub, sep}?
-plist{content}: content*
+olist{content}: content* //optionnal list
+mlist{content}: content+ //mandatory list
 _block_repeat_or_pass{name, content}: name (_PASS ";" | content+)
 _block_shortcut{name, content}: name (_PASS? ";" | content)
 _PASS.1: "pass"
@@ -58,7 +59,7 @@ hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hypere
 hyperedge_redefs: "with" definition* | ";"
 
 // VARIABLES
-variable_definition: SCOPE [VTYPE] ":" var_or_param [_LARROW var_or_param] tags ";"
+variable_definition: SCOPE [VTYPE] ":" separated_list{var_or_param,","} [_LARROW separated_list{var_or_param, ","}] tags ";"
 SCOPE: "internal" | "external"
 VTYPE: "binary" | "continuous" | "integer"
 _LARROW.1: "<-"
@@ -121,7 +122,7 @@ function: ID "(" separated_maybe_empty_list{generated_rvalue, ","} ")"
 
 // VAR OR PARAM LINK
 var_or_param: separated_list{var_or_param_leaf, "."}
-var_or_param_leaf: (ID | TAG) plist{index}
+var_or_param_leaf: (ID | TAG) olist{index}
 ?index: "[" rvalue "]"
 
 //rvalue: anything that can be assigned to a parameter
