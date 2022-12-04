@@ -30,13 +30,13 @@
         e = {2 for i in global.g};
     #NODE A
         #VARIABLES
-            external: x;
+            external: x @tag;
             external: y;
     #HYPEREDGE E
         #PARAMETERS
             a = 2;
         #CONSTRAINTS
-            A.x == A.y;
+            A.x == A.y @tag;
     #VARIABLES
         internal: a;
         external: b;
@@ -56,7 +56,7 @@
         sum(a*2 for a in myfunc(2)) == 2;
         sum(i+j for i in [0:10] for j in [0:i]) == x;
     #OBJECTIVES
-        min named: a;
+        min named: a @tag;
         max: b[i] for i in [0:2*4] where i % 2 == 1;
 #HYPEREDGE he1 = import lal from "x" with
     a = 2;
