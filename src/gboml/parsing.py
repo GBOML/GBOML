@@ -182,7 +182,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             for name, import_from in zip(names, imports_from or repeat(None, len(names))):
                 yield VariableDefinition(scope, type or VarType.continuous, name, import_from, tags, meta=meta)
 
-        def variables_block(self, _: Meta, *defs: list[Iterable[VariableDefinition]]):
+        def variables_block(self, _: Meta, *defs: Tuple[Iterable[VariableDefinition]]):
             return [vd for iterable in defs for vd in iterable]
 
         def multi_loop(self, meta: Meta, *loops: Tuple[Loop]):
