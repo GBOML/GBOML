@@ -106,8 +106,8 @@ dict_entry: rvalue ":" rvalue [loop]
 range: "[" expression ":" expression [":" expression] "]"
 
 // EXPRESSIONS
-?expression: substraction
-?substraction: _separated_list{sum, "-"}
+?expression: subtraction
+?subtraction: _separated_list{sum, "-"}
 ?sum: _separated_list{division, "+"}
 ?division: _separated_list{product, "/"}
 ?product: _separated_list{modulo, "*"}

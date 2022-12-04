@@ -72,7 +72,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "objective": Objective,
             "base_loop": BaseLoop,
             "implicit_loop": ImplicitLoop,
-            "substraction": op_transform(Operator.minus),
+            "subtraction": op_transform(Operator.minus),
             "sum": op_transform(Operator.plus),
             "exponent": op_transform(Operator.exponent),
             "product": op_transform(Operator.times),
