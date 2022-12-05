@@ -115,6 +115,9 @@ The next installation steps make use of `cmake <https://cmake.org/install/>`_ an
 
 If the make worked properly, an executable called runDsp and a shared library named libDsp should be created in the *src* subfolder of the build directory. Additional information can be found `here <https://github.com/Argonne-National-Laboratory/DSP/blob/master/docs/install.md>`__.
 
+Highs
+~~~~~
+To install Highs please download the solver from https://highs.dev/. The Python API is embedded in GBOML.
 
 Testing
 -------

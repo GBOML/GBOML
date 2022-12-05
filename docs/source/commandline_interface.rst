@@ -56,6 +56,12 @@ and is therefore only recommended for testing purposes (e.g., make sure that GBO
 
   --xpress
 
+* *Highs*: Highs can be used with:
+
+.. code-block:: bash
+
+  --highs
+
 * *Cbc/Clp*: Cbc/Clp can be used with:
 
 .. code-block:: bash
@@ -86,13 +92,13 @@ where :math:`\texttt{<opt_file>}` is the name of the file containing the solver 
 
 .. code-block:: bash
 
-   --csv
+   --row_csv
 
 * *Transposed CSV*: the solution can be printed to a CSV file on a column basis (e.g., one variable per column):
 
 .. code-block:: bash
 
-   --transposed_csv
+   --col_csv
 
 * *JSON*: the solution can be printed to a JSON file with:
 
@@ -100,11 +106,11 @@ where :math:`\texttt{<opt_file>}` is the name of the file containing the solver 
 
    --json
 
-* *Detailed JSON*: the solution provided by the solver along with auxiliary information (e.g., dual variables, slacks or basis ranges) can be printed to a JSON file with:
+* *Detailed*: the solution provided by the solver along with auxiliary information (e.g., dual variables, slacks or basis ranges) can be printed to a JSON or CSV file with:
 
 .. code-block:: bash
 
-	--detailed_json
+	--detailed
 
 * *Multi-processing*: the number of processes used for model generation can be controlled via:
 
