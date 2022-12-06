@@ -22,10 +22,30 @@ class DefinitionType(Enum):
     constant = "="
     expression = "<-"
 
+
 @dataclass
 class Definition(GBOMLObject):
+    pass
+
+
+@dataclass
+class ConstantDefinition(Definition):
     name: str
-    type: DefinitionType
+    value: RValue
+    tags: list[str] = field(default_factory=list)
+
+
+@dataclass
+class ExpressionDefinition(Definition):
+    name: str
+    value: RValue
+    tags: list[str] = field(default_factory=list)
+
+
+@dataclass
+class FunctionDefinition(Definition):
+    name: str
+    args: list[str]
     value: RValue
     tags: list[str] = field(default_factory=list)
 

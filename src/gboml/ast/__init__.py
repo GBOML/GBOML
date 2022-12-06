@@ -7,7 +7,7 @@ __all__ = [
     "HyperEdge", "NodeDefinition", "NodeImport", "HyperEdgeDefinition", "HyperEdgeImport",
     "ExpressionOp", "GBOMLGraph", "ImplicitLoop", "RValue", "RValueWithGen", "GeneratedRValue",
     "Range", "MultiLoop", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator",
-    "DefinitionType"
+    "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition"
 ]
 
 from gboml.ast.arrays import *

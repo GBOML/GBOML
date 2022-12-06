@@ -92,7 +92,7 @@ bool_expression_comparison: expression (COMPARISON_OPERATOR | CTR_OPERATOR) expr
 COMPARISON_OPERATOR:  "<" | ">" | "!="
 
 // DEFINITIONS
-definition: ID DEF_TYPE rvalue tags ";"
+definition: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE rvalue tags ";"
 DEF_TYPE: "=" | "<-"
 
 // ARRAYS

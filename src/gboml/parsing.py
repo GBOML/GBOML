@@ -64,7 +64,6 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         #
         to_obj = {
             "hyperedge_import": HyperEdgeImport,
-            "definition": Definition,
             "var_or_param_leaf": VarOrParamLeaf,
             "var_or_param": VarOrParam,
             "constraint_std": StdConstraint,
@@ -194,5 +193,15 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             if all(not isinstance(x, DictEntry) for x in entries):
                 return Array(entries, meta=meta)
             raise Exception("An array cannot contain dictionary entries (and conversely)")
+
+        def definition(self, meta: Meta, name: str, args: Optional[list[str]], typ: DefinitionType, val: RValue, tags: list[str]):
+            if args is not None:
+                if typ != DefinitionType.expression:
+                    raise Exception("Functions can only be defined as expressions (use `<-` instead of `=`)")
+                return FunctionDefinition(name, args, val, tags, meta=meta)
+            elif typ == DefinitionType.expression:
+                return ExpressionDefinition(name, val, tags, meta=meta)
+            else:
+                return ConstantDefinition(name, val, tags, meta=meta)
 
     return GBOMLLarkTransformer().transform(tree)
