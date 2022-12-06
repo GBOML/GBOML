@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
+from typing import Optional
 
-from gboml.ast import Loop
+from gboml.ast.importable import Extends
+from gboml.ast.loops import Loop
 from gboml.ast.base import GBOMLObject
 from gboml.ast.constraints import Constraint, CtrActivation
 from gboml.ast.path import VarOrParam
@@ -15,6 +17,7 @@ class HyperEdge(GBOMLObject):
 @dataclass
 class HyperEdgeDefinition(HyperEdge):
     name: str
+    import_from: Optional[Extends] = None
     parameters: list[Definition] = field(default_factory=list)
     constraints: list[Constraint] = field(default_factory=list)
     activations: list[CtrActivation] = field(default_factory=list)
@@ -25,6 +28,7 @@ class HyperEdgeDefinition(HyperEdge):
 class HyperEdgeGenerator(HyperEdge):
     name: VarOrParam
     loop: Loop
+    import_from: Optional[Extends] = None
     parameters: list[Definition] = field(default_factory=list)
     constraints: list[Constraint] = field(default_factory=list)
     activations: list[CtrActivation] = field(default_factory=list)

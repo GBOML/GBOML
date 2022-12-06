@@ -1,8 +1,11 @@
 from dataclasses import dataclass, field
+from typing import Optional
 
-from gboml.ast import Loop, Activation
+from gboml.ast.loops import Loop
+from gboml.ast.activation import Activation
 from gboml.ast.base import GBOMLObject
 from gboml.ast.constraints import Constraint
+from gboml.ast.importable import Extends
 from gboml.ast.path import VarOrParam
 from gboml.ast.hyperedges import HyperEdge
 from gboml.ast.objectives import Objective
@@ -17,6 +20,7 @@ class Node(GBOMLObject):
 @dataclass
 class NodeDefinition(Node):
     name: str
+    import_from: Optional[Extends] = None
     parameters: list[Definition] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     hyperedges: list[HyperEdge] = field(default_factory=list)
@@ -31,6 +35,7 @@ class NodeDefinition(Node):
 class NodeGenerator(Node):
     name: VarOrParam
     loop: Loop
+    import_from: Optional[Extends] = None
     parameters: list[Definition] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     hyperedges: list[HyperEdge] = field(default_factory=list)

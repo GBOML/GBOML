@@ -31,10 +31,13 @@ _program: node | hyperedge
 tags: TAG*
 TAG: /@[a-zA-Z\-_]+/
 
+// Extends
+extends: "extends" var_or_param ["from" STRING]
+
 // NODES
 ?node: node_definition | node_import
 node_definition: _block_shortcut{_node_header, _node_content}
-_node_header: "#NODE" var_or_param [loop] tags
+_node_header: "#NODE" var_or_param [extends] [loop] tags
 _node_content: parameters_block program_block variables_block constraints_block objectives_block
 
 parameters_block: (_block_repeat_or_pass{_opt_param_header,definition})?
@@ -54,7 +57,7 @@ variable_scope_change: ID SCOPE ";"
 ?hyperedge: hyperedge_definition | hyperedge_import
 
 hyperedge_definition: _block_shortcut{_hyperedge_header, _hyperedge_content}
-_hyperedge_header: "#HYPEREDGE" var_or_param [loop] tags
+_hyperedge_header: "#HYPEREDGE" var_or_param [extends] [loop] tags
 _hyperedge_content: parameters_block constraints_block
 
 hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hyperedge_redefs

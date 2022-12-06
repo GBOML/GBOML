@@ -93,7 +93,8 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "ctr_activate": lambda *x, meta: CtrActivation(ActivationType.activate, *x, meta=meta),
             "ctr_deactivate": lambda *x, meta: CtrActivation(ActivationType.deactivate, *x, meta=meta),
             "obj_activate": lambda *x, meta: ObjActivation(ActivationType.activate, *x, meta=meta),
-            "obj_deactivate": lambda *x, meta: ObjActivation(ActivationType.deactivate, *x, meta=meta)
+            "obj_deactivate": lambda *x, meta: ObjActivation(ActivationType.deactivate, *x, meta=meta),
+            "extends": Extends
         }
 
         def __default__(self, data, children, _):
@@ -125,26 +126,25 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def program_block(self, meta: Meta, *childrens: list[Node | HyperEdge]) -> NodesAndHyperEdges:
             return self.NodesAndHyperEdges([x for x in childrens if isinstance(x, Node)], [x for x in childrens if isinstance(x, HyperEdge)])
 
-        def hyperedge_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], tags: list[str],
-                                 param_block: list[Definition] = None,
+        def hyperedge_definition(self, meta: Meta, name: VarOrParam, extends: Optional[Extends],
+                                 loop: Optional[Loop], tags: list[str], param_block: list[Definition] = None,
                                  constraint_block: list[Constraint | CtrActivation] = None):
-            if constraint_block is None:
-                constraint_block = []
+            constraint_block = constraint_block or []
             activations = [x for x in constraint_block if isinstance(x, CtrActivation)]
             constraint_block = [x for x in constraint_block if isinstance(x, Constraint)]
-            if param_block is None:
-                param_block = []
+            param_block = param_block or []
 
             if loop is None:
                 if len(name.path) != 1 or len(name.path[0].indices) != 0:
                     raise Exception(f"Invalid name for node: {name}")
-                return HyperEdgeDefinition(name.path[0].name, param_block, constraint_block,
+                return HyperEdgeDefinition(name.path[0].name, extends, param_block, constraint_block,
                                            activations, tags, meta=meta)
             else:
-                return HyperEdgeGenerator(name, loop, param_block, constraint_block,
+                return HyperEdgeGenerator(name, loop, extends, param_block, constraint_block,
                                           activations, tags, meta=meta)
 
-        def node_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], tags: list[str],
+        def node_definition(self, meta: Meta, name: VarOrParam, extends: Optional[Extends],
+                            loop: Optional[Loop], tags: list[str],
                             param_block: list[Definition] = None, subprogram_block: NodesAndHyperEdges = None,
                             variable_block: list[VariableDefinition] = None,
                             constraint_block: list[Constraint | CtrActivation] = None,
@@ -162,14 +162,12 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             if loop is None:
                 if len(name.path) != 1 or len(name.path[0].indices) != 0:
                     raise Exception(f"Invalid name for node: {name}")
-                return NodeDefinition(name.path[0].name,
-                                      param_block,
+                return NodeDefinition(name.path[0].name, extends, param_block,
                                       subprogram_block.nodes, subprogram_block.hyperedges,
                                       variable_block, constraint_block,
                                       objectives_block, activations, tags, meta=meta)
             else:
-                return NodeGenerator(name, loop,
-                                     param_block,
+                return NodeGenerator(name, loop, extends, param_block,
                                      subprogram_block.nodes, subprogram_block.hyperedges,
                                      variable_block, constraint_block,
                                      objectives_block, activations, tags, meta=meta)
