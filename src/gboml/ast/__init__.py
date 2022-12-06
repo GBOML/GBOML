@@ -4,7 +4,7 @@ __all__ = [
     "VarOrParam", "Array", "Loop", "BaseLoop", "Function", "BoolExpressionOp",
     "BoolExpressionComparison", "ScopeChange", "ImportFile", "Definition", "Constraint",
     "StdConstraint", "SOSConstraint", "Objective", "VariableDefinition", "Node",
-    "HyperEdge", "NodeDefinition", "NodeImport", "HyperEdgeDefinition", "HyperEdgeImport",
+    "HyperEdge", "NodeDefinition", "HyperEdgeDefinition",
     "ExpressionOp", "GBOMLGraph", "ImplicitLoop", "RValue", "RValueWithGen", "GeneratedRValue",
     "Range", "MultiLoop", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",

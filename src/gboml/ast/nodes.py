@@ -24,7 +24,7 @@ class NodeDefinition(Node):
     parameters: list[Definition] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     hyperedges: list[HyperEdge] = field(default_factory=list)
-    variables: list[VariableDefinition] = field(default_factory=list)
+    variables: list[VariableDefinition | ScopeChange] = field(default_factory=list)
     constraints: list[Constraint] = field(default_factory=list)
     objectives: list[Objective] = field(default_factory=list)
     activations: list[Activation] = field(default_factory=list)
@@ -39,17 +39,8 @@ class NodeGenerator(Node):
     parameters: list[Definition] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     hyperedges: list[HyperEdge] = field(default_factory=list)
-    variables: list[VariableDefinition] = field(default_factory=list)
+    variables: list[VariableDefinition | ScopeChange] = field(default_factory=list)
     constraints: list[Constraint] = field(default_factory=list)
     objectives: list[Objective] = field(default_factory=list)
     activations: list[Activation] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
-
-
-@dataclass
-class NodeImport(Node):
-    name: str
-    imported_name: VarOrParam
-    imported_from: str
-    scope_changes: list[ScopeChange] = field(default_factory=list)
-    redefinitions: list[Definition] = field(default_factory=list)

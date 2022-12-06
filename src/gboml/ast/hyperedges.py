@@ -33,11 +33,3 @@ class HyperEdgeGenerator(HyperEdge):
     constraints: list[Constraint] = field(default_factory=list)
     activations: list[CtrActivation] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
-
-
-@dataclass
-class HyperEdgeImport(HyperEdge):
-    name: str
-    imported_name: VarOrParam
-    imported_from: str
-    redefinitions: list[Definition]

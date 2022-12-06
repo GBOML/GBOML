@@ -63,7 +63,6 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         # obj(*children, meta=meta)
         #
         to_obj = {
-            "hyperedge_import": HyperEdgeImport,
             "var_or_param_leaf": VarOrParamLeaf,
             "var_or_param": VarOrParam,
             "constraint_std": StdConstraint,
@@ -173,9 +172,14 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
                                      objectives_block, activations, tags, meta=meta)
 
         def node_import(self, meta: Meta, name: str, imported_name: VarOrParam, imported_from: str, redef: list[ScopeChange | Definition]):
-            return NodeImport(name, imported_name, imported_from,
-                              [x for x in redef if isinstance(x, ScopeChange)],
-                              [x for x in redef if isinstance(x, Definition)], meta=meta)
+            return NodeDefinition(name, Extends(imported_name, imported_from, meta=meta),
+                                  parameters=[x for x in redef if isinstance(x, Definition)],
+                                  variables=[x for x in redef if isinstance(x, ScopeChange)],
+                                  meta=meta)
+
+        def hyperedge_import(self, meta: Meta, name: str, imported_name: VarOrParam, imported_from: str, redef: list[Definition]):
+            return HyperEdgeDefinition(name, Extends(imported_name, imported_from, meta=meta),
+                                       parameters=redef, meta=meta)
 
         def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):
             return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
