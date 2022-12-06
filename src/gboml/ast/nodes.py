@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 
-from gboml.ast import Loop
+from gboml.ast import Loop, Activation
 from gboml.ast.base import GBOMLObject
 from gboml.ast.constraints import Constraint
 from gboml.ast.path import VarOrParam
@@ -23,6 +23,7 @@ class NodeDefinition(Node):
     variables: list[VariableDefinition] = field(default_factory=list)
     constraints: list[Constraint] = field(default_factory=list)
     objectives: list[Objective] = field(default_factory=list)
+    activations: list[Activation] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
 
 
@@ -36,6 +37,7 @@ class NodeGenerator(Node):
     variables: list[VariableDefinition] = field(default_factory=list)
     constraints: list[Constraint] = field(default_factory=list)
     objectives: list[Objective] = field(default_factory=list)
+    activations: list[Activation] = field(default_factory=list)
     tags: list[str] = field(default_factory=list)
 
 

@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from gboml.ast.activation import Activation
 from gboml.ast.arrays import Array
 from gboml.ast.base import GBOMLObject
 from gboml.ast.expression_operators import Operator
@@ -34,3 +35,8 @@ class SOSConstraint(Constraint):
     content: Array
     loop: Optional[Loop] = None
     tags: list[str] = field(default_factory=list)
+
+
+@dataclass
+class CtrActivation(Activation):
+    pass

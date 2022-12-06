@@ -89,7 +89,11 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "range": Range,
             "dict_entry": DictEntry,
             "array": Array,
-            "dict": Dictionary
+            "dict": Dictionary,
+            "ctr_activate": lambda *x, meta: CtrActivation(ActivationType.activate, *x, meta=meta),
+            "ctr_deactivate": lambda *x, meta: CtrActivation(ActivationType.deactivate, *x, meta=meta),
+            "obj_activate": lambda *x, meta: ObjActivation(ActivationType.activate, *x, meta=meta),
+            "obj_deactivate": lambda *x, meta: ObjActivation(ActivationType.deactivate, *x, meta=meta)
         }
 
         def __default__(self, data, children, _):
@@ -122,33 +126,38 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             return self.NodesAndHyperEdges([x for x in childrens if isinstance(x, Node)], [x for x in childrens if isinstance(x, HyperEdge)])
 
         def hyperedge_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], tags: list[str],
-                                 param_block: list[Definition] = None, constraint_block: list[Constraint] = None):
+                                 param_block: list[Definition] = None,
+                                 constraint_block: list[Constraint | CtrActivation] = None):
             if constraint_block is None:
                 constraint_block = []
+            activations = [x for x in constraint_block if isinstance(x, CtrActivation)]
+            constraint_block = [x for x in constraint_block if isinstance(x, Constraint)]
             if param_block is None:
                 param_block = []
 
             if loop is None:
                 if len(name.path) != 1 or len(name.path[0].indices) != 0:
                     raise Exception(f"Invalid name for node: {name}")
-                return HyperEdgeDefinition(name.path[0].name, param_block, constraint_block, tags, meta=meta)
+                return HyperEdgeDefinition(name.path[0].name, param_block, constraint_block,
+                                           activations, tags, meta=meta)
             else:
-                return HyperEdgeGenerator(name, loop, param_block, constraint_block, tags, meta=meta)
+                return HyperEdgeGenerator(name, loop, param_block, constraint_block,
+                                          activations, tags, meta=meta)
 
         def node_definition(self, meta: Meta, name: VarOrParam, loop: Optional[Loop], tags: list[str],
                             param_block: list[Definition] = None, subprogram_block: NodesAndHyperEdges = None,
-                            variable_block: list[VariableDefinition] = None, constraint_block: list[Constraint] = None,
-                            objectives_block: list[Objective] = None):
-            if objectives_block is None:
-                objectives_block = []
-            if constraint_block is None:
-                constraint_block = []
-            if variable_block is None:
-                variable_block = []
-            if param_block is None:
-                param_block = []
-            if subprogram_block is None:
-                subprogram_block = self.NodesAndHyperEdges([], [])
+                            variable_block: list[VariableDefinition] = None,
+                            constraint_block: list[Constraint | CtrActivation] = None,
+                            objectives_block: list[Objective | ObjActivation] = None):
+            objectives_block = objectives_block or []
+            constraint_block = constraint_block or []
+            variable_block = variable_block or []
+            param_block = param_block or []
+            subprogram_block = subprogram_block or self.NodesAndHyperEdges([], [])
+
+            activations: list[Activation] = [x for x in constraint_block if isinstance(x, CtrActivation)] + [x for x in objectives_block if isinstance(x, ObjActivation)]
+            constraint_block = [x for x in constraint_block if isinstance(x, Constraint)]
+            objectives_block = [x for x in objectives_block if isinstance(x, Objective)]
 
             if loop is None:
                 if len(name.path) != 1 or len(name.path[0].indices) != 0:
@@ -157,13 +166,13 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
                                       param_block,
                                       subprogram_block.nodes, subprogram_block.hyperedges,
                                       variable_block, constraint_block,
-                                      objectives_block, tags, meta=meta)
+                                      objectives_block, activations, tags, meta=meta)
             else:
                 return NodeGenerator(name, loop,
                                      param_block,
                                      subprogram_block.nodes, subprogram_block.hyperedges,
                                      variable_block, constraint_block,
-                                     objectives_block, tags, meta=meta)
+                                     objectives_block, activations, tags, meta=meta)
 
         def node_import(self, meta: Meta, name: str, imported_name: VarOrParam, imported_from: str, redef: list[ScopeChange | Definition]):
             return NodeImport(name, imported_name, imported_from,

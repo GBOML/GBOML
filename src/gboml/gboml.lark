@@ -40,8 +40,10 @@ _node_content: parameters_block program_block variables_block constraints_block 
 parameters_block: (_block_repeat_or_pass{_opt_param_header,definition})?
 _opt_param_header: "#PARAMETERS"?
 variables_block: _block_repeat_or_pass{"#VARIABLES",variable_definition}
-constraints_block: (_block_repeat_or_pass{"#CONSTRAINTS",constraint})?
-objectives_block: (_block_repeat_or_pass{"#OBJECTIVES",objective})?
+constraints_block: (_block_repeat_or_pass{"#CONSTRAINTS",_constraint_block_c})?
+_constraint_block_c: constraint | ctr_activate | ctr_deactivate
+objectives_block: (_block_repeat_or_pass{"#OBJECTIVES",_objective_block_c})?
+_objective_block_c: objective | obj_activate | obj_deactivate
 
 node_import: "#NODE" ID "=" "import" var_or_param "from" STRING node_redefs
 node_redefs: ("with" redefinition*) | ";"
@@ -116,6 +118,16 @@ range: "[" expression ":" expression [":" expression] "]"
 _maybe_unary_minus: value | unary_minus
 unary_minus: "-" value
 ?value: function | var_or_param | INT | FLOAT | ("(" expression ")")
+
+// ACTIVATE/DEACTIVATE
+_activate.1: "activate" separated_list{_activation_id, ","} ["if" bool_expression] ";"
+_deactivate.1: "deactivate" separated_list{_activation_id, ","} ["if" bool_expression] ";"
+_activation_id: ID | TAG
+ctr_activate: _activate
+ctr_deactivate: _deactivate
+obj_activate: _activate
+obj_deactivate: _deactivate
+
 
 // FUNCTIONS
 function: ID "(" separated_maybe_empty_list{generated_rvalue, ","} ")"
