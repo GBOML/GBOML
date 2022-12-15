@@ -19,7 +19,7 @@ class Objective(GBOMLObject):
     name: Optional[str]
     expression: Expression
     loop: Optional[Loop] = None
-    tags: list[str] = field(default_factory=list)
+    tags: set[str] = field(default_factory=set)
 
 @dataclass
 class ObjActivation(Activation):

@@ -26,7 +26,7 @@ class StdConstraint(Constraint):
     op: Operator
     rhs: Expression
     loop: Optional[Loop] = None
-    tags: list[str] = field(default_factory=list)
+    tags: set[str] = field(default_factory=set)
 
 
 @dataclass
@@ -34,7 +34,7 @@ class SOSConstraint(Constraint):
     type: SOSType
     content: Array
     loop: Optional[Loop] = None
-    tags: list[str] = field(default_factory=list)
+    tags: set[str] = field(default_factory=set)
 
 
 @dataclass

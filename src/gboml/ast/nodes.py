@@ -3,17 +3,16 @@ from typing import Optional
 
 from gboml.ast.loops import Loop
 from gboml.ast.activation import Activation
-from gboml.ast.base import GBOMLObject
+from gboml.ast.base import NamedGBOMLObject
 from gboml.ast.constraints import Constraint
 from gboml.ast.importable import Extends
-from gboml.ast.path import VarOrParam
 from gboml.ast.hyperedges import HyperEdge
 from gboml.ast.objectives import Objective
 from gboml.ast.variables import Definition, VariableDefinition, ScopeChange
 
 
 @dataclass
-class Node(GBOMLObject):
+class Node(NamedGBOMLObject):
     pass
 
 
@@ -28,12 +27,13 @@ class NodeDefinition(Node):
     constraints: list[Constraint] = field(default_factory=list)
     objectives: list[Objective] = field(default_factory=list)
     activations: list[Activation] = field(default_factory=list)
-    tags: list[str] = field(default_factory=list)
+    tags: set[str] = field(default_factory=set)
 
 
 @dataclass
 class NodeGenerator(Node):
-    name: VarOrParam
+    name: str
+    indices: list["RValue"]
     loop: Loop
     import_from: Optional[Extends] = None
     parameters: list[Definition] = field(default_factory=list)
@@ -43,4 +43,4 @@ class NodeGenerator(Node):
     constraints: list[Constraint] = field(default_factory=list)
     objectives: list[Objective] = field(default_factory=list)
     activations: list[Activation] = field(default_factory=list)
-    tags: list[str] = field(default_factory=list)
+    tags: set[str] = field(default_factory=set)

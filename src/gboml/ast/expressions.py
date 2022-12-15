@@ -13,6 +13,3 @@ Expression = int | float | ExpressionObj
 @dataclass
 class BoolExpression(GBOMLObject):
     pass
-
-
-

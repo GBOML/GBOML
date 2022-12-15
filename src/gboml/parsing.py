@@ -54,7 +54,10 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         as_list = {
             "objectives_block", "constraints_block",
             "parameters_block", "global_block", "olist", "mlist", "node_redefs",
-            "hyperedge_redefs", "separated_list", "separated_maybe_empty_list",
+            "hyperedge_redefs", "separated_list", "separated_maybe_empty_list"
+        }
+
+        as_sets = {
             "tags"
         }
 
@@ -93,12 +96,15 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "ctr_deactivate": lambda *x, meta: CtrActivation(ActivationType.deactivate, *x, meta=meta),
             "obj_activate": lambda *x, meta: ObjActivation(ActivationType.activate, *x, meta=meta),
             "obj_deactivate": lambda *x, meta: ObjActivation(ActivationType.deactivate, *x, meta=meta),
-            "extends": Extends
+            "extends": Extends,
+            "variable_name": lambda *x, meta: x
         }
 
         def __default__(self, data, children, _):
             if data in self.as_list:
                 return list(children)
+            if data in self.as_sets:
+                return set(children)
             if data in self.to_obj:
                 return self.to_obj[data](*children, meta=gen_meta(data))
             raise RuntimeError(f"Unknown rule {data}")
@@ -125,8 +131,8 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def program_block(self, meta: Meta, *childrens: list[Node | HyperEdge]) -> NodesAndHyperEdges:
             return self.NodesAndHyperEdges([x for x in childrens if isinstance(x, Node)], [x for x in childrens if isinstance(x, HyperEdge)])
 
-        def hyperedge_definition(self, meta: Meta, name: VarOrParam, extends: Optional[Extends],
-                                 loop: Optional[Loop], tags: list[str], param_block: list[Definition] = None,
+        def hyperedge_definition(self, meta: Meta, name: str, indices: list[RValue], extends: Optional[Extends],
+                                 loop: Optional[Loop], tags: set[str], param_block: list[Definition] = None,
                                  constraint_block: list[Constraint | CtrActivation] = None):
             constraint_block = constraint_block or []
             activations = [x for x in constraint_block if isinstance(x, CtrActivation)]
@@ -134,16 +140,16 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             param_block = param_block or []
 
             if loop is None:
-                if len(name.path) != 1 or len(name.path[0].indices) != 0:
-                    raise Exception(f"Invalid name for node: {name}")
-                return HyperEdgeDefinition(name.path[0].name, extends, param_block, constraint_block,
+                return HyperEdgeDefinition(name, extends, param_block, constraint_block,
                                            activations, tags, meta=meta)
             else:
-                return HyperEdgeGenerator(name, loop, extends, param_block, constraint_block,
+                if len(indices) == 0:
+                    raise Exception(f"Invalid name for node: {name}")
+                return HyperEdgeGenerator(name, indices, loop, extends, param_block, constraint_block,
                                           activations, tags, meta=meta)
 
-        def node_definition(self, meta: Meta, name: VarOrParam, extends: Optional[Extends],
-                            loop: Optional[Loop], tags: list[str],
+        def node_definition(self, meta: Meta, name: str, indices: list[RValue], extends: Optional[Extends],
+                            loop: Optional[Loop], tags: set[str],
                             param_block: list[Definition] = None, subprogram_block: NodesAndHyperEdges = None,
                             variable_block: list[VariableDefinition] = None,
                             constraint_block: list[Constraint | CtrActivation] = None,
@@ -159,14 +165,14 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             objectives_block = [x for x in objectives_block if isinstance(x, Objective)]
 
             if loop is None:
-                if len(name.path) != 1 or len(name.path[0].indices) != 0:
-                    raise Exception(f"Invalid name for node: {name}")
-                return NodeDefinition(name.path[0].name, extends, param_block,
+                return NodeDefinition(name, extends, param_block,
                                       subprogram_block.nodes, subprogram_block.hyperedges,
                                       variable_block, constraint_block,
                                       objectives_block, activations, tags, meta=meta)
             else:
-                return NodeGenerator(name, loop, extends, param_block,
+                if len(indices) == 0:
+                    raise Exception(f"Invalid name for node: {name}")
+                return NodeGenerator(name, indices, loop, extends, param_block,
                                      subprogram_block.nodes, subprogram_block.hyperedges,
                                      variable_block, constraint_block,
                                      objectives_block, activations, tags, meta=meta)
@@ -184,13 +190,13 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):
             return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
 
-        def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[VarOrParam],
-                                imports_from: Optional[list[VarOrParam]], tags: list[str]):
+        def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[str])],
+                                imports_from: Optional[list[VarOrParam]], tags: set[str]):
             if imports_from is not None and len(imports_from) != len(names):
                 raise Exception("Invalid variable import, numbers of variables on the left and on the right-side of "
                                 "`<-` don't match")
             for name, import_from in zip(names, imports_from or repeat(None, len(names))):
-                yield VariableDefinition(scope, type or VarType.continuous, name, import_from, tags, meta=meta)
+                yield VariableDefinition(name[0], name[1], scope, type or VarType.continuous, import_from, tags, meta=meta)
 
         def variables_block(self, _: Meta, *defs: Tuple[Iterable[VariableDefinition]]):
             return [vd for iterable in defs for vd in iterable]
@@ -205,7 +211,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
                 return Array(entries, meta=meta)
             raise Exception("An array cannot contain dictionary entries (and conversely)")
 
-        def definition(self, meta: Meta, name: str, args: Optional[list[str]], typ: DefinitionType, val: RValue, tags: list[str]):
+        def definition(self, meta: Meta, name: str, args: Optional[list[str]], typ: DefinitionType, val: RValue, tags: set[str]):
             if args is not None:
                 if typ != DefinitionType.expression:
                     raise Exception("Functions can only be defined as expressions (use `<-` instead of `=`)")
@@ -214,5 +220,6 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
                 return ExpressionDefinition(name, val, tags, meta=meta)
             else:
                 return ConstantDefinition(name, val, tags, meta=meta)
+
 
     return GBOMLLarkTransformer().transform(tree)
