@@ -33,7 +33,7 @@ class NodeDefinition(Node):
 @dataclass
 class NodeGenerator(Node):
     name: str
-    indices: list["RValue"]
+    indices: list[str]
     loop: Loop
     import_from: Optional[Extends] = None
     parameters: list[Definition] = field(default_factory=list)

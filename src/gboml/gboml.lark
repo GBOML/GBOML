@@ -37,7 +37,7 @@ extends: "extends" var_or_param ["from" STRING]
 // NODES
 ?node: node_definition | node_import
 node_definition: _block_shortcut{_node_header, _node_content}
-_node_header: "#NODE" ID olist{index} [extends] [loop] tags
+_node_header: "#NODE" ID olist{index_id} [extends] [loop] tags
 _node_content: parameters_block program_block variables_block constraints_block objectives_block
 
 parameters_block: (_block_repeat_or_pass{_opt_param_header,definition})?
@@ -57,7 +57,7 @@ variable_scope_change: ID SCOPE ";"
 ?hyperedge: hyperedge_definition | hyperedge_import
 
 hyperedge_definition: _block_shortcut{_hyperedge_header, _hyperedge_content}
-_hyperedge_header: "#HYPEREDGE" ID olist{index} [extends] [loop] tags
+_hyperedge_header: "#HYPEREDGE" ID olist{index_id} [extends] [loop] tags
 _hyperedge_content: parameters_block constraints_block
 
 hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hyperedge_redefs
@@ -140,6 +140,7 @@ function: ID "(" separated_maybe_empty_list{generated_rvalue, ","} ")"
 var_or_param: separated_list{var_or_param_leaf, "."}
 var_or_param_leaf: (ID | TAG) olist{index}
 ?index: "[" rvalue "]"
+?index_id: "[" ID "]"
 
 //rvalue: anything that can be assigned to a parameter
 ?rvalue: import | array_or_dict | expression | range | STRING

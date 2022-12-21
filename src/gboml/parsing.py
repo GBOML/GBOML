@@ -131,7 +131,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
         def program_block(self, meta: Meta, *childrens: list[Node | HyperEdge]) -> NodesAndHyperEdges:
             return self.NodesAndHyperEdges([x for x in childrens if isinstance(x, Node)], [x for x in childrens if isinstance(x, HyperEdge)])
 
-        def hyperedge_definition(self, meta: Meta, name: str, indices: list[RValue], extends: Optional[Extends],
+        def hyperedge_definition(self, meta: Meta, name: str, indices: list[str], extends: Optional[Extends],
                                  loop: Optional[Loop], tags: set[str], param_block: list[Definition] = None,
                                  constraint_block: list[Constraint | CtrActivation] = None):
             constraint_block = constraint_block or []
@@ -148,7 +148,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
                 return HyperEdgeGenerator(name, indices, loop, extends, param_block, constraint_block,
                                           activations, tags, meta=meta)
 
-        def node_definition(self, meta: Meta, name: str, indices: list[RValue], extends: Optional[Extends],
+        def node_definition(self, meta: Meta, name: str, indices: list[str], extends: Optional[Extends],
                             loop: Optional[Loop], tags: set[str],
                             param_block: list[Definition] = None, subprogram_block: NodesAndHyperEdges = None,
                             variable_block: list[VariableDefinition] = None,

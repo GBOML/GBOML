@@ -27,7 +27,7 @@ class HyperEdgeDefinition(HyperEdge):
 @dataclass
 class HyperEdgeGenerator(HyperEdge):
     name: str
-    indices: list["RValue"]
+    indices: list[str]
     loop: Loop
     import_from: Optional[Extends] = None
     parameters: list[Definition] = field(default_factory=list)
