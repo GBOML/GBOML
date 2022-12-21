@@ -46,7 +46,7 @@ from gboml.ast import *
 from gboml.tools.tree_modifier import modify
 
 
-def remove_redundant_definitions(elem: GBOMLObject) -> GBOMLObject:
+def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
     return modify(elem, {Node: _modify_node, HyperEdge: _modify_hyperedge})
 
 

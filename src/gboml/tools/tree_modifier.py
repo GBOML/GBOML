@@ -124,7 +124,8 @@ def _modify_gbomlobject(obj, by):
     # if we now what to do with the current object, let's do it
     for x in family_list[obj.__class__]:
         if x in by:
-            return by[x](obj)
+            obj = by[x](obj)
+            break
 
     # and now the hard part
     interesting_fields = set()
@@ -141,7 +142,10 @@ def _modify_gbomlobject(obj, by):
     return obj
 
 
-def modify(element: typing.Any, by: dict[typing.Type[GBOMLObject], typing.Callable[[GBOMLObject], GBOMLObject]]):
+T = typing.TypeVar('T')
+
+
+def modify(element: T, by: dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject], AnyGBOMLObject]]) -> T:
     """
         Recursively modifies a GBOMLGraph tree (or any part of it) according to rules set in the dict `by`.
         `by` entries should be in the form `(cls: fun)`, where cls is a class derivating from GBOMLObject and

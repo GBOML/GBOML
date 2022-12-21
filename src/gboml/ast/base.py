@@ -1,3 +1,4 @@
+import typing
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -16,3 +17,6 @@ class GBOMLObject:
 @dataclass
 class NamedGBOMLObject(GBOMLObject):
     name: str
+
+
+AnyGBOMLObject = typing.TypeVar('AnyGBOMLObject', bound=GBOMLObject)
