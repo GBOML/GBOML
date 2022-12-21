@@ -40,3 +40,11 @@ class BoolExpressionComparison(BoolExpression):
     lhs: Expression
     operator: Operator
     rhs: Expression
+
+
+@dataclass
+class ExpressionUseGenScope(ExpressionObj):
+    """ This reserved expression indicates that the child must be evaluated using the scope of the
+        generator (in a node/edge generator), that is the scope of the parent + the loop of the generator.
+    """
+    child: Expression

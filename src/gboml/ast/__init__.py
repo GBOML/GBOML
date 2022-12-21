@@ -8,7 +8,8 @@ __all__ = [
     "ExpressionOp", "GBOMLGraph", "ImplicitLoop", "RValue", "RValueWithGen", "GeneratedRValue",
     "Range", "MultiLoop", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
-    "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject"
+    "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject",
+    "ExpressionUseGenScope", "AnyGBOMLObject"
 ]
 
 from gboml.ast.arrays import *
