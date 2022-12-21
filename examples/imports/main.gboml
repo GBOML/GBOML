@@ -1,0 +1,41 @@
+#TIMEHORIZON T = 8760;
+#GLOBAL
+    nb_nodes = 10;
+
+#NODE PA
+    #PARAMETERS
+        nb = nb_nodes+1;
+        idx = 2;
+    #NODE A[i] extends FIRST from "first.gboml" for i in [0:nb-1]
+        #PARAMETERS
+            max_v = (i+1)*2+f;
+        #VARIABLES
+            internal: x;
+        #CONSTRAINTS
+            x >= i+1;
+            x <= max_v;
+        #OBJECTIVES
+            min: x;
+    #NODE B extends SECOND[idx] from "second.gboml"
+        #PARAMETERS
+            max_v = (i+1)*2+f;
+        #VARIABLES
+            internal: x;
+        #CONSTRAINTS
+            x >= i+1;
+            x <= max_v;
+        #OBJECTIVES
+            min: x;
+    #VARIABLES
+        pass;
+
+#NODE C extends THIRD from "third.gboml"
+    #PARAMETERS
+        max_v = (2+1)*2+f;
+    #VARIABLES
+        internal: x;
+    #CONSTRAINTS
+        x >= 2+1;
+        x <= max_v;
+    #OBJECTIVES
+        min: x;

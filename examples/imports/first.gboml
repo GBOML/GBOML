@@ -1,0 +1,8 @@
+#TIMEHORIZON T = 8760;
+#GLOBAL
+    pass;
+#NODE FIRST
+    #PARAMETERS
+        f = 2;
+    #VARIABLES
+        pass;
