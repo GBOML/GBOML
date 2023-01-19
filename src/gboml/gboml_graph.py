@@ -347,7 +347,7 @@ class GbomlGraph:
             opt_dict (dict): dictionary containing the optimization parameters
                              the key must be the parameter to tune
                              the value a tuple of the <type, value>
-                             example: {"gap": [float, 0.5]
+                             example: {"gap": ["double", 0.5]
 
         Returns:
             solution (ndarray) : flattened solution

@@ -224,41 +224,35 @@ class PyCBC:
         c_value_string = c_wchar_p(value_string)
         self.libCBC.Cbc_setParameter(pointer_to_model, c_name, c_value_string)
 
-    def Cbc_setIntParam(self, pointer_to_model, intparam: int, value: int):
+    def Cbc_setMaximumSolutions(self, pointer_to_model, nb_solutions: int):
         """
-        Sets an int CBC parameter to a certain int value
+        Sets the maximum number of solutions in CBC solver
 
         Args:
             pointer_to_model: ctypes pointer to a CBC environment
-            intparam <int>: name of CBC parameter to set
-            value <int>: value of CBC parameter to set
+            nb_solutions <int>: number of solutiosn
 
         Returns:
 
         """
-        self.libCBC.Cbc_setIntParam.argtypes = [c_void_p,
-                                                c_int,
-                                                c_int]
-        c_param = c_int(intparam)
-        c_value = c_int(value)
-        self.libCBC.Cbc_setIntParam(pointer_to_model, c_param, c_value)
+        self.libCBC.Cbc_setMaximumSolutions.argtypes = [c_void_p, c_int]
+        c_param = c_int(nb_solutions)
+        self.libCBC.Cbc_setIntParam(pointer_to_model, c_param)
 
-    def Cbc_setDblParam(self, pointer_to_model, dbl_param: float, value: float):
+    def Cbc_setMaximumSeconds(self, pointer_to_model, time: float):
         """
-        Sets a double CBC parameter to a certain double value
+        Sets maximum amount of time taken
 
         Args:
             pointer_to_model: ctypes pointer to a CBC environment
-            dbl_param <float>: name of CBC parameter to set
-            value <float>: value of CBC parameter to set
+            time <float>: time in second
 
         Returns:
 
         """
-        self.libCBC.Cbc_setDblParam.argtypes = [c_void_p, c_int, c_double]
-        c_param = c_int(dbl_param)
-        c_val = c_double(value)
-        self.libCBC.Cbc_setDblParam(pointer_to_model, c_param, c_val)
+        self.libCBC.Cbc_setMaximumSeconds.argtypes = [c_void_p, c_double]
+        c_param = c_double(time)
+        self.libCBC.Cbc_setMaximumSeconds(pointer_to_model, c_param)
 
     def Cbc_setAllowableGap(self, pointer_to_model, allowed_gap: float):
         """

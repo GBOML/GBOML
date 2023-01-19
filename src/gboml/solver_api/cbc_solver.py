@@ -69,7 +69,6 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
     nb_row_eq, _ = matrix_a_eq.shape
     ineq_data, ineq_row, ineq_col = matrix_a_ineq.data, matrix_a_ineq.row, matrix_a_ineq.col
     nb_row_ineq, _ = matrix_a_ineq.shape
-    print(np.array(eq_row), nb_row_ineq)
     all_rows = np.concatenate((ineq_row, np.array(eq_row)+nb_row_ineq))
     all_col = np.concatenate((ineq_col, eq_col))
     all_data = np.concatenate((ineq_data, eq_data))
@@ -105,14 +104,14 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
     new_dict_options_from_file = option_dict.copy()
     solver_info = dict()
     all_options_types = {
-        "string": [str, cbc_lib.Cbc_setParameter],
-        "double": [float, cbc_lib.Cbc_setDblParam],
-        "int": [int, cbc_lib.Cbc_setIntParam]
+        "string": [str, cbc_lib.Cbc_setParameter]
     }
 
     special_options = {
         "gap": [float, cbc_lib.Cbc_setAllowableGap],
+        "max_time": [float, cbc_lib.Cbc_setMaximumSeconds],
         "fraction_gap": [float, cbc_lib.Cbc_setAllowableFractionGap],
+        "max_nb_solutions": [float, cbc_lib.Cbc_setMaximumSolutions]
     }
 
     try:
@@ -135,15 +134,23 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
 
         print("Options file not found")
 
+    option_info = dict()
+    new_dict_options_from_file["gap"] = ["double", 2]
+    new_dict_options_from_file["maxtime"] = ["double", 2]
+
     for option_name, [option_type, option_value] in new_dict_options_from_file.items():
-        if option_name in special_options:
-            type_val, function = special_options[option_name]
-        else:
-            type_val, function = all_options_types[option_type]
         try:
-            value = type_val(option_value)
-            status = function(cbc_model, option_name, value)
-            option_info[option_name] = value
+            if option_name in special_options:
+                type_val, function = special_options[option_name]
+                value = type_val(option_value)
+                status = function(cbc_model, value)
+                option_info[option_name] = value
+
+            else:
+                type_val, function = all_options_types[option_type]
+                value = type_val(option_value)
+                status = function(cbc_model, option_name, value)
+                option_info[option_name] = value
 
         except ValueError as e:
             print("Skipping option \'%s\' "
@@ -170,7 +177,8 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
     objective = 0
     status = "unknown"
     solver_info["status"] = status_code
-    if status_code == 0:
+    solver_info["options"] = option_info
+    if status_code == 0 or status_code == 1:
         secondary_status_opt = cbc_lib.Cbc_isProvenOptimal(cbc_model)
         secondary_status_inf = cbc_lib.Cbc_isProvenInfeasible(cbc_model)
         secondary_status_timeout = cbc_lib.Cbc_isSecondsLimitReached(cbc_model)
