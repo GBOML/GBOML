@@ -135,8 +135,6 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
         print("Options file not found")
 
     option_info = dict()
-    new_dict_options_from_file["gap"] = ["double", 2]
-    new_dict_options_from_file["maxtime"] = ["double", 2]
 
     for option_name, [option_type, option_value] in new_dict_options_from_file.items():
         try:
