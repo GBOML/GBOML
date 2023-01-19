@@ -159,7 +159,6 @@ def gurobi_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
 
     # Solve model and return solution
     try:
-        model.write("remote_hub.mps")
         model.optimize()
         status_code = model.getAttr("Status")
         solver_info["status"] = status_code
