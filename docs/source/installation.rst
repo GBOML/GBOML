@@ -39,7 +39,7 @@ If you only want GBOML as an uninstalled package, installing the requirements ca
 Installing Solvers
 ------------------
 
-GBOML currently interfaces with Gurobi, CPLEX, Xpress, Cbc/Clp and DSP. Only one of these is required to solve a GBOML model. Gurobi, CPLEX and Xpress are commercial solvers, while Cbc/Clp is an open-source solver. DSP is an experimental open-source project relying on Gurobi, CPLEX and SCIP to implement generic structure-exploiting algorithms (e.g., Dantzig-Wolfe, dual and Benders decompositions).
+GBOML currently interfaces with Gurobi, CPLEX, Xpress, Cbc/Clp, HiGHS and DSP. Only one of these is required to solve a GBOML model. Gurobi, CPLEX and Xpress are commercial solvers, while Cbc/Clp is an open-source solver. DSP is an experimental open-source project relying on Gurobi, CPLEX and SCIP to implement generic structure-exploiting algorithms (e.g., Dantzig-Wolfe, dual and Benders decompositions).
 
 Gurobi
 ~~~~~~
@@ -115,9 +115,9 @@ The next installation steps make use of `cmake <https://cmake.org/install/>`_ an
 
 If the make worked properly, an executable called runDsp and a shared library named libDsp should be created in the *src* subfolder of the build directory. Additional information can be found `here <https://github.com/Argonne-National-Laboratory/DSP/blob/master/docs/install.md>`__.
 
-Highs
+HiGHS
 ~~~~~
-To install Highs please download the solver from https://highs.dev/. The Python API is embedded in GBOML.
+To install HiGHS please download the solver from https://highs.dev/. The Python API is embedded in GBOML. However, you need the HiGHS shared object on your library path.
 
 Testing
 -------
