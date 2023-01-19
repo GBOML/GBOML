@@ -62,11 +62,19 @@ and is therefore only recommended for testing purposes (e.g., make sure that GBO
 
   --highs
 
-* *Cbc/Clp*: Cbc/Clp can be used with:
+* *Clp*: Clp can be used with:
 
 .. code-block:: bash
 
    --clp
+It interfaces with CLP and CBC via CyLP.
+
+* *Cbc*: Cbc can be used with:
+
+.. code-block:: bash
+
+   --cbc
+It interfaces with CLP and CBC via a custom made experimental interface (it allows to set model parameters)
 
 * *DSP Dantzig-Wolfe*: the DSP implementation (experimental) of the Dantzig-Wolfe algorithm can be invoked with:
 

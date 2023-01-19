@@ -622,6 +622,22 @@ class GbomlGraph:
         return imported_hyperedge
 
     @staticmethod
+    def create_parameter(parameter_name, value):
+        """
+        static method that returns a parameter whose name is given by parameter_name
+        and expression by value
+
+        Args:
+           parameter_name (str) : parameter name
+           value (float/int) : value of parameter
+
+        Returns:
+            param (Parameter): parameter created
+
+        """
+        return Parameter(parameter_name, Expression("literal", value))
+
+    @staticmethod
     def rename(node_or_hyperedge, new_name):
         """
         static method re-naming a node or hyperedge

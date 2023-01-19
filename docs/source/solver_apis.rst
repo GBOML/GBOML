@@ -16,6 +16,8 @@ The list of attributes that may be queried from the different solvers can be fou
 
 * Xpress: the following constraint attributes can be queried: dual and slack variables. The following variable attributes can be queried: reduced cost.
 
-* Cbc/Clp: the Cbc/Clp API is still under development and no attributes can be queried at present.
+* Cbc/Clp: the Cbc/Clp API is still under development with a new interface where multiple parameters can be passed to the solver but no variable attributes can be queried yet.
 
-Note that all of these attributes are automatically queried and printed in the detailed JSON file, when requested.
+* Highs: the Highs API is still under development with a new interface where multiple parameters can be passed to the solver but no variable attributes can be queried yet.
+
+Note that all of these attributes are automatically queried and printed in the detailed JSON/CSV file, when requested.

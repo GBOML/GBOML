@@ -72,7 +72,7 @@ To recap, the full code reads:
 
    timehorizon = 3
    gboml_model = GbomlGraph(timehorizon)
-   nodes, edges = gboml_model.import_all_nodes_and_edges("examples/microgrid/microgrid.txt")
+   nodes, edges, global_param = gboml_model.import_all_nodes_and_edges("examples/microgrid/microgrid.txt")
    old_names = []
    for node in nodes:
       old_names.append(node.get_name())

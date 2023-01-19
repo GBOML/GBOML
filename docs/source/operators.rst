@@ -11,7 +11,7 @@ Operator precedence can be overridden by using parentheses :math:`\texttt{(}`` a
 Besides these elementary arithmetic operators, GBOML provides the modulo operator and the sum operator as native functions:
 
 * Modulo: :math:`\texttt{mod(<dividend>, <divisor>)}`
-* Sum: :math:`\texttt{sum(<expression> for <id> in [<start>, <end>])}`
+* Sum: :math:`\texttt{sum(<expression> for <id> in [<start>: <end>])}`
 
 In addition, a set of comparison operators are available in the language:
 
