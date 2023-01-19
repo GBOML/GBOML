@@ -31,7 +31,10 @@ from .pyhighs import PyHighs
 def highs_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
                  matrix_a_ineq: coo_matrix, vector_b_ineq: np.ndarray,
                  vector_c: np.ndarray,
-                 objective_offset: float, name_tuples: dict) -> tuple:
+                 objective_offset: float, name_tuples: dict,
+                 opt_file: str = None,
+                 option_dict: dict = None
+                 ) -> tuple:
     """highs_solver
 
         takes as input the matrix A, the vectors b and c. It returns the
@@ -47,6 +50,9 @@ def highs_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
             objective_offset -> float of the objective offset
             name_tuples -> dictionary of <node_name variables> used to get
                            the type
+            opt_file -> optimization parameters file
+            option_dict -> alternative to optimization parameters file that associates
+                           key = <option to set>, value= value
 
         Returns:
             solution -> np.ndarray of the flat solution
@@ -55,6 +61,10 @@ def highs_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
             solver_info -> dictionary of solver information
 
     """
+    if option_dict == None:
+        option_dict = dict()
+    if opt_file is None:
+        opt_file = 'src/gboml/solver_api/highs.opt'
 
     nb_constr_eq, _ = np.shape(matrix_a_eq)
     nb_constr_ineq, _ = np.shape(matrix_a_ineq)
@@ -115,13 +125,66 @@ def highs_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
                                        all_constraints_matrix_row,
                                        all_constraints_matrix_col,
                                        all_constraints_matrix_val)
-    py_highs.Highs_setBoolOptionValue(highs_model, "run_crossover", False)
-    py_highs.Highs_setStringOptionValue(highs_model, "solver", "ipm")
-    py_highs.Highs_setStringOptionValue(highs_model, "parallel", "on")
-    py_highs.Highs_setStringOptionValue(highs_model, "presolve", "on")
-    #py_highs.Highs_setStringOptionValue(highs_model, "ranging", "off")
+    option_info = {}
+    new_dict_options_from_file = option_dict.copy()
+    all_options_types = {
+        "string": [str, py_highs.Highs_setStringOptionValue],
+        "bool": [bool, py_highs.Highs_setBoolOptionValue],
+        "double": [float, py_highs.Highs_setDoubleOptionValue],
+        "int": [int, py_highs.Highs_setIntOptionValue]
+    }
+    try:
+
+        with open(opt_file, 'r') as optfile:
+
+            lines = optfile.readlines()
+    except IOError:
+
+        print("Options file not found")
+    else:
+
+        for line in lines:
+            line = line.strip()
+            option = line.split(" ", 2)
+            if option[0] in all_options_types and option[0] not in new_dict_options_from_file:
+                if len(option) == 3:
+                    new_dict_options_from_file[option[1]] = [option[0], option[2]]
+                else:
+                    print("Skipping option \'%s\' with no given value"
+                          % option[0])
+            else:
+                print("Skipping option \'%s\' as redefined in function call"
+                      % option[0])
+
+    for option_name, [option_type, option_value] in new_dict_options_from_file.items():
+        type_val, function = all_options_types[option_type]
+        try:
+            value = type_val(option_value)
+            status = function(highs_model, option_name, value)
+            option_info[option_name] = value
+        except ValueError as e:
+            print("Skipping option \'%s\' "
+                  "with invalid given value \'%s\' "
+                  "(expected %s)"
+                  % (option_name, option_value, type_val))
+        except Exception as e:
+            print("Skipping option \'%s\' "
+                  "with invalid given value \'%s\' "
+                  "(expected %s)"
+                  % (option_name, option_value, type_val))
+        else:
+            if status == -1:
+                print("Skipping option \'%s\' "
+                      "with invalid given value \'%s\' "
+                      "(expected %s)"
+                      % (option_name, option_value, type_val))
+            else:
+                print("Setting option \'%s\' to value \'%s\'"
+                      % (option_name, value))
+
     py_highs.Highs_run(highs_model)
     solver_info = dict()
+    solver_info["options"] = option_info
     status, lp_primal, _, _, _ = py_highs.Highs_getSolution(highs_model)
     objective = py_highs.Highs_getObjectiveValue(highs_model)
 

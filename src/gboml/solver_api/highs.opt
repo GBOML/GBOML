@@ -1,0 +1,4 @@
+bool run_crossover 0
+string solver ipm
+string parallel on
+string presolve on

@@ -965,14 +965,14 @@ class GBOMLpyTest(unittest.TestCase):
         gboml_model.add_nodes_in_model(parent)
         gboml_model.add_global_parameters_objects(global_param)
         gboml_model.build_model()
-        solution = gboml_model.solve_gurobi()
+        solution = gboml_model.solve_cplex("src/gboml/solver_api/cplex.opt", False, {"lpmethod": 1})
         f.close()
         sys.stdout = temp
         self.assertEqual(solution[0].all(), np.array(
             [0., 0., 6.9, 0., 0., 0., 0., 6.9, 0., 0., 0., 4.]).all())
 
     def test_toy_example(self):
-        """ test_encapsulating
+        """ test_toy_example
 
         Tests combining importing, renaming, parameter_redefinition all
         together and solving
@@ -1008,16 +1008,16 @@ class GBOMLpyTest(unittest.TestCase):
 
         gboml_model.redefine_parameters_from_keywords(parent, b=6)
         gboml_model.add_nodes_in_model(parent)
-        gboml_model.add_global_parameters_objects(global_params)
+        gboml_model.add_global_parameters(global_params)
+        gboml_model.add_global_parameters([("electricity_price", 0.05)])
         gboml_model.build_model()
-        x, objective, status, solver_info, constraints_additional_information, \
-         variables_additional_information = gboml_model.solve_gurobi()
+        x, objective, status, solver_info = gboml_model.solve_cbc({"gap": [float, 10]})
         f.close()
         sys.stdout = temp
-        self.assertEqual(x.all(), np.array(
-            [0., 0., 0., 0., 0., 0., 6.9, 6.4, 6.1, 0., 0., 0., 0.,
-             0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0., 6.,
-             6., 6.]).all())
+        self.assertTrue(np.allclose(x, np.array(
+            [0.345, 0.32, 0., 6.9, 6.4, 0., 6.9, 6.4, 6.1, -0.,
+             0., 0., 0., 0., 0., 0., 0., 0., 0., 6.1,
+             -0., 0., 0., 0., 0., 6., 6., 6.])))
 
 
 if __name__ == '__main__':

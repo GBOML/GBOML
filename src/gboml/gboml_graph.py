@@ -10,7 +10,7 @@ from .compiler.classes import Parameter, Expression, Node, Hyperedge, Time, \
     Program
 from .compiler.utils import error_, move_to_directory
 from .solver_api import cplex_solver, gurobi_solver, clp_solver, dsp_solver, \
-    xpress_solver, highs_solver
+    xpress_solver, highs_solver, cbc_solver
 from .output import generate_json
 
 from enum import Enum
@@ -205,7 +205,7 @@ class GbomlGraph:
            nb_processes (int) : number of processes used for model generation
 
         """
-
+        self.global_parameters = self.__remove_duplicates(self.global_parameters)
         program = Program(self.list_nodes, timescale=self.timehorizon,
                           links=self.list_hyperedges, global_param=self.global_parameters)
         program, program_variables_dict, definitions = semantic(program)
@@ -279,13 +279,14 @@ class GbomlGraph:
                           name_tuples, opt_file, details)
         return self.__solve(gurobi_solver_function)
 
-    def solve_cplex(self, opt_file: str = None, details=False):
+    def solve_cplex(self, opt_file: str = None, details=False, opt_dict = None):
         """
         bound method solving the flattened optimization model with CPLEX
 
         Args:
             opt_file (str) : path to an optimization parameters file
             details (bool) : get variables and constraints information
+            opt_dict (dict): dictionary containing the optimization parameters
 
         Returns:
             solution (ndarray) : flattened solution
@@ -299,7 +300,7 @@ class GbomlGraph:
         cplex_solver_function = \
             lambda matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset, name_tuples: \
                 cplex_solver(matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset,
-                              name_tuples, opt_file, details)
+                              name_tuples, opt_file, details, option_dict=opt_dict)
         return self.__solve(cplex_solver_function)
 
     def solve_xpress(self, opt_file: str = None, details=False):
@@ -326,7 +327,7 @@ class GbomlGraph:
 
     def solve_clp(self):
         """
-        bound method solving the flattened optimization problem with Clp/Cbc
+        bound method solving the flattened optimization problem with Clp
 
         Returns:
             solution (ndarray) : flattened solution
@@ -336,6 +337,33 @@ class GbomlGraph:
 
         """
         return self.__solve(clp_solver)
+
+    def solve_cbc(self, opt_file= None, opt_dict= None):
+        """
+        bound method solving the flattened optimization problem with Cbc
+
+        Args:
+            opt_file (str): filename of file containing the optimization parameters
+            opt_dict (dict): dictionary containing the optimization parameters
+                             the key must be the parameter to tune
+                             the value a tuple of the <type, value>
+                             example: {"gap": [float, 0.5]
+
+        Returns:
+            solution (ndarray) : flattened solution
+            objective (flat) : float of the objective value
+            status (str) : solver exit status
+            solver_info (dict) : dictionary storing solver information
+
+        """
+        if opt_dict is None:
+            opt_dict = dict()
+        cbc_solver_function = \
+            lambda matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset, name_tuples: \
+                cbc_solver(matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset,
+                           name_tuples, opt_file=opt_file, option_dict=opt_dict)
+
+        return self.__solve(cbc_solver_function)
 
     def solve_highs(self):
         """
@@ -418,7 +446,7 @@ class GbomlGraph:
         Returns:
 
         """
-        print("THIS FUNCTION WILL BE REMOVED SOON, use add_global_parameters instead")
+        print("THE FUNCTION 'add_global_parameters_objects' WILL BE REMOVED SOON, use add_global_parameters instead")
         for param in global_parameters:
             if isinstance(param, Parameter):
                 self.global_parameters.append(param)
@@ -671,7 +699,7 @@ class GbomlGraph:
            in_node (Node) : node to which sub-hyperedge should be added
 
         """
-        in_node.add_link(hyperedge_to_add)
+        in_node.add_sub_hyperedge(hyperedge_to_add)
         in_node.update_internal_dict()
 
     @staticmethod
@@ -870,3 +898,17 @@ class GbomlGraph:
         change_tuple = [old_node_name, new_node_name, None]
         hyperedge.add_name_change(change_tuple)
 
+    @staticmethod
+    def __remove_duplicates(list_globals):
+        seen_param = dict()
+        output_list = []
+        for index, param_global in enumerate(list_globals):
+            name = param_global.get_name()
+            if name in seen_param:
+                index = seen_param[name]
+                output_list.pop(index)
+                output_list.insert(index, param_global)
+            else:
+                output_list.append(param_global)
+                seen_param[name] = index
+        return output_list

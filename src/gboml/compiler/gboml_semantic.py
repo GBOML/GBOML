@@ -764,9 +764,6 @@ def check_definition_expression(expr: Expression, variables_dict: dict,
                     seed_node_name != "global" and \
                     in_node_name != seed_node_name and \
                     seed_node_name not in parent_hood:
-                print(in_node_name)
-                print(parameters_dict)
-                print(variables_dict)
                 error_("ERROR: referencing variables "
                        "or parameters defined in node "
                        + str(seed_node_name) +

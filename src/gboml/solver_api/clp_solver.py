@@ -57,7 +57,7 @@ def clp_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
 
     try:
 
-        from cylp.cy import CyCbcModel, CyClpSimplex
+        from cylp.cy import CyClpSimplex
         from cylp.py.modeling.CyLPModel import CyLPModel, CyLPArray
     except ImportError as e:
         print(e)

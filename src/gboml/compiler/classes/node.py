@@ -79,6 +79,9 @@ class Node:
     def get_sub_hyperedges(self):
         return self.hyperedges
 
+    def add_sub_hyperedge(self, hyperedge):
+        self.hyperedges.append(hyperedge)
+
     def set_objectives_data(self, obj_data):
         self.objectives_data = obj_data
 
@@ -161,14 +164,6 @@ class Node:
         if "T" in param:
             param.pop("T")
         self.param_dict = param
-
-    def add_link(self, link):
-
-        self.links.append(link)
-
-    def get_links(self):
-
-        return self.links
 
     def set_expressions(self, list_expression):
         self.expression = list_expression

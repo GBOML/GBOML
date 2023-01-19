@@ -174,6 +174,11 @@ class DSPpy:
         self.libDSP.printModel.argtypes = [c_void_p]
         self.libDSP.printModel(pointer_to_env)
 
+    def setIntParam(self, pointer_to_env: c_void_p, name: str, value:int) -> None:
+        """DspApiEnv * env, const char * name, int value"""
+        self.libDSP.setIntParam.argtypes = [c_void_p, POINTER(c_char), c_int]
+        self.libDSP.setIntParam(pointer_to_env, name.encode("utf-8"), value)
+
     def getCpuTime(self, pointer_to_env: c_void_p) -> float:
         """getCpuTime
 

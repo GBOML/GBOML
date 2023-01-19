@@ -23,8 +23,8 @@ Several other options exists and can be retrieved by writing :
 """
 
 from .compiler import compile_gboml
-from .solver_api import scipy_solver, clp_solver, \
-    cplex_solver, gurobi_solver, xpress_solver, dsp_solver, highs_solver
+from .solver_api import scipy_solver, clp_solver, cplex_solver, \
+    gurobi_solver, xpress_solver, dsp_solver, highs_solver, cbc_solver
 from .output import generate_json, generate_list_values_tuple, write_csv
 
 import argparse
@@ -53,6 +53,8 @@ def main():
 
     # Solver
     parser.add_argument("--clp", help="CLP solver", action='store_const',
+                        const=True)
+    parser.add_argument("--cbc", help="CBC solver", action='store_const',
                         const=True)
     parser.add_argument("--cplex", help="Cplex solver", action='store_const',
                         const=True)
@@ -130,6 +132,10 @@ def main():
 
             x, objective, status, solver_info = \
                 clp_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples)
+        elif args.cbc:
+
+            x, objective, status, solver_info = \
+                cbc_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples)
         elif args.cplex:
             x, objective, status, solver_info, \
              constraints_additional_information, \
@@ -168,14 +174,15 @@ def main():
 
         elif args.highs:
             x, objective, status, solver_info = \
-                highs_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples)
+                highs_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
+                             args.opt)
         else:
 
             print("No solver was chosen")
             sys.exit()
 
         assert status in {"unbounded", "optimal", "feasible", "infeasible",
-                          "error", "unknown"}
+                          "error", "unknown", "sub-optimal stopped"}
 
         if status == "unbounded":
 
@@ -184,6 +191,10 @@ def main():
         elif status == "optimal":
 
             print("Optimal solution found")
+
+        elif status == "sub-optimal stopped":
+            print("Sub-optimal solution as solver was stopped")
+
         elif status == "feasible":
 
             print("Feasible solution found")
@@ -198,6 +209,7 @@ def main():
         elif status == "unknown":
 
             print("Solver returned with unknown status")
+            exit()
         if args.output:
 
             filename = args.output

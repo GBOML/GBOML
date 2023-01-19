@@ -281,4 +281,5 @@ class Program:
 
         per_block_ineq_constraint_indexes.append(slice(start_index_ineq, current_index_ineq))
         per_block_eq_constraint_indexes.append(slice(start_index_eq, current_index_eq))
+
         return per_block_eq_constraint_indexes, per_block_ineq_constraint_indexes

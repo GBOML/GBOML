@@ -161,7 +161,11 @@ def dsp_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
         if algorithm == "de":
             dsp.solveDe(pointer_to_model)
         elif algorithm == "dw":
+            print("STARTED SOLVING")
+            dsp.setIntParam(pointer_to_model, "DW/MASTER/SOLVER", 0)
+            dsp.setIntParam(pointer_to_model, "DW/SUB/SOLVER", 0)
             dsp.solveDw(pointer_to_model)
+
         print("CPU Time : "+str(dsp.getCpuTime(pointer_to_model)))
         print("Wall Time : "+str(dsp.getWallTime(pointer_to_model)))
 
