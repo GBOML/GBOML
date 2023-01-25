@@ -22,6 +22,7 @@ into respectively a json and csv file.
 """
 
 import csv
+import numpy as np
 from gboml.version import __version__
 
 
@@ -347,7 +348,7 @@ def flat_graph_and_add_node_prefix(nodes, hyperedges, solution, product, constra
             name_tuples: list of tuples <identifier, values>
 
     """
-
+    solution = np.array(solution)
     name_tuples = []
     for node in nodes:
         variables_dict = node.get_dictionary_variables()
