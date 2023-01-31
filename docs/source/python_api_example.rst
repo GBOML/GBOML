@@ -20,7 +20,7 @@ Third, all the nodes defined in the microgrid example can be imported:
 
 .. code-block:: python
 
-   nodes, edges = gboml_model.import_all_nodes_and_edges("examples/microgrid/microgrid.txt")
+   nodes, edges, global_param = gboml_model.import_all_nodes_and_edges("examples/microgrid/microgrid.txt")
 
 Then, the nodes and hyperedges may be re-named by adding "new\_" to the original names of all nodes and hyperedges,
 
