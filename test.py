@@ -1011,7 +1011,7 @@ class GBOMLpyTest(unittest.TestCase):
         gboml_model.add_global_parameters(global_params)
         gboml_model.add_global_parameters([("electricity_price", 0.05)])
         gboml_model.build_model()
-        x, objective, status, solver_info = gboml_model.solve_cbc({"gap": [float, 10]})
+        x, objective, status, solver_info = gboml_model.solve_cbc(opt_dict={"gap": [float, 10]})
         f.close()
         sys.stdout = temp
         self.assertTrue(np.allclose(x, np.array(
