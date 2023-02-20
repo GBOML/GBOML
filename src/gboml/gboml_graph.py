@@ -11,7 +11,7 @@ from .compiler.classes import Parameter, Expression, Node, Hyperedge, Time, \
 from .compiler.utils import error_, move_to_directory
 from .solver_api import cplex_solver, gurobi_solver, clp_solver, dsp_solver, \
     xpress_solver, highs_solver, cbc_solver
-from .output import generate_json
+from .output import generate_json, generate_list_values_tuple
 
 from enum import Enum
 import os
@@ -338,7 +338,7 @@ class GbomlGraph:
         """
         return self.__solve(clp_solver)
 
-    def solve_cbc(self, opt_file= None, opt_dict= None):
+    def solve_cbc(self, opt_file=None, opt_dict=None):
         """
         bound method solving the flattened optimization problem with Cbc
 
@@ -403,6 +403,23 @@ class GbomlGraph:
                            algorithm=algorithm)
 
         return self.__solve(dsp_solver_function)
+
+    def turn_solution_to_list(self, solution, constraints_info=None):
+        """
+            bound method converting the flat solution to a list of <name, value> tuples
+
+            Args:
+                solution (ndarray) : flattened solution
+                constraints_info (dict) : dict of additional information
+                                         concerning constraints
+
+            Returns:
+                output_list (list): list of <name, value> tuples
+        """
+        list_names, list_values = generate_list_values_tuple(self.program, solution, self.vector_c,
+                                                             self.indep_term_c, constraints_info=constraints_info)
+        output_list = list(zip(list_names, list_values))
+        return output_list
 
     def turn_solution_to_dictionary(self, solver_data, status, solution,
                                     objective, constraint_info=None,
