@@ -36,9 +36,18 @@ class Hyperedge:
 
         return self.name
 
-    def rename(self, new_name):
+    def rename(self, new_name, old_name=""):
+        if old_name == "":
+            old_name = self.name
+            self.name = new_name
 
-        self.name = new_name
+        for param in self.parameters:
+            expr = param.get_expression()
+            if expr is not None:
+                expr.rename_node_inside(new_name, old_name)
+
+        for constraints in self.constraints:
+            constraints.rename_inside_expressions(new_name, old_name)
 
     def get_number_parameters(self):
 

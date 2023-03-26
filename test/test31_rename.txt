@@ -1,0 +1,30 @@
+#TIMEHORIZON T=10;
+
+#NODE SUPER
+#PARAMETERS
+capacity_factor = import "../examples/microgrid/pv_gen.csv";
+
+#NODE SOLAR_PV_1 = import SOLAR_PV from "../examples/microgrid/microgrid.txt" with
+capacity_factor = SUPER.capacity_factor;
+
+#NODE SOLAR_PV_2 = import SOLAR_PV from "../examples/microgrid/microgrid.txt" with
+capacity_factor = SUPER.capacity_factor;
+
+#VARIABLES
+internal: entity;
+
+#NODE Other
+#PARAMETERS
+a = 2;
+
+    #NODE Inside
+    #PARAMETERS
+        b = 13;
+    #VARIABLES
+        internal: y[T];
+    #CONSTRAINTS
+        y[i] == b for i in [0:Other.a];
+        sum(y[i] for i in [Other.a:T-1-Other.a]) == b;
+
+#VARIABLES
+internal: b;

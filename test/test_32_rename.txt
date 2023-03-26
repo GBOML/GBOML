@@ -1,0 +1,8 @@
+#TIMEHORIZON T = 10;
+
+#NODE SUPER2 = import SUPER from "test31_rename.txt";
+
+#NODE SUPER1 = import SUPER from "test31_rename.txt";
+
+#NODE Other = import Other from "test31_rename.txt" with
+a = 3;

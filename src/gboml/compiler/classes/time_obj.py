@@ -296,6 +296,12 @@ class TimeInterval:
 
         return value
 
+    def rename_inside_expressions(self, new_name, old_name):
+        self.begin.rename_node_inside(new_name, old_name)
+        self.end.rename_node_inside(new_name, old_name)
+        if self.step is not None:
+            self.step.rename_node_inside(new_name, old_name)
+
     def turn_name_to_python_expression(self):
         import ast
         name = ast.Name(id=self.name, ctx=ast.Store())

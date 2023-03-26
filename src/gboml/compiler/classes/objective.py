@@ -73,3 +73,10 @@ class Objective(Type):
     def get_time_interval(self):
 
         return self.time_interval
+
+    def rename_inside_expressions(self, new_name, old_name):
+        self.expression.rename_node_inside(new_name, old_name)
+        if self.condition is not None:
+            self.condition.rename_inside_expressions(new_name, old_name)
+        if self.time_interval is not None:
+            self.time_interval.rename_inside_expressions(new_name, old_name)

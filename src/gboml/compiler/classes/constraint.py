@@ -114,3 +114,11 @@ class Constraint(Type):
             predicate = self.condition.check(definitions)
 
         return predicate
+
+    def rename_inside_expressions(self, new_name, old_name):
+        self.rhs.rename_node_inside(new_name, old_name)
+        self.lhs.rename_node_inside(new_name, old_name)
+        if self.condition is not None:
+            self.condition.rename_inside_expressions(new_name, old_name)
+        if self.time_interval is not None:
+            self.time_interval.rename_inside_expressions(new_name, old_name)

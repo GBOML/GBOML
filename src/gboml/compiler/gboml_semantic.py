@@ -121,18 +121,6 @@ def apply_changes_parameters(dictionary_of_parameters, parameters_changes):
                    + str(new_parameter.get_line()))
         else:
             previous_parameter = dictionary_of_parameters[parameter_name]
-            new_parameter_type = new_parameter.get_type()
-            previous_parameter_type = previous_parameter.get_type()
-            if previous_parameter_type != new_parameter_type:
-                error_("ERROR : the redefinition of " + str(parameter_name)
-                       + " does not match its previous type at lien: "
-                       + str(new_parameter.get_line()))
-
-            if new_parameter.get_number_of_values() != \
-                    previous_parameter.get_number_of_values():
-                print("WARNING : unmatching length in redefinition"
-                      " of parameter at line: "
-                      + str(new_parameter.get_line()))
             dictionary_of_parameters[parameter_name] = new_parameter
 
 

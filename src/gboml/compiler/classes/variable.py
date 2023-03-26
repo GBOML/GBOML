@@ -107,3 +107,15 @@ class Variable(Symbol):
         assert vtype == "internal" or vtype == "external", \
             "Internal error: unknown variable type"
         self.type = vtype
+
+    def rename_inside_expressions(self, new_name, old_name):
+        identifier = self.get_identifier()
+        expr = identifier.get_expression()
+        if expr is not None:
+            expr.rename_node_inside(new_name, old_name)
+
+        identifier_child = self.get_child_assignment()
+        if identifier_child is not None:
+            expr = identifier_child.get_expression()
+            if expr is not None:
+                expr.rename_node_inside(new_name, old_name)

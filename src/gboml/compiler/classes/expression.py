@@ -523,6 +523,24 @@ class Expression(Symbol):
 
         return value
 
+    def rename_node_inside(self, new_name, old_name):
+        leafs = self.get_leafs()
+        for leaf in leafs:
+            type_id = leaf.get_type()
+            if type_id == "literal":
+                term = leaf.get_name()
+                if isinstance(term, Identifier):
+                    node_name = term.get_node_name()
+                    if node_name == old_name:
+                        term.set_node_name(new_name)
+            if type_id == "sum":
+                expr_sum = leaf
+                expr_sum.get_time_interval().rename_inside_expressions(new_name, old_name)
+                if expr_sum.get_condition() is not None:
+                    expr_sum.get_condition().rename_inside_expressions(new_name, old_name)
+                expr_sub_sum = expr_sum.get_children()[0]
+                expr_sub_sum.rename_node_inside(new_name, old_name)
+
     def evaluate_python_string(self, definitions: dict):
         # Discard precedence information before returning
         prec, value = self.evaluate_python_string_impl(definitions)

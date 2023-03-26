@@ -79,6 +79,14 @@ class Condition(Type):
 
         return predicate
 
+    def rename_inside_expressions(self, new_name, old_name):
+        children = self.children
+        for child in children:
+            if isinstance(child, Expression):
+                child.rename_node_inside(new_name, old_name)
+            elif isinstance(child, Condition):
+                child.rename_inside_expressions(new_name, old_name)
+
     def to_python_ast(self):
         import ast
 

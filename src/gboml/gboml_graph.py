@@ -497,26 +497,37 @@ class GbomlGraph:
         Returns:
 
         """
-        parameter = None
-        if isinstance(value, Parameter):
-            parameter = value
-        elif isinstance(value, str):
-            parameter = Parameter(identifier, value)
-        elif isinstance(value, float) or isinstance(value, int):
+        parameter = self.create_parameter(identifier, value)
+        self.global_parameters.append(parameter)
+
+    @staticmethod
+    def modify_parameter_value(parameter, value):
+        """
+        Modify the value of parameter
+
+        Args:
+           parameter (Parameter) : parameter to modify
+           value (int|float|list<float/int>) : value associated to the parameter
+        Returns:
+
+        """
+        if isinstance(value, float) or isinstance(value, int):
             expr = Expression('literal', value)
-            parameter = Parameter(identifier, expr)
+            parameter.expression = expr
+            parameter.type = "expression"
+            parameter.vector = None
         elif isinstance(value, list):
             expression_values = []
             expr = None
+            parameter.expression = expr
             for val in value:
                 expr = Expression('literal', val)
                 expression_values.append(expr)
-            parameter = Parameter(identifier, None)
+            parameter.type = "table"
             parameter.set_vector(expression_values)
         else:
             error_("Unaccepted type value for global parameter "
                    + str(type(value)))
-        self.global_parameters.append(parameter)
 
     @staticmethod
     def import_all_nodes_and_edges(filename):
@@ -646,13 +657,32 @@ class GbomlGraph:
 
         Args:
            parameter_name (str) : parameter name
-           value (float/int) : value of parameter
+           value (float/int/list<int/float>) : value of parameter
 
         Returns:
             param (Parameter): parameter created
 
         """
-        return Parameter(parameter_name, Expression("literal", value))
+        parameter = None
+        if isinstance(value, Parameter):
+            parameter = value
+        elif isinstance(value, str):
+            parameter = Parameter(parameter_name, value)
+        elif isinstance(value, float) or isinstance(value, int):
+            expr = Expression('literal', value)
+            parameter = Parameter(parameter_name, expr)
+        elif isinstance(value, list):
+            expression_values = []
+            expr = None
+            for val in value:
+                expr = Expression('literal', val)
+                expression_values.append(expr)
+            parameter = Parameter(parameter_name, None)
+            parameter.set_vector(expression_values)
+        else:
+            error_("Unaccepted type value for global parameter "
+                   + str(type(value)))
+        return parameter
 
     @staticmethod
     def rename(node_or_hyperedge, new_name):
