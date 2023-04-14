@@ -5,7 +5,7 @@ GBOML has been published in the Journal of Open-Source Software : https://joss.t
 
 To cite the software :
 
-.. code-block:: c
+.. code-block:: 
 
     @article{Miftari2022,
       doi = {10.21105/joss.04158},
