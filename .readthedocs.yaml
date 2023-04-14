@@ -1,11 +1,8 @@
 version: 2
 
 # Default
-formats:
-  - epub
-  - pdf
+formats: []
 
 # Build documentation in the docs/ directory with Sphinx
 sphinx:
    configuration: docs/source/conf.py
-   fail_on_warning: false
