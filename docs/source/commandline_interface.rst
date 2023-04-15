@@ -96,7 +96,7 @@ It interfaces with CLP and CBC via a custom made experimental interface (it allo
 
    --opt opt_file
 
-where :math:`\texttt{<opt_file>}` is the name of the file containing the solver parameters. If no parameters are provided, the default solver parameters are used.
+where :math:`\texttt{<opt\_file>}` is the name of the file containing the solver parameters. If no parameters are provided, the default solver parameters are used.
 
 * *CSV*: the solution can be printed to a CSV file on a row basis (e.g., one variable per row):
 
@@ -136,4 +136,4 @@ where :math:`\texttt{<number>}` is an integer, whose default value is 1.
 
 	--output <output_filename>
 
-where :math:`\texttt{<output_filename>}` is the output filename without the extension (CSV or JSON). The default output name is the name of the GBOML file with the date and chosen extension.
+where :math:`\texttt{<output\_filename>}` is the output filename without the extension (CSV or JSON). The default output name is the name of the GBOML file with the date and chosen extension.

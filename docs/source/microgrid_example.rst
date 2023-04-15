@@ -6,7 +6,6 @@ Problem Description
 
 A grid-connected microgrid is a small-scale and (ideally) self-sufficient electric power system. It consists of an interconnection of electric generators (e.g., solar panels or fossil fuel generators) and loads (the set of electricity consumers). An electrical storage system is often added to the system in order to balance electricity production and consumption in time while limiting the dependence on the distribution network. The configuration of the microgrid system is shown in :numref:`microgrid`.
 
-
 .. figure:: ./mg.png
 	:name: microgrid
 	:align: center

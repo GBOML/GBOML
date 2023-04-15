@@ -1,7 +1,7 @@
 Hyperedges
 ----------
 
-A hyperedge typically couples variables belonging to different nodes via equality or inequality constraints (or both). Each hyperedge is defined using a dedicated code block. This code block must be started by either the :math:`\texttt{#HYPEREDGE}` keyword or the :math:`\texttt{#LINK}` keyword (the two can be used interchangeably). A hyperedge must have a unique :math:`\texttt{<identifier>}` and no two hyperedges or hyperedge and node may have the same identifier. In addition, a hyperedge may have its own parameters and constraints.
+A hyperedge typically couples variables belonging to different nodes via equality or inequality constraints (or both). Each hyperedge is defined using a dedicated code block. This code block must be started by either the :math:`\texttt{\#HYPEREDGE}` keyword or the :math:`\texttt{\#LINK}` keyword (the two can be used interchangeably). A hyperedge must have a unique :math:`\texttt{<identifier>}` and no two hyperedges or hyperedge and node may have the same identifier. In addition, a hyperedge may have its own parameters and constraints.
 Hence, valid hyperedge blocks have the following structure:
 
 .. code-block:: c
@@ -23,13 +23,13 @@ Parameters and constraints are further described below.
 Parameters
 ==========
 
-Parameters defined in a :math:`\texttt{#HYPEREDGE}` block follow the exact same rules as the ones defined in :math:`\texttt{#NODE}` blocks.
+Parameters defined in a :math:`\texttt{\#HYPEREDGE}` block follow the exact same rules as the ones defined in :math:`\texttt{\#NODE}` blocks.
 
 Constraints
 ===========
 
-While affine constraints involving all variables declared in a :math:`\texttt{#NODE}` block can be defined in the same block, constraints defined in :math:`\texttt{#HYPEREDGE}` blocks couple :math:`\texttt{external}` variables associated with any subset of nodes.
-The syntax for defining constraints is otherwise the same as the one used in :math:`\texttt{#NODE}` blocks:
+While affine constraints involving all variables declared in a :math:`\texttt{\#NODE}` block can be defined in the same block, constraints defined in :math:`\texttt{\#HYPEREDGE}` blocks couple :math:`\texttt{external}` variables associated with any subset of nodes.
+The syntax for defining constraints is otherwise the same as the one used in :math:`\texttt{\#NODE}` blocks:
 
 .. code-block:: c
 
@@ -44,7 +44,7 @@ Similarly to the constraints defined in nodes, hyperedges can also be named by a
 
     \texttt{<constraint identifier>: <constraint>;}
 
-Given these syntax rules, the following is an example including valid hyperedge blocks (and associated :math:`\texttt{#NODE}` blocks):
+Given these syntax rules, the following is an example including valid hyperedge blocks (and associated :math:`\texttt{\#NODE}` blocks):
 
 .. code-block:: c
 

@@ -35,7 +35,7 @@ autodoc_mock_imports = ["scipy", "numpy"]
 
 project = 'Graph-Based Optimization Modeling Language'
 copyright = '2021-2022, Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst, University of Liege'
-author = 'Bardhyl Miftari, Mathias Berger, Hatim Djelassi'
+author = 'Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst'
 
 
 # -- General configuration ---------------------------------------------------
@@ -54,8 +54,12 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 #latex_documents = []
-enable_pdf_build=False
+enable_pdf_build=True
 enable_epub_build=False
+
+latex_elements = {
+   'inputenc' : '\\usepackage[utf8x]{inputenc}',
+}
 
 # -- Options for HTML output -------------------------------------------------
 

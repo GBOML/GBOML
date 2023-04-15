@@ -3,7 +3,7 @@ Hierarchical Models
 
 In the hierarchical hypergraph abstraction underpinning the GBOML language, each node can itself be viewed as a hierarchical hypergraph. Nodes may therefore be constructed in a bottom-up fashion, from *sub-nodes* linked by *sub-hyperedges*.
 
-Sub-nodes and sub-hyperedges are defined between the :math:`\texttt{#PARAMETERS}` and :math:`\texttt{#VARIABLES}` blocks of a parent node. Thus, a typical hierarchical block :math:`\texttt{#NODE}` is structured as follows:
+Sub-nodes and sub-hyperedges are defined between the :math:`\texttt{\#PARAMETERS}` and :math:`\texttt{\#VARIABLES}` blocks of a parent node. Thus, a typical hierarchical block :math:`\texttt{\#NODE}` is structured as follows:
 
 .. code-block:: c
 
@@ -74,12 +74,13 @@ Note that indenting node blocks corresponding to different levels in the hierarc
 In contrast to parameters, variables can only be passed from the bottom up. Thus, a parent node can define some of its variables using those of a child node as follows:
 
  .. math::
+    :nowrap:
 
-   {\small
-   \begin{align*}
-   &\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>};\\
-   &\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>[<expression>]};
-   \end{align*}}
+    {\small
+    \begin{align*}
+    &\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>};\\
+    &\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>[<expression>]};
+    \end{align*}}
 
 Note that parent variables defined in such fashion must have the same type as the underlying child variables and vector variables must also have the same length. In addition, parent variables can only be defined from child variables one level down in the hierarchy.
 

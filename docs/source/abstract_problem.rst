@@ -42,11 +42,11 @@ Using this notation, the class of problems that can be represented in this frame
   & X^n \in \mathcal{X}^n, Z^n \in \mathcal{Z}^n, \hspace{2pt} \forall n \in \mathcal{N}.
   \end{array}
 
-:numref:`abstract_problem` schematically illustrates the class of problems that can be modelled in this framework.
-
 .. figure:: ./abstract_problem.png
   :name: abstract_problem
   :align: center
   :alt: abstract GBOML problem
 
   Schematic representation of the abstract GBOML problem.
+
+:numref:`abstract_problem` schematically illustrates the class of problems that can be modelled in this framework.
