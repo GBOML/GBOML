@@ -119,13 +119,12 @@ where :math:`\texttt{<constraint>}` is an equality or inequality constraint and 
 .. math::
    :nowrap:
 
-    {\small
     \begin{align*}
-    \texttt{<expansion range>} &\texttt{:= for <identifier> in [<start>:<end>];}\\
-                             &\texttt{:= for <identifier> in [<start>:<step>:<end>];}\\
-                             &\texttt{:= for <identifier> in [<start>:<end>] where <condition>;}\\
-                             &\texttt{:= for <identifier> in [<start>:<step>:<end>] where <condition>;}\\
-    \end{align*}}
+    {\small\texttt{<expansion range>} &\texttt{:= for <identifier> in [<start>:<end>];}}\\
+                             &{\small\texttt{:= for <identifier> in [<start>:<step>:<end>];}}\\
+                             &{\small\texttt{:= for <identifier> in [<start>:<end>] where <condition>;}}\\
+                             &{\small\texttt{:= for <identifier> in [<start>:<step>:<end>] where <condition>;}}\\
+    \end{align*}
 
 The first rule defines a constraint that is applied for all integral values of :math:`\texttt{<identifier>}` that lie in the range between :math:`\texttt{<start>}` and :math:`\texttt{<end>}` (both included). Note that :math:`\texttt{<start>}` must be smaller than :math:`\texttt{<end>}` for the range to be non-empty. If an empty range is given, a warning will be raised. The :math:`\texttt{<identifier>}` may be any identifier that has not been used to define a parameter or a variable in the present node block. The :math:`\texttt{t}` identifier is reserved for automatic expansion (discussed below) and may not be used for user-defined expansions. The second rule makes use of the optional definition of a :math:`\texttt{<step>}` that is used to increment through the range between :math:`\texttt{<start>}` and :math:`\texttt{<end>}`. The third and fourth rules are only extensions of the first two, where a certain :math:`\texttt{condition}` needs to be satisfied for the constraint to be expanded. Recall that such conditions are defined in terms of expressions, comparison operators, and logical operators. For a condition to be valid, it must be possible to evaluate it for a given value of :math:`\texttt{<identifier>}`. In particular, conditions may depend on :math:`\texttt{<identifier>}` and parameters but must not depend on variables. In addition, the indices over which expansions take place must be valid for vectors of parameters and variables involved in vectorized constraints. More precisely, an index is valid if it is non-negative and does not exceed the size of said vector. If an index that is not valid is used in the expansion, an error is returned.
 

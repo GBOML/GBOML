@@ -76,7 +76,6 @@ In contrast to parameters, variables can only be passed from the bottom up. Thus
  .. math::
     :nowrap:
 
-
     \begin{align*}
     &{\small\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>}};\\
     &{\small\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>[<expression>]}};
