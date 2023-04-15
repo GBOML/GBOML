@@ -76,11 +76,11 @@ In contrast to parameters, variables can only be passed from the bottom up. Thus
  .. math::
     :nowrap:
 
-    {\small
+
     \begin{align*}
-    &\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>};\\
-    &\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>[<expression>]};
-    \end{align*}}
+    &{\small\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>}};\\
+    &{\small\texttt{<parent node identifier> <- <child node identifier>.<variable identifier>[<expression>]}};
+    \end{align*}
 
 Note that parent variables defined in such fashion must have the same type as the underlying child variables and vector variables must also have the same length. In addition, parent variables can only be defined from child variables one level down in the hierarchy.
 
