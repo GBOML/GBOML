@@ -42,6 +42,8 @@ def cplex_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
                  vector_c: np.ndarray,
                  objective_offset: float,
                  name_tuples: dict,
+                 structure_indexes_eq = None,
+                 structure_indexes_ineq = None,
                  opt_file: str = None,
                  details=False,
                  option_dict: dict = None) -> tuple:
@@ -60,6 +62,10 @@ def cplex_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
             objective_offset -> float of the objective offset
             name_tuples -> dictionary of <node_name variables> used
                            to get the type
+            structure_indexes_eq -> constraint indexes for equality matrix of the different blocks
+                                    (last one being the master block)
+            structure_indexes_ineq -> constraint indexes for inequality matrix of the different blocks
+                                    (last one being the master block)
             opt_file -> optimization parameters file
             option_dict -> alternative to optimization parameters file that associates
                            key = <option to set>, value= value
@@ -72,6 +78,7 @@ def cplex_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
     """
     if option_dict is None:
         option_dict = dict()
+
     try:
 
         import cplex
@@ -124,6 +131,28 @@ def cplex_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
     model.objective.set_sense(model.objective.sense.minimize)
     model.objective.set_offset(objective_offset)
 
+    print(structure_indexes_eq, structure_indexes_ineq)
+    if structure_indexes_eq is not None and structure_indexes_ineq is not None:
+        if structure_indexes_eq != [] and structure_indexes_ineq != []:
+            master_block_eq = structure_indexes_eq[-1]
+            master_block_ineq = structure_indexes_ineq[-1]
+            col_ineq = matrix_a_ineq.col
+            col_eq = matrix_a_eq.col
+            master_var_col = np.append(col_ineq[master_block_ineq], col_eq[master_block_eq])
+            anno = model.long_annotations
+            idx = anno.add(name=anno.benders_annotation,
+                           defval=anno.benders_mastervalue)
+            objtype = anno.object_type.variable
+            nb_blocks = len(structure_indexes_eq)
+            for b_number in range(nb_blocks - 1):
+                block_eq = structure_indexes_eq[b_number]
+                block_ineq = structure_indexes_ineq[b_number]
+                block_var = np.append(col_ineq[block_eq], col_eq[block_ineq])
+                list_zipped = [(int(i), int(b_number+1)) for i in block_var if i not in master_var_col]
+                model.long_annotations.set_values(idx, objtype, list_zipped)
+        else:
+            model.parameters.benders.strategy.set(
+                model.parameters.benders.strategy.values.full)
     # Retrieve solver information
     solver_info = {"name": "cplex"}
     print("\nReading CPLEX options from file cplex.opt")

@@ -34,7 +34,8 @@ def dsp_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
                objective_offset: float, name_tuples: dict,
                structure_indexes_eq,
                structure_indexes_ineq,
-               algorithm="de") -> tuple:
+               algorithm="de",
+               solver_lib=None) -> tuple:
     """dsp_solver
 
         takes as input the matrix A, the vectors b and c. It returns the
@@ -56,7 +57,7 @@ def dsp_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
                                     (last one being the master block)
             algorithm -> solving algorithm to use, either "de" for the extensive
                          form and "dw" for Dantzig-Wolf
-
+            solver_lib -> path to solver library
         Returns:
             solution -> np.ndarray of the flat solution
             objective -> float of the objective value
@@ -106,7 +107,7 @@ def dsp_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
 
     row_up = vector_b_ineq[master_constr_slice_ineq].tolist()+vector_master_eq
 
-    dsp = DSPpy()
+    dsp = DSPpy(solver_lib)
     pointer_to_model = dsp.createEnv()
     master_val = np.concatenate((master_val_ineq, master_val_eq))
     master_col = np.concatenate((master_col_ineq, master_col_eq))

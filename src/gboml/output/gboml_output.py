@@ -362,12 +362,12 @@ def flat_graph_and_add_node_prefix(nodes, hyperedges, solution, product, constra
                               (start_index + size_variable)].flatten().tolist()
             name_tuples.append([identifier_name, values])
 
-        #parameters = node.get_parameter_dict()
-        #for parameter_name, parameter_object in parameters.items():
+        parameters = node.get_parameter_dict()
+        for parameter_name, parameter_object in parameters.items():
 
-        #    values = parameter_object.get_value()
-        #    parameter_full_name = str(node_name) + "." + str(parameter_name)
-        #    name_tuples.append([parameter_full_name, values])
+            values = parameter_object.get_value()
+            parameter_full_name = str(node_name) + "." + str(parameter_name)
+            name_tuples.append([parameter_full_name, values])
 
         objectives_data = node.get_objectives_data()
         for i, objective_info in objectives_data.items():
@@ -410,11 +410,11 @@ def flat_graph_and_add_node_prefix(nodes, hyperedges, solution, product, constra
     for hyperedge in hyperedges:
         hyperedge_name = prefix+hyperedge.get_name()
         parameters = hyperedge.get_parameter_dict()
-        #for parameter_name, parameter_object in parameters.items():
-        #    values = parameter_object.get_value()
-        #    parameter_full_name = str(hyperedge_name) + "." \
-        #                          + str(parameter_name)
-        #    name_tuples.append([parameter_full_name, values])
+        for parameter_name, parameter_object in parameters.items():
+            values = parameter_object.get_value()
+            parameter_full_name = str(hyperedge_name) + "." \
+                                  + str(parameter_name)
+            name_tuples.append([parameter_full_name, values])
 
         if constraints_info != {}:
             constraints_info_in_hyperedge = hyperedge.get_constraints_data()
@@ -460,11 +460,11 @@ def generate_list_values_tuple(program, solution, c_matrix, indep_terms_c, const
         product = c_matrix * solution + indep_terms_c
 
     global_param: dict = program.get_global_parameters()
-    #for param in global_param.keys():
-    #    values = global_param[param].get_value()
-    #    full_name = "global." + str(param)
-    #    names.append(full_name)
-    #    ordered_values.append(values)
+    for param in global_param.keys():
+        values = global_param[param].get_value()
+        full_name = "global." + str(param)
+        names.append(full_name)
+        ordered_values.append(values)
 
     name_value_tuples = flat_graph_and_add_node_prefix(nodes,
                                                        hyperedges,

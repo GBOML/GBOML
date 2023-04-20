@@ -44,6 +44,7 @@ class Node:
         self.hyperedges = []
         self.expression = []
         self.parameters_changes = []
+        self.parameters_redefined_dict = {}
         self.variables_changes = []
         self.dict_sub_nodes_edges = {}
         self.objectives_data = {}
@@ -107,7 +108,19 @@ class Node:
         return self.variables_changes
 
     def set_parameters_changes(self, changes):
-        self.parameters_changes = changes
+        if not self.parameters_changes:
+            self.parameters_changes = changes
+            for i, change in enumerate(changes):
+                self.parameters_redefined_dict[change.get_name()] = i
+        else:
+            for param in self.parameters_changes:
+                name = param.get_name()
+                if name in self.parameters_redefined_dict:
+                    i = self.parameters_redefined_dict[name]
+                    self.parameters_changes[i] = param
+                else:
+                    self.parameters_redefined_dict[name] = (len(self.parameters_changes), param)
+                    self.parameters_changes.append(param)
 
     def add_parameter_change(self, change):
         self.parameters_changes.append(change)

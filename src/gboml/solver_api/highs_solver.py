@@ -33,7 +33,8 @@ def highs_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
                  vector_c: np.ndarray,
                  objective_offset: float, name_tuples: dict,
                  opt_file: str = None,
-                 option_dict: dict = None
+                 option_dict: dict = None,
+                 solver_lib=None
                  ) -> tuple:
     """highs_solver
 
@@ -53,7 +54,7 @@ def highs_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
             opt_file -> optimization parameters file
             option_dict -> alternative to optimization parameters file that associates
                            key = <option to set>, value= value
-
+            solver_lib -> path to solver library
         Returns:
             solution -> np.ndarray of the flat solution
             objective -> float of the objective value
@@ -78,7 +79,7 @@ def highs_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
     csr_matrix_a_ineq = csr_matrix(matrix_a_ineq)
 
     vector_c = vector_c[-1]
-    py_highs = PyHighs()
+    py_highs = PyHighs(solver_lib)
     highs_model = py_highs.Highs_create()
 
     col_types = [0] * nb_cols

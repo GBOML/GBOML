@@ -22,6 +22,8 @@ Graph-Based Optimization Modeling Language Documentation
    ./citation.rst
 
 
+A PDF version of this documentation can be found `here <https://gboml.readthedocs.io/_/downloads/en/latest/pdf/>`_.
+
 Indices and tables
 ==================
 

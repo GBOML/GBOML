@@ -50,6 +50,12 @@ and is therefore only recommended for testing purposes (e.g., make sure that GBO
 
    --cplex
 
+* *CPLEX Benders*: CPLEX Benders can be used with:
+
+.. code-block:: bash
+
+   --cplex_benders
+
 * *Xpress*: Xpress can be used with:
 
 .. code-block:: bash
@@ -94,9 +100,18 @@ It interfaces with CLP and CBC via a custom made experimental interface (it allo
 
 .. code-block:: bash
 
-   --opt opt_file
+   --opt <opt_file>
 
 where :math:`\texttt{<opt\_file>}` is the name of the file containing the solver parameters. If no parameters are provided, the default solver parameters are used.
+
+* *Solver library path*: solver library path for DSP, CBC and HiGHS can be set by with:
+
+.. code-block:: bash
+
+   --solver_lib <path_to_library>
+
+where :math:`\texttt{<path\_to\_library>}` is the library path to read. If :math:`\texttt{solver\_lib}` is not set, the default solver on the library PATH is used.
+
 
 * *CSV*: the solution can be printed to a CSV file on a row basis (e.g., one variable per row):
 

@@ -37,8 +37,7 @@ from time import gmtime, strftime, time
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False,
                                      description='Compiler and solver for the '
-                                                 'generic system model language'
-                                     )
+                                                 'generic system model language')
     parser.add_argument("input_file", type=str)
 
     # Compiling info
@@ -58,6 +57,8 @@ def main():
                         const=True)
     parser.add_argument("--cplex", help="Cplex solver", action='store_const',
                         const=True)
+    parser.add_argument("--cplex_benders", help="Cplex Benders Solver",
+                        action='store_const', const=True)
     parser.add_argument("--linprog", help="Scipy linprog solver",
                         action='store_const', const=True)
     parser.add_argument("--gurobi", help="Gurobi solver",
@@ -88,8 +89,12 @@ def main():
                         action="store_const", const=True)
     parser.add_argument("--output", help="Output filename", type=str)
     parser.add_argument("--opt", help="Optimization options filename", type=str)
+    parser.add_argument("--solver_lib",
+                        help="Path to solver library for CBC - HiGHs - DSP solver",
+                        type=str)
 
     args = parser.parse_args()
+
     start_time = time()
     if args.detailed is None:
         args.detailed = True
@@ -135,7 +140,18 @@ def main():
         elif args.cbc:
 
             x, objective, status, solver_info = \
-                cbc_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples)
+                cbc_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
+                           solver_lib=args.solver_lib)
+
+        elif args.cplex_benders:
+            struct_eq, struct_ineq = program.get_first_level_constraints_decomposition()
+            x, objective, status, solver_info, \
+             constraints_additional_information, \
+             variables_additional_information = \
+                cplex_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
+                             opt_file=args.opt, structure_indexes_eq=struct_eq,
+                             structure_indexes_ineq=struct_ineq, details=args.detailed)
+
         elif args.cplex:
             x, objective, status, solver_info, \
              constraints_additional_information, \
@@ -150,7 +166,6 @@ def main():
              variables_additional_information = \
              gurobi_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
                            args.opt, args.detailed)
-            print(x)
 
         elif args.xpress:
 
@@ -164,18 +179,20 @@ def main():
             struct_eq, struct_ineq = program.get_first_level_constraints_decomposition()
             x, objective, status, solver_info = \
                 dsp_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
-                           struct_eq, struct_ineq, algorithm="dw")
+                           struct_eq, struct_ineq, algorithm="dw",
+                           solver_lib=args.solver_lib)
 
         elif args.dsp_de:
             struct_eq, struct_ineq = program.get_first_level_constraints_decomposition()
             x, objective, status, solver_info = \
                 dsp_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
-                           struct_eq, struct_ineq, algorithm="de")
+                           struct_eq, struct_ineq, algorithm="de",
+                           solver_lib=args.solver_lib)
 
         elif args.highs:
             x, objective, status, solver_info = \
                 highs_solver(A_eq, b_eq, A_ineq, b_ineq, C_sum, objective_offset, name_tuples,
-                             args.opt)
+                             args.opt, solver_lib=args.solver_lib)
         else:
 
             print("No solver was chosen")
@@ -241,6 +258,7 @@ def main():
             names_var_and_param, values_var_and_param = \
                 generate_list_values_tuple(program, x, C, indep_terms_c,
                                            constraints_info=constraints_additional_information)
+            print(names_var_and_param)
             write_csv(filename + ".csv", names_var_and_param,
                       values_var_and_param, transpose=args.col_csv)
     else:

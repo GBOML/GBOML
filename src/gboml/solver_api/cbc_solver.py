@@ -34,7 +34,8 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
                objective_offset: float,
                name_tuples: dict,
                opt_file: str = None,
-               option_dict: dict = None) -> tuple:
+               option_dict: dict = None,
+               solver_lib=None) -> tuple:
     """cbc_solver
 
         takes as input the matrix A, the vectors b and c. It returns the
@@ -53,7 +54,7 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
             opt_file -> optimization parameters file
             option_dict -> alternative to optimization parameters file that associates
                            key = <option to set>, value= value
-
+            solver_lib -> path to solver library
         Returns:
             solution -> np.ndarray of the flat solution
             objective -> float of the objective value
@@ -92,7 +93,7 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
 
     merged_matrices = coo_matrix((all_data, (all_rows, all_col)), shape=(nb_row_ineq+nb_row_eq, nvars)).tocsc()
     index, indptr, data = merged_matrices.indices, merged_matrices.indptr, merged_matrices.data
-    cbc_lib = PyCBC()
+    cbc_lib = PyCBC(solver_lib)
     cbc_model = cbc_lib.Cbc_newModel()
     cbc_lib.Cbc_loadProblem(cbc_model, nvars, nb_row_ineq+nb_row_eq, indptr, index, data,
                             col_lower, col_upper, vector_c[0], row_lower, row_upper)
@@ -193,5 +194,7 @@ def cbc_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
             objective = cbc_lib.Cbc_getObjValue(cbc_model)+objective_offset
     else:
         status = "unknown"
+
+    cbc_lib.Cbc_deleteModel(cbc_model)
 
     return solution, objective, status, solver_info

@@ -787,6 +787,31 @@ class CompilerTests(unittest.TestCase):
             tot_score = variables["score_total"]["values"]
             self.assertEqual(tot_score[0], 0.6)
 
+    def test_rename_vector_param(self):
+        """ test_rename_vector_param
+
+        Tests redefining a vector parameters
+
+        """
+        process = subprocess.run(
+            ['gboml', 'test/test31_rename.txt'],
+            stdout=subprocess.PIPE,
+            universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
+
+    def test_rename_node(self):
+        """ test_rename_node
+
+        Tests redefining several nodes with import
+
+        """
+        process = subprocess.run(
+            ['gboml', 'test/test_32_rename.txt'],
+            stdout=subprocess.PIPE,
+            universal_newlines=True)
+        return_code = process.returncode
+        self.assertEqual(return_code, 0)
 
 
 class GBOMLpyTest(unittest.TestCase):
