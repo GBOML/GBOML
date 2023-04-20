@@ -8,7 +8,7 @@ Accordingly, the following identifiers are all valid,
     :nowrap:
 
     \begin{align*}
-        \texttt{mynode1}, \qquad \texttt{\_SolarPlant\_2}, \qquad \texttt{HydroStorage\_a}.
+        ``mynode1``, \qquad ``_SolarPlant_2``, \qquad ``HydroStorage_a``.
     \end{align*}
 
 Besides these lexical requirements, identifiers must also be unique in their respective scope. Hence, no two nodes may have the same identifier since this would prohibit the unambiguous identification of a particular node.

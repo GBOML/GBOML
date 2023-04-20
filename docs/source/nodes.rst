@@ -3,9 +3,9 @@ Nodes
 
 In the hypergraph abstraction of optimization problems underpinning the GBOML language, nodes represent optimization subproblems. Hence, each node has its own set of parameters. It is also equipped with a set of variables, which are split into *internal* and *external* (or *coupling*) variables. In addition, a set of constraints can be defined for each node, along with a local objective function representing its contribution to a system-wide objective.
 
-A unique identifier must be assigned to each :math:`\texttt{\#NODE}` block, and such a block is further divided into code blocks where parameters, variables, constraints, and objectives can  be defined.
-Each of these blocks is introduced by one of the following keywords, namely :math:`\texttt{\#PARAMETERS}`, :math:`\texttt{\#VARIABLES}`, :math:`\texttt{\#CONSTRAINTS}`, and :math:`\texttt{\#OBJECTIVES}`.
-A typical :math:`\texttt{\#NODE}` block is therefore structured as follows:
+A unique identifier must be assigned to each ``#NODE`` block, and such a block is further divided into code blocks where parameters, variables, constraints, and objectives can  be defined.
+Each of these blocks is introduced by one of the following keywords, namely ``#PARAMETERS``, ``#VARIABLES``, ``#CONSTRAINTS``, and ``#OBJECTIVES``.
+A typical ``#NODE`` block is therefore structured as follows:
 
 .. code-block:: c
 
@@ -24,9 +24,9 @@ These different code blocks are discussed in further detail below.
 Parameters
 ==========
 
-The parameters defined within a given :math:`\texttt{\#NODE}` block respect the same rules as those defined in the :math:`\texttt{\#GLOBAL}` block. However, node parameters are local to the present node and parameters defined in different nodes cannot be accessed in this scope.
+The parameters defined within a given ``#NODE`` block respect the same rules as those defined in the ``#GLOBAL`` block. However, node parameters are local to the present node and parameters defined in different nodes cannot be accessed in this scope.
 
-For the sake of illustration, the following :math:`\texttt{\#PARAMETERS}` block is valid in GBOML:
+For the sake of illustration, the following ``#PARAMETERS`` block is valid in GBOML:
 
 .. code-block:: c
 
@@ -38,7 +38,7 @@ Variables
 =========
 
 Variables are declared with one of the two keywords :math:`\texttt{internal}` and :math:`\texttt{external}`. While :math:`\texttt{internal}` variables are meant to model the internal state of a node, :math:`\texttt{external}` variables are meant to model the interaction between different nodes.
-That is, the coupling between nodes is modeled by imposing constraints on their :math:`\texttt{external}` variables (which is further discussed when introducing :math:`\texttt{\#HYPEREDGE}` blocks). In addition, variables can represent either a scalar or a vector. The syntax for declaring variables in GBOML is as follows:
+That is, the coupling between nodes is modeled by imposing constraints on their :math:`\texttt{external}` variables (which is further discussed when introducing ``#HYPEREDGE`` blocks). In addition, variables can represent either a scalar or a vector. The syntax for declaring variables in GBOML is as follows:
 
 .. code-block:: c
 
@@ -51,7 +51,7 @@ Variables defined only by an identifier are scalar variables, with the identifie
 
 Furthermore, variables can be of different types, which can be specified by using one additional keyword when declaring a variable, namely :math:`\texttt{continuous}`, :math:`\texttt{integer}` or :math:`\texttt{binary}`. Note that if no keyword is specified, variables are assumed to be continuous by default.
 
-Given these syntax rules, the following :math:`\texttt{\#VARIABLES}` block is valid in GBOML:
+Given these syntax rules, the following ``#VARIABLES`` block is valid in GBOML:
 
 .. code-block:: c
 
@@ -73,7 +73,7 @@ The syntax rules for the definition of basic equality and inequality constraints
  <expression> >= <expression>;
 
 Therein, both the left-hand side and the right-hand side of the constraints are general expressions while the type of the constraint is indicated by the comparison operator used.
-Furthermore, in line with the fact that parameter and variable definitions are local to a given node, constraints defined in a :math:`\texttt{\#NODE}` block must not reference quantities that are defined in other nodes.
+Furthermore, in line with the fact that parameter and variable definitions are local to a given node, constraints defined in a ``#NODE`` block must not reference quantities that are defined in other nodes.
 
 An identifier can be also be assigned to constraints when defining them. The following syntax can be used to do so:
 
@@ -182,10 +182,10 @@ The syntax rules for the definition of objectives are as follows:
  min : <expression> <expansion range>;
  max : <expression> <expansion range>;
 
-At least one node in a given model must possess at least one objective but all nodes may have multiple objectives. In case multiple objectives are given in the same :math:`\texttt{\#NODE}` block, all objectives are aggregated into a single one by summing them (respecting the sign associated with the keywords :math:`\texttt{min}` and :math:`\texttt{max}`).
+At least one node in a given model must possess at least one objective but all nodes may have multiple objectives. In case multiple objectives are given in the same ``#NODE`` block, all objectives are aggregated into a single one by summing them (respecting the sign associated with the keywords :math:`\texttt{min}` and :math:`\texttt{max}`).
 Since the abstract GBOML problem is a minimization problem, the signs of objectives that should be maximized are inverted before summation.
 
-Objectives can also be expanded in two ways, namely via user-defined and automatic expansions. First, user-defined expansions make use of an :math:`\texttt{<identifier>}` that will be expanded over each value in the :math:`\texttt{<expansion range>}`. Second, automatic expansions can be constructed by using the :math:`\texttt{t}` identifier directly in the objective. Since all local objectives defined in the same :math:`\texttt{\#NODE}` block are eventually aggregated, the following objectives are in fact equivalent:
+Objectives can also be expanded in two ways, namely via user-defined and automatic expansions. First, user-defined expansions make use of an :math:`\texttt{<identifier>}` that will be expanded over each value in the :math:`\texttt{<expansion range>}`. Second, automatic expansions can be constructed by using the :math:`\texttt{t}` identifier directly in the objective. Since all local objectives defined in the same ``#NODE`` block are eventually aggregated, the following objectives are in fact equivalent:
 
 .. math::
 
@@ -200,7 +200,7 @@ Similarly to constraints, identifiers can be assigned to objectives when definin
    min <identifier>: <expression> <expansion range>;
    max <identifier>: <expression> <expansion range>;
 
-The previous example can be completed by defining an objective function, which yields a complete and valid :math:`\texttt{\#NODE}` block:
+The previous example can be completed by defining an objective function, which yields a complete and valid ``#NODE`` block:
 
 .. code-block:: c
 

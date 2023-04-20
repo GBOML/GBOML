@@ -3,7 +3,7 @@ Hierarchical Models
 
 In the hierarchical hypergraph abstraction underpinning the GBOML language, each node can itself be viewed as a hierarchical hypergraph. Nodes may therefore be constructed in a bottom-up fashion, from *sub-nodes* linked by *sub-hyperedges*.
 
-Sub-nodes and sub-hyperedges are defined between the :math:`\texttt{\#PARAMETERS}` and :math:`\texttt{\#VARIABLES}` blocks of a parent node. Thus, a typical hierarchical block :math:`\texttt{\#NODE}` is structured as follows:
+Sub-nodes and sub-hyperedges are defined between the ``#PARAMETERS`` and ``#VARIABLES`` blocks of a parent node. Thus, a typical hierarchical block ``#NODE`` is structured as follows:
 
 .. code-block:: c
 

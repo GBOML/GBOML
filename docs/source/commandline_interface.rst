@@ -7,7 +7,7 @@ The GBOML parser can be called from the command line by typing the following com
 
    gboml <file> <options>
 
-where :math:`\texttt{<file>}` is the name of the file to be considered and :math:`\texttt{<options>}` corresponds to one or several optional flags that can be activated.
+where ``<file>`` is the name of the file to be considered and ``<options>`` corresponds to one or several optional flags that can be activated.
 
 The options are the following :
 
@@ -110,7 +110,7 @@ where ``<opt_file>`` is the name of the file containing the solver parameters. I
 
    --solver_lib <path_to_library>
 
-where :math:`\texttt{<path\_to\_library>}` is the library path to read. If :math:`\texttt{solver\_lib}` is not set, the default solver on the library PATH is used.
+where ``<path_to_library>`` is the library path to read. If ``solver_lib`` is not set, the default solver on the library PATH is used.
 
 
 * *CSV*: the solution can be printed to a CSV file on a row basis (e.g., one variable per row):
@@ -143,7 +143,7 @@ where :math:`\texttt{<path\_to\_library>}` is the library path to read. If :math
 
 	--nb_processes <number>
 
-where :math:`\texttt{<number>}` is an integer, whose default value is 1.
+where ``<number>`` is an integer, whose default value is 1.
 
 * *Output*: the name of the output file can be defined with:
 
@@ -151,4 +151,4 @@ where :math:`\texttt{<number>}` is an integer, whose default value is 1.
 
 	--output <output_filename>
 
-where :math:`\texttt{<output\_filename>}` is the output filename without the extension (CSV or JSON). The default output name is the name of the GBOML file with the date and chosen extension.
+where ``<output_filename>`` is the output filename without the extension (CSV or JSON). The default output name is the name of the GBOML file with the date and chosen extension.
