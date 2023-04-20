@@ -102,7 +102,7 @@ It interfaces with CLP and CBC via a custom made experimental interface (it allo
 
    --opt <opt_file>
 
-where :math:`\texttt{<opt\_file>}` is the name of the file containing the solver parameters. If no parameters are provided, the default solver parameters are used.
+where ``<opt_file>`` is the name of the file containing the solver parameters. If no parameters are provided, the default solver parameters are used.
 
 * *Solver library path*: solver library path for DSP, CBC and HiGHS can be set by with:
 
