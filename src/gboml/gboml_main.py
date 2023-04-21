@@ -258,7 +258,6 @@ def main():
             names_var_and_param, values_var_and_param = \
                 generate_list_values_tuple(program, x, C, indep_terms_c,
                                            constraints_info=constraints_additional_information)
-            print(names_var_and_param)
             write_csv(filename + ".csv", names_var_and_param,
                       values_var_and_param, transpose=args.col_csv)
     else:
