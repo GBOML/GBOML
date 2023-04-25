@@ -63,7 +63,7 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
     return modify(pdef, {VarOrParam: change_var})
 
 
-def _merge_node_parameters(parameters: list[Definition]) -> list[Definition] | None:
+def _merge_parameters(parameters: list[Definition]) -> list[Definition] | None:
     need_update = False
     params: dict[str, list[Definition]] = {}
     for p in parameters:
@@ -117,7 +117,7 @@ def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> 
 def _modify_node(node: NodeDefinition | NodeGenerator) -> NodeDefinition | NodeGenerator:
     todo = {}
 
-    params = _merge_node_parameters(node.parameters)
+    params = _merge_parameters(node.parameters)
     if params is not None:
         todo["parameters"] = params
 
@@ -131,7 +131,7 @@ def _modify_node(node: NodeDefinition | NodeGenerator) -> NodeDefinition | NodeG
 
 
 def _modify_hyperedge(hyperedge: HyperEdgeDefinition | HyperEdgeGenerator) -> HyperEdgeDefinition | HyperEdgeGenerator:
-    params = _merge_node_parameters(hyperedge.parameters)
+    params = _merge_parameters(hyperedge.parameters)
     if params is not None:
         return dataclasses.replace(hyperedge, parameters=params)
     return hyperedge
