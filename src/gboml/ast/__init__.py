@@ -1,7 +1,7 @@
 __all__ = [
     "Meta", "GBOMLObject", "VarScope", "VarType", "SOSType", "ObjType",
     "Operator", "ExpressionObj", "Expression", "BoolExpression", "VarOrParamLeaf",
-    "VarOrParam", "Array", "Loop", "BaseLoop", "Function", "BoolExpressionOp",
+    "VarOrParam", "Array", "Loop", "BaseLoop", "EqLoop", "Function", "BoolExpressionOp",
     "BoolExpressionComparison", "ScopeChange", "ImportFile", "Definition", "Constraint",
     "StdConstraint", "SOSConstraint", "Objective", "VariableDefinition", "Node",
     "HyperEdge", "NodeDefinition", "HyperEdgeDefinition",
@@ -9,7 +9,7 @@ __all__ = [
     "Range", "MultiLoop", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
     "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject",
-    "ExpressionUseGenScope", "AnyGBOMLObject"
+    "ExpressionUseGenScope", "AnyGBOMLObject", "IndexingParameterDefinition"
 ]
 
 from gboml.ast.arrays import *

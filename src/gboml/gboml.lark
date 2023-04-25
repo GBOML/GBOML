@@ -83,8 +83,9 @@ OBJ_TYPE: "min" | "max"
 
 // LOOPS
 ?loop: multi_loop | implicit_loop
-?multi_loop: base_loop+
+?multi_loop: (base_loop | eq_loop)+
 base_loop: "for" ID "in" iterable ["where" bool_expression]
+eq_loop: "for" ID "=" var_or_param ["where" bool_expression]
 implicit_loop: "where" bool_expression
 
 // BOOLEAN EXPRESSIONS
@@ -98,7 +99,9 @@ bool_expression_comparison: expression (COMPARISON_OPERATOR | CTR_OPERATOR) expr
 COMPARISON_OPERATOR:  "<" | ">" | "!="
 
 // DEFINITIONS
-definition: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE rvalue tags ";"
+?definition: definition_std_param | definition_indexing_param
+definition_indexing_param: ID "in" iterable ";"
+definition_std_param: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE rvalue tags ";"
 DEF_TYPE: "=" | "<-"
 
 // ARRAYS

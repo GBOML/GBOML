@@ -22,6 +22,13 @@ class BaseLoop(Loop):
 
 
 @dataclass
+class EqLoop(Loop):
+    varid: str
+    on: VarOrParam
+    condition: Optional[BoolExpression]
+
+
+@dataclass
 class ImplicitLoop(BaseLoop):
     varid: str = field(default="t", init=False)
     on: Iterable = field(default_factory=lambda: Range(0, VarOrParam([VarOrParamLeaf("T")])), init=False)

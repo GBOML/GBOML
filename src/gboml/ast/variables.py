@@ -2,6 +2,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from gboml.ast.functions import Function
+from gboml.ast.arrays import Array, Range
 from gboml.ast.base import GBOMLObject, NamedGBOMLObject
 from gboml.ast.path import VarOrParam
 from gboml.ast.rvalue import RValue
@@ -45,6 +47,9 @@ class FunctionDefinition(Definition):
     value: RValue
     tags: set[str] = field(default_factory=set)
 
+@dataclass
+class IndexingParameterDefinition(Definition):
+    value: Function | Array | Range | VarOrParam
 
 @dataclass
 class VariableDefinition(NamedGBOMLObject):

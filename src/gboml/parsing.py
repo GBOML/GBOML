@@ -72,6 +72,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "constraint_sos": SOSConstraint,
             "objective": Objective,
             "base_loop": BaseLoop,
+            "eq_loop": EqLoop,
             "implicit_loop": ImplicitLoop,
             "subtraction": op_transform(Operator.minus),
             "sum": op_transform(Operator.plus),
@@ -92,6 +93,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             "dict_entry": DictEntry,
             "array": Array,
             "dict": Dictionary,
+            "definition_indexing_param": IndexingParameterDefinition,
             "ctr_activate": lambda *x, meta: CtrActivation(ActivationType.activate, *x, meta=meta),
             "ctr_deactivate": lambda *x, meta: CtrActivation(ActivationType.deactivate, *x, meta=meta),
             "obj_activate": lambda *x, meta: ObjActivation(ActivationType.activate, *x, meta=meta),
@@ -211,7 +213,7 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
                 return Array(entries, meta=meta)
             raise Exception("An array cannot contain dictionary entries (and conversely)")
 
-        def definition(self, meta: Meta, name: str, args: Optional[list[str]], typ: DefinitionType, val: RValue, tags: set[str]):
+        def definition_std_param(self, meta: Meta, name: str, args: Optional[list[str]], typ: DefinitionType, val: RValue, tags: set[str]):
             if args is not None:
                 if typ != DefinitionType.expression:
                     raise Exception("Functions can only be defined as expressions (use `<-` instead of `=`)")
