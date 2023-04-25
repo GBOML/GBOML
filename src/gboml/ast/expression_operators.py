@@ -41,6 +41,13 @@ class BoolExpressionComparison(BoolExpression):
     operator: Operator
     rhs: Expression
 
+    def __bool__(self):
+        """ Checks if lhs and rhs are *exactly* the same tree in an eq relation """
+        #TODO improve me
+        if self.operator == Operator.equal:
+            return self.lhs is self.rhs
+        return False
+
 
 @dataclass
 class ExpressionUseGenScope(ExpressionObj):
