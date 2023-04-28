@@ -17,7 +17,7 @@ class HyperEdge(NamedGBOMLObject):
 @dataclass
 class HyperEdgeDefinition(HyperEdge):
     name: str
-    import_from: Optional[Extends] = None
+    import_from: Optional[Extends | HyperEdge] = None
     parameters: list[Definition] = field(default_factory=list)
     constraints: list[Constraint] = field(default_factory=list)
     activations: list[CtrActivation] = field(default_factory=list)
@@ -29,7 +29,7 @@ class HyperEdgeGenerator(HyperEdge):
     name: str
     indices: list[str]
     loop: Loop
-    import_from: Optional[Extends] = None
+    import_from: Optional[Extends | HyperEdge] = None
     parameters: list[Definition] = field(default_factory=list)
     constraints: list[Constraint] = field(default_factory=list)
     activations: list[CtrActivation] = field(default_factory=list)

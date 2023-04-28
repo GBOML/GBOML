@@ -19,7 +19,7 @@ class Node(NamedGBOMLObject):
 @dataclass
 class NodeDefinition(Node):
     name: str
-    import_from: Optional[Extends] = None
+    import_from: Optional[Extends | Node] = None
     parameters: list[Definition] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     hyperedges: list[HyperEdge] = field(default_factory=list)
@@ -35,7 +35,7 @@ class NodeGenerator(Node):
     name: str
     indices: list[str]
     loop: Loop
-    import_from: Optional[Extends] = None
+    import_from: Optional[Extends | Node] = None
     parameters: list[Definition] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
     hyperedges: list[HyperEdge] = field(default_factory=list)
