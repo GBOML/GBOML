@@ -1,0 +1,11 @@
+#TIMEHORIZON T = 1;
+
+#NODE B
+    #PARAMETERS
+        a <- 12;
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x <= -4;
+    #OBJECTIVES
+        max : x;

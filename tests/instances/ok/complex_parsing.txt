@@ -6,28 +6,35 @@
     c = 2e2;
     d = -1;
     e <- 2e-2;
-    f = [0:2];
+    f = 0:2;
+    f = {i for i in 0:10, i for i in 100:120};
     g = [0:10:2];
 #NODE nodeI  = import nodeA from "hello.gboml";
 #NODE nodeI2 = import nodeA from "hello.gboml" with
     a = 2;
     b external;
     c internal;
-#NODE nodeL[i] for i in [0:10] @hello
-    x = 3;
-    x = @test @test;
+#NODE ALAKAZAM[i] for i in [0:10] @cquetuveux
+    x = 3*i;
+    y = @test @test;
     #VARIABLES
         pass;
 #HYPEREDGE E[i] for i in [0:10]
     #CONSTRAINTS
         pass;
-#NODE node1
+#NODE node1 extends A from "lol.txt" @cquetuveux
     #PARAMETERS
         a = 2;
         b = import "lol.csv";
         c = {2, 2 for i in [0:2], node1, "hello", import "lol.csv", {22}, f(22, 2 for i in [0:2])};
         d = "hey";
         e = {2 for i in global.g};
+        f <- {A, B};
+        dict <- {"heu": A, "je": B};
+        func(x) <- x*2;
+    #CONSTRAINTS
+        sum(e.x for e in @pv) == 0;
+        dict["heu"].x == dict["je"].x + f(2);
     #NODE A
         #VARIABLES
             external: x @tag;
@@ -58,6 +65,8 @@
     #OBJECTIVES
         min named: a @tag;
         max: b[i] for i in [0:2*4] where i % 2 == 1;
+        deactivate named if 3 - 1 == 2;
+        activate @tag;
 #HYPEREDGE he1 = import lal from "x" with
     a = 2;
     b = 2;

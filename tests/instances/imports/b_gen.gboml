@@ -1,0 +1,11 @@
+#TIMEHORIZON T = 1;
+
+#NODE B[i] for i in [0:1]
+    #PARAMETERS
+        a <- 2*i;
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x <= -4;
+    #OBJECTIVES
+        max : x;
