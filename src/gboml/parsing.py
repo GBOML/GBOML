@@ -193,12 +193,14 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
             return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
 
         def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[str])],
-                                imports_from: Optional[list[VarOrParam]], tags: set[str]):
+                                imports_from: Optional[list[VarOrParam]],
+                                bound_lower: Optional[Expression], bound_upper: Optional[Expression], tags: set[str]):
             if imports_from is not None and len(imports_from) != len(names):
                 raise Exception("Invalid variable import, numbers of variables on the left and on the right-side of "
                                 "`<-` don't match")
             for name, import_from in zip(names, imports_from or repeat(None, len(names))):
-                yield VariableDefinition(name[0], name[1], scope, type or VarType.continuous, import_from, tags, meta=meta)
+                yield VariableDefinition(name[0], name[1], scope, type or VarType.continuous,
+                                         bound_lower, bound_upper, import_from, tags, meta=meta)
 
         def variables_block(self, _: Meta, *defs: Tuple[Iterable[VariableDefinition]]):
             return [vd for iterable in defs for vd in iterable]
@@ -222,6 +224,5 @@ def _lark_to_gboml(tree: Tree, filename: Optional[str] = None) -> GBOMLGraph:
                 return ExpressionDefinition(name, val, tags, meta=meta)
             else:
                 return ConstantDefinition(name, val, tags, meta=meta)
-
 
     return GBOMLLarkTransformer().transform(tree)

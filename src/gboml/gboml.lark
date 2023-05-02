@@ -64,7 +64,7 @@ hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hypere
 hyperedge_redefs: "with" definition* | ";"
 
 // VARIABLES
-variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_LARROW separated_list{var_or_param, ","}] tags ";"
+variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_LARROW separated_list{var_or_param, ","}] ["in" "[" [expression] ":" [expression] "]"] tags ";"
 variable_name: ID olist{index}
 SCOPE: "internal" | "external"
 VTYPE: "binary" | "continuous" | "integer"

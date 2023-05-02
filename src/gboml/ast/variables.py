@@ -2,6 +2,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
+from gboml.ast.expressions import Expression
 from gboml.ast.functions import Function
 from gboml.ast.arrays import Array, Range
 from gboml.ast.base import GBOMLObject, NamedGBOMLObject
@@ -57,6 +58,8 @@ class VariableDefinition(NamedGBOMLObject):
     indices: list[str]
     scope: VarScope
     type: VarType
+    bound_lower: Optional[Expression]
+    bound_upper: Optional[Expression]
     import_from: Optional[VarOrParam] = None
     tags: set[str] = field(default_factory=set)
 
