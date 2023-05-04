@@ -80,11 +80,12 @@ def _compute_types_inside():
 def _compute_paths_to():
     """ path_to[x][y] gives the set of fields in class y that can lead to a subclass x """
     paths_to = {x: {y: set() for y in all_gbomlobjects} for x in all_gbomlobjects}
-    for cls in leaf_gbomlobjects:
+    for cls in all_gbomlobjects:
         for field in dataclasses.fields(cls):
             in_types = {a for b in _effective_types(field.type) for a in types_inside[b]} | set(_effective_types(field.type))
             for cls2 in in_types:
-                paths_to[cls2][cls].add(field.name)
+                for cls3 in family_list[cls2]:
+                    paths_to[cls3][cls].add(field.name)
     return paths_to
 
 
@@ -94,10 +95,11 @@ all_gbomlobjects: set[typing.Type[GBOMLObject]] = set(_recursive_class_list_chil
 leaf_gbomlobjects: set[typing.Type[GBOMLObject]] = {cls for cls in all_gbomlobjects if len(cls.__subclasses__()) == 0}
 """ GBOMLObject-subclasses used by given GBOMLObject-subclasses, recursively """
 types_inside = _compute_types_inside()
-""" path_to[x][y] gives the set of fields in class y that can lead to a subclass x """
-paths_to = _compute_paths_to()
 """ all parents of class cls, including itself, from child to parent """
 family_list = {x: _recursive_class_list_parents(x) for x in all_gbomlobjects}
+""" path_to[x][y] gives the set of fields in class y that can lead to a subclass x """
+paths_to = _compute_paths_to()
+
 
 # note: this whole thing above runs each time GBOML is loaded in memory,
 #       and it takes ~20ms. We probably shouldn't care.
