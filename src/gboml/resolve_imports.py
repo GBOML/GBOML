@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 
 from gboml.ast import *
-from gboml.parsing import parse_file
+from gboml.parsing import GBOMLParser
 from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.tools.tree_modifier import modify
 
@@ -16,11 +16,11 @@ WORKING = object
 
 inheritable_ast = NodeDefinition | NodeGenerator | HyperEdgeDefinition | HyperEdgeGenerator
 
-def _load_file(fpath: Path, file_cache: dict[Path, GBOMLGraph]):
+def _load_file(fpath: Path, parser: GBOMLParser, file_cache: dict[Path, GBOMLGraph]):
     """ Loads a file and resolves its imports. file_cache is used as a cache for already-seen files. """
     fpath = fpath.absolute()
     if fpath not in file_cache:
-        file_cache[fpath] = resolve_imports(parse_file(fpath), fpath.parent, file_cache)
+        file_cache[fpath] = resolve_imports(parser.parse_file(fpath), fpath.parent, file_cache)
     elif file_cache[fpath] is WORKING:
         raise RuntimeError("Cyclic import")
     return file_cache[fpath]
@@ -68,7 +68,7 @@ def _find_elem_with_name(l, name):
         raise RuntimeError(f"Multiple nodes/hyperedges have the same name '{name}'")
     return valid_nodes[0]
 
-def resolve_imports(tree: GBOMLObject, current_dir: Path, file_cache: Optional[dict[Path, GBOMLGraph]] = None) -> GBOMLObject:
+def resolve_imports(tree: GBOMLObject, current_dir: Path, parser: GBOMLParser, file_cache: Optional[dict[Path, GBOMLGraph]] = None) -> GBOMLObject:
     """
     Resolves imports, transforming all `Extends` entries to Nodes/HyperEdges.
 
@@ -90,7 +90,7 @@ def resolve_imports(tree: GBOMLObject, current_dir: Path, file_cache: Optional[d
         if ast.import_from is None:
             return ast
 
-        imported_file = _load_file(current_dir / ast.import_from.filename, file_cache)
+        imported_file = _load_file(current_dir / ast.import_from.filename, parser, file_cache)
 
         # for now, we only resolve "directly-named" nodes in other files.
         # in the future we may resolve nodes referenced inside arrays or parameters, but for now we don't.
