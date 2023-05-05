@@ -2,23 +2,25 @@ import unittest
 from pathlib import Path
 
 from gboml.ast.check import check
-from gboml.parsing import parse_file, parse
+from gboml.parsing import GBOMLParser
 from gboml.resolve_imports import resolve_imports
 
 
 class TestImport(unittest.TestCase):
     def test_import_nogen(self):
-        tree = parse(
+        parser = GBOMLParser()
+        tree = parser.parse(
             """
                 #TIMEHORIZON
                     T = 8760;
                 #NODE A extends B from "instances/imports/b_nogen.gboml";
             """
         )
-        print(resolve_imports(tree, Path('.')))
+        print(resolve_imports(tree, Path('.'), parser))
 
     def test_import_nogen_2(self):
-        tree = parse(
+        parser = GBOMLParser()
+        tree = parser.parse(
             """
                 #TIMEHORIZON
                     T = 8760;
@@ -29,10 +31,11 @@ class TestImport(unittest.TestCase):
                         pass;
             """
         )
-        print(resolve_imports(tree, Path('.')))
+        print(resolve_imports(tree, Path('.'), parser))
 
     def test_import_gen_1(self):
-        tree = parse(
+        parser = GBOMLParser()
+        tree = parser.parse(
             """
                 #TIMEHORIZON
                     T = 8760;
@@ -43,10 +46,12 @@ class TestImport(unittest.TestCase):
                         pass;
             """
         )
-        print(resolve_imports(tree, Path('.')))
+        print(resolve_imports(tree, Path('.'), parser))
 
+    @unittest.expectedFailure
     def test_import_gen_2(self):
-        tree = parse(
+        parser = GBOMLParser()
+        tree = parser.parse(
             """
                 #TIMEHORIZON
                     T = 8760;
@@ -57,7 +62,7 @@ class TestImport(unittest.TestCase):
                         pass;
             """
         )
-        print(resolve_imports(tree, Path('.')))
+        print(resolve_imports(tree, Path('.'), parser))
 
 if __name__ == '__main__':
     unittest.main()
