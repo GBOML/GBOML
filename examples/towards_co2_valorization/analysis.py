@@ -141,69 +141,11 @@ def check_results(filename, d):
 
 
 if __name__ == '__main__':
-
-    # parser = argparse.ArgumentParser()
-    # parser.add_argument('-n', '--name', help='Name gboml file',
-    #                     type=str, default="simple_hub")
-    # parser.add_argument('-y', '--years', help='Number of years',
-    #                     type=int, default=3)
-    # parser.add_argument('-c', '--cap_co2', help="Cap on CO2 if None no cap on CO2",
-    #                     type=float, default=0.0)
-    # parser.add_argument('-cost_co2', '--co2_emission_cost', help="Cost on CO2 in M€/kt",
-    #                     type=float, default=80*10**(-3))
-    # parser.add_argument('-ens', '--e_ens_cost', help="Cost on ens in M€/GWh",
-    #                     type=float, default=3.)
-    # parser.add_argument('-sc', '--scenario', help="Number of scenrio",
-    #                     type=int, default=0)
-    # parser.add_argument('-p_c', "--pipe_carrier", help="Select constraint",
-    #                     choices=["pipe_and_boat", "only_carrier", "only_pipe"],
-    #                     default="pipe_and_boat")
-    # args = parser.parse_args()
-
-    # name = args.name
-    # years = args.years
-    # cap_co2 = args.cap_co2
-    # co2_emission_cost = args.co2_emission_cost
-    # e_ens_cost = args.e_ens_cost
-    # scenario = args.scenario
-    # constraint = args.pipe_carrier
-    # timehorizon = 24*365*years
-
     
     ls = os.listdir("Results")
-    ls.remove(".DS_Store")
+    if ".DS_Store" in ls:
+        ls.remove(".DS_Store")
     ls.sort()
-
-    # ls = [
-    #      # 'sc_1_T_26280_cap_co2_0.0_costco2_0.0_ensAllowed_False_costens_3.0_pipe_and_boat.json',
-    #      'sc_1_T_8760_cap_co2_0.0_costco2_0.0_ensAllowed_False_costens_3.0_pipe_and_boat.json',
-    #      # 'sc_2_T_26280_cap_co2_None_costco2_0.08_ensAllowed_True_costens_3.0_pipe_and_boat.json',
-    #      'sc_2_T_8760_cap_co2_None_costco2_0.08_ensAllowed_True_costens_3.0_pipe_and_boat.json',
-    #      # 'sc_3_T_26280_cap_co2_None_costco2_0.0_ensAllowed_True_costens_3.0_pipe_and_boat.json',
-    #      'sc_3_T_8760_cap_co2_None_costco2_0.0_ensAllowed_True_costens_3.0_pipe_and_boat.json',
-    #      # 'sc_4_T_26280_cap_co2_None_costco2_0.08_ensAllowed_True_costens_3.0_only_pipe.json',
-    #      'sc_4_T_8760_cap_co2_None_costco2_0.08_ensAllowed_True_costens_3.0_only_pipe.json',
-    #      # 'sc_5_T_26280_cap_co2_None_costco2_0.08_ensAllowed_True_costens_3.0_only_carrier.json',
-    #      'sc_5_T_8760_cap_co2_None_costco2_0.08_ensAllowed_True_costens_3.0_only_carrier.json',
-    #      # 'sc_6_T_26280_cap_co2_0.0_costco2_0.0_ensAllowed_False_costens_3.0_pipe_and_boat.json',
-    #      'sc_6_T_8760_cap_co2_0.0_costco2_0.0_ensAllowed_False_costens_3.0_pipe_and_boat.json',
-    #      'sc_7_T_8760_cap_co2_None_costco2_0.08_ensAllowed_False_costens_3.0_pipe_and_boat.json',
-    #      'sc_8_T_8760_cap_co2_None_costco2_0.1648981_ensAllowed_False_costens_3.0_pipe_and_boat.json',
-    #      # 'sc_8_T_8760_cap_co2_None_costco2_0.165_ensAllowed_False_costens_3.0_pipe_and_boat.json'
-    #      ]
-
-    # ls = ['sc_1_T_26280_cap_co2_0.0_costco2_0_costens_3.0_pipe_and_boat.json',
-    #      # 'sc_1_T_8760_cap_co2_0.0_costco2_0_costens_3.0_pipe_and_boat.json',
-    #      'sc_2_T_26280_cap_co2_None_costco2_0.08_costens_3.0_pipe_and_boat.json',]
-
-    ls = [# "sc_0_T_17520_cap_co2_0.0_costco2_0_ensAllowed_False_costens_3.0_pipe_and_boat.json",
-          "sc_1_T_17520_cap_co2_0.0_costco2_0_ensAllowed_False_costens_3.0_only_carrier.json",
-          # "sc_2_T_17520_cap_co2_0.0_costco2_0_ensAllowed_True_costens_3.0_only_carrier.json",
-          # "sc_3_T_17520_cap_co2_None_costco2_0.08_ensAllowed_True_costens_3.0_only_carrier.json",
-          # "sc_4_T_17520_cap_co2_None_costco2_0.0_ensAllowed_True_costens_3.0_only_carrier.json",
-          # "sc_5_T_17520_cap_co2_0.0_costco2_0_ensAllowed_False_costens_3.0_only_carrier.json",
-          # "sc_6_T_17520_cap_co2_None_costco2_0.0_ensAllowed_False_costens_3.0_only_carrier.json"
-          ]
 
     with open(f'analysis.csv', "w") as fp:
         fp.write("scenario,timehorizon,cap,cost_co2,ensAllowed,cost_ens,constraint,cost_NZ,cost_GR,cost_BE,obj_cost,wind_onshore_be,wind_off_be,solar_be,ccgt_be,wind_gl,wind_sahara,solar_sahara,pccc_capa,pccc_ccgt_capa,dac_capa,dac_greenland,pipe_co2_capa,carrier_co2_capa,pipe_co2_capa_gr,carrier_co2_capa_gr\n")
@@ -220,17 +162,6 @@ if __name__ == '__main__':
             
         d = MakeMeReadable(dico)
         
-        # check_results(filename, d)
-    
-        # # filename = "Results/sc_1_T_26280_cap_co2_0.0_costco2_0_costens_3.0_pipe_and_boat.json"
-        # filename = "Results/sc_5_T_26280_cap_co2_None_costco2_0.08_costens_3.0_only_carrier.json"
-        
-        # dico = {}
-        # with open(filename, "r") as fp:
-        #     dico = json.load(fp)
-            
-        # d = MakeMeReadable(dico)
-
         scenario, timehorizon, cap, cost_co2, ensAllowed, cost_ens, constraint = check_results(filename, d)
         results[scenario] = {"timehorizon":timehorizon, "cap":cap, "cost_co2":cost_co2, "cost_ens":cost_ens, "constraint":constraint}
 
@@ -385,7 +316,6 @@ if __name__ == '__main__':
         names = ["wind on",
                  "wind off",
                 "solar_be",
-                 # "nuke_be",
                 "ccgt_be",
                 "wind_gl",
                 "wind_nz",
@@ -393,7 +323,6 @@ if __name__ == '__main__':
         var = [wind_onshore_be,
                wind_off_be,
                 solar_be,
-               # nuke_be,
                 ccgt_be,
                 wind_gl,
                 wind_sahara,
@@ -432,7 +361,6 @@ if __name__ == '__main__':
         names = ["wind on",
                  "wind off",
                 "solar_be",
-                 # "nuke_be",
                 "ccgt_be",
                 "wind_gl",
                 "wind_nz",
@@ -440,7 +368,6 @@ if __name__ == '__main__':
         var = [wind_onshore_be,
                wind_off_be,
                 solar_be,
-               # nuke_be,
                 ccgt_be,
                 wind_gl,
                 wind_sahara,
