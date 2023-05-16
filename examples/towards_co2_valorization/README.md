@@ -20,9 +20,11 @@ https://gboml.readthedocs.io/en/latest/
 
 In order to reproduce the results obtained in the article run:
 
-```python3 main.py -sc num_scenario -y 2```
+```python3 main.py -sc $num_scenario -y 2```
 
-There are 5 scenarios from 1 to 5.
+There are 5 scenarios from 1 to 5. 
+
+Therefore, ```$num_scenario \in {1, 2, 3, 4, 5}```
 
 # Cite
 Please, if you use this code in your work consider citing https://arxiv.org/abs/2303.09454 : 
