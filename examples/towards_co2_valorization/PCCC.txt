@@ -1,0 +1,60 @@
+#TIMEHORIZON
+T = 8760;
+
+#GLOBAL
+//co2_emission_cost = 0;// 80 * 1/(10**3);     // M€/kt(co2) // 0 because for the moment the CH4 is green so should not be penalized
+//max_co2_captured_rate = 0.9;
+
+#NODE PCCC
+// Berger et al. 2019 have been taken as defaults for cost and efficiency parameters
+
+#PARAMETERS
+unit_kt_h = 0;
+energy_carbon_dioxide = 0;
+pre_installed_capacity = 0;
+max_capacity = 5;                       // kt - maximum capacity of carbon capture 
+// data from Berger et al. 2019
+capex_existing = 3150.0;                         // M€/kt/h
+fom_existing = 0.0;
+vom_existing = 0.0;
+lifetime_existing = 20;
+// data from Berger et al. 2019
+capex = 3150.0;                         // M€/kt/h
+fom = 0.0;
+vom = 0.0;
+lifetime = 20;
+electricity_required_for_CO2 = 0.4125;  // MWh/t or GWh/kt
+// Other
+nb_year = T/8760;
+wacc = 0.07;
+yearly_capex_existing = capex_existing * wacc / (1 - (1 + wacc)**(-lifetime_existing));
+yearly_capex = capex * wacc / (1 - (1 + wacc)**(-lifetime));
+yearly_existing_cost = (yearly_capex_existing + fom_existing) * nb_year * pre_installed_capacity; 
+
+#VARIABLES
+external: e_consumed[T];
+internal: new_capacity;
+external: co2_released[T];
+external: co2_captured[T];
+
+#CONSTRAINTS
+e_consumed[t] >= 0;
+new_capacity >= 0;
+new_capacity <= max_capacity - pre_installed_capacity;
+co2_captured[t] >= 0;
+co2_released[t] >= 0;
+co2_captured[t] <= new_capacity;
+e_consumed[t] == electricity_required_for_CO2 * co2_captured[t];
+
+#OBJECTIVES
+min fix_cost: (yearly_capex + fom) * nb_year * new_capacity;     // M€
+min var_cost: vom * co2_captured[t];                             // M€
+min co2_cost: global.co2_emission_cost * co2_released[t];        // M€
+
+#HYPEREDGE CO2_CAPTURE
+#PARAMETERS
+max_co2_captured_rate = 0.9;
+#CONSTRAINTS
+PCCC.co2_captured[t] <= max_co2_captured_rate * POWER_PLANT.co2_produced[t];
+POWER_PLANT.co2_produced[t] == PCCC.co2_captured[t] + PCCC.co2_released[t];
+// PCCC.e_consumed[t] <= POWER_PLANT.e_produced[t];
