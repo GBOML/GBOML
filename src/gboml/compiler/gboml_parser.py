@@ -8,13 +8,16 @@ from .ply import yacc  # type: ignore
 from copy import deepcopy
 import os
 
+
 from .gboml_lexer import tokens, lexer
 from .utils import check_file_exists, error_, move_to_directory
 from .classes import Time, Expression, Variable, Parameter, Program, Objective,\
-    Node, Identifier, Constraint, Condition, TimeInterval, Hyperedge
+    Node, Identifier, Constraint, Condition, TimeInterval, Hyperedge, LimitedSizeDict
+
 
 list_opened_files = []
-cache_graph = {}
+cache_graph = dict()
+cache_activation = True
 
 # precedence rules from least to highest priority
 # with associativity also specified
@@ -124,7 +127,7 @@ def p_hyperlink(p):
         filename = p[7]
         list_parameters_redefinitions, list_name_redefinitions = p[8]
         old_dir, cut_filename = move_to_directory(filename)
-        graph_filename = parse_file(cut_filename)
+        graph_filename = parse_file(cut_filename, cache=cache_activation)
         returned_hyperedge = graph_filename.get(imported_node_identifier)
         returned_hyperedge = deepcopy(returned_hyperedge)
         if returned_hyperedge is None:
@@ -180,7 +183,7 @@ def p_node(p):
         filename = p[7]
         list_parameters, list_variables = p[8]
         old_dir, cut_filename = move_to_directory(filename)
-        graph_filename = parse_file(cut_filename)
+        graph_filename = parse_file(cut_filename, cache=cache_activation)
         returned_node = graph_filename.get(imported_node_identifier)
         returned_node = deepcopy(returned_node)
         if returned_node is None:
@@ -726,9 +729,21 @@ def p_error(p):
 
 
 def find_column(input_string, p):
-
     line_start = input_string.rfind('\n', 0, p.lexpos) + 1
     return p.lexpos - line_start + 1
+
+
+def set_limited_sized_dict(size):
+    """ set_limited_sized_dict
+
+    sets a limit to the global cache.
+
+    Args:
+        size: The cache size
+
+    """
+    global cache_graph
+    cache_graph = LimitedSizeDict(size_limit=size)
 
 
 def parse_file(name: str, cache=True) -> Program:
@@ -750,9 +765,11 @@ def parse_file(name: str, cache=True) -> Program:
             between two different files (on different paths typically)
 
     """
-    # Build the parser
     global list_opened_files
     global cache_graph
+    global cache_activation
+
+    cache_activation = cache
 
     parser = yacc.yacc()
     check_file_exists(name)
@@ -766,16 +783,15 @@ def parse_file(name: str, cache=True) -> Program:
                + " has already been visited, there are loops in the import \n"
                + str(list_opened_files))
 
-    if name in cache_graph and cache:
+    if name in cache_graph and cache_activation:
         return cache_graph[name]
     else:
         list_opened_files.append(name)
-    # result = True
 
     result = parser.parse(data, lexer=lexer.clone())
 
     list_opened_files.pop(-1)
 
-    cache_graph[name] = result
-
+    if cache_activation:
+        cache_graph[name] = result
     return result

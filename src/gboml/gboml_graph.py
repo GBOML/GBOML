@@ -5,7 +5,8 @@
 
 from .compiler import parse_file, semantic, check_program_linearity, \
     matrix_generation_a_b, matrix_generation_c, \
-    factorize_program, extend_factor, extend_factor_on_multiple_processes
+    factorize_program, extend_factor, extend_factor_on_multiple_processes, \
+    set_limited_sized_dict
 from .compiler.classes import Parameter, Expression, Node, Hyperedge, Time, \
     Program
 from .compiler.utils import error_, move_to_directory
@@ -300,7 +301,7 @@ class GbomlGraph:
         cplex_solver_function = \
             lambda matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset, name_tuples: \
                 cplex_solver(matrix_a_eq, vector_b_eq, matrix_a_ineq, vector_b_ineq, vector_c, objective_offset,
-                              name_tuples, opt_file, details, option_dict=opt_dict)
+                              name_tuples, opt_file=opt_file, details=details, option_dict=opt_dict)
         return self.__solve(cplex_solver_function)
 
     def solve_xpress(self, opt_file: str = None, details=False):
@@ -501,6 +502,18 @@ class GbomlGraph:
         self.global_parameters.append(parameter)
 
     @staticmethod
+    def set_parsing_cache_limit(size):
+        """set_parsing_cache_limit
+
+        sets a limit to the global cache.
+
+        Args:
+            size: The cache size
+
+        """
+        set_limited_sized_dict(size)
+
+    @staticmethod
     def modify_parameter_value(parameter, value):
         """
         Modify the value of parameter
@@ -530,13 +543,14 @@ class GbomlGraph:
                    + str(type(value)))
 
     @staticmethod
-    def import_all_nodes_and_edges(filename):
+    def import_all_nodes_and_edges(filename, cache=True):
         """
         static method importing all nodes and hyperedges contained in a file
 
         Args:
            filename (str) : path to GBOML input file
-
+           cache (bool) : activate caching all the hypergraphs read
+                          during import by default set to true
         Returns:
             all_nodes (list) : list of nodes contained in file
             all_hyperedges (list) : list of hyperedges contained in file
@@ -544,7 +558,7 @@ class GbomlGraph:
 
         """
         old_dir, cut_filename = move_to_directory(filename)
-        filename_graph = parse_file(cut_filename)
+        filename_graph = parse_file(cut_filename, cache)
         all_nodes = filename_graph.get_nodes()
         to_return_nodes = []
         for node in all_nodes:
@@ -560,7 +574,7 @@ class GbomlGraph:
 
     @staticmethod
     def import_node(filename: str, *imported_node_identifier: str,
-                    new_node_name: str = "", copy=True):
+                    new_node_name: str = "", copy=True, cache=True):
         """
         static method importing a node from a GBOML input file
 
@@ -575,13 +589,15 @@ class GbomlGraph:
            copy (bool) : keyword argument defining whether a shallow or
                          deep copy of the imported node is created
                          (defaults to True, which produces a deepcopy)
+           cache (bool) : activate caching all the hypergraphs read
+                          during import by default set to true
 
         Returns:
             imported_node (Node) : imported node
 
         """
         old_dir, cut_filename = move_to_directory(filename)
-        filename_graph = parse_file(cut_filename)
+        filename_graph = parse_file(cut_filename, cache)
         imported_node = filename_graph.get(imported_node_identifier)
 
         if imported_node is None:
@@ -605,7 +621,7 @@ class GbomlGraph:
 
     @staticmethod
     def import_hyperedge(filename: str, *imported_hyperedge_identifier: str,
-                         new_hyperedge_name: str = "", copy=True):
+                         new_hyperedge_name: str = "", copy=True, cache=True):
         """
         static method importing a hyperedge from a GBOML input file
 
@@ -620,13 +636,15 @@ class GbomlGraph:
            copy (bool) : keyword argument defining whether a shallow or deep
                          copy of the imported node is created
                          (defaults to True, which produces a deepcopy)
+           cache (bool) : activate caching all the hypergraphs read
+                          during import by default set to true
 
         Returns:
             imported_hyperedge (Hyperedge) : imported hyperedge
 
         """
         old_dir, cut_filename = move_to_directory(filename)
-        filename_graph = parse_file(filename)
+        filename_graph = parse_file(filename, cache)
         imported_hyperedge = filename_graph.get(imported_hyperedge_identifier)
 
         if imported_hyperedge is None:

@@ -30,7 +30,7 @@ from .gboml_compiler import compile_gboml, compile_gboml_mdp
 from .gboml_lexer import tokenize_file
 from .gboml_matrix_generation import matrix_generation_a_b, \
     matrix_generation_c, extend_factor, extend_factor_on_multiple_processes
-from .gboml_parser import parse_file
+from .gboml_parser import parse_file, set_limited_sized_dict
 from .gboml_semantic import semantic, parameter_evaluation, \
     check_names_repetitions, match_dictionaries, \
     check_mdp, convert_to_mdp, check_program_linearity, factorize_program

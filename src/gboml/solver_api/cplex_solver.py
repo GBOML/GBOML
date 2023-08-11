@@ -42,8 +42,8 @@ def cplex_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
                  vector_c: np.ndarray,
                  objective_offset: float,
                  name_tuples: dict,
-                 structure_indexes_eq = None,
-                 structure_indexes_ineq = None,
+                 structure_indexes_eq=None,
+                 structure_indexes_ineq=None,
                  opt_file: str = None,
                  details=False,
                  option_dict: dict = None) -> tuple:
@@ -131,7 +131,6 @@ def cplex_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
     model.objective.set_sense(model.objective.sense.minimize)
     model.objective.set_offset(objective_offset)
 
-    print(structure_indexes_eq, structure_indexes_ineq)
     if structure_indexes_eq is not None and structure_indexes_ineq is not None:
         if structure_indexes_eq != [] and structure_indexes_ineq != []:
             master_block_eq = structure_indexes_eq[-1]

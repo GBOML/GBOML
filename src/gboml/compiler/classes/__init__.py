@@ -16,8 +16,9 @@ from .node import Node
 from .condition import Condition
 from .factor import Factorize
 from .mdp import MDP, State, Action, Auxiliary, Sizing, MDPObjective
+from .limited_size_dict import LimitedSizeDict
 
 __all__ = ["Constraint", "Expression", "Identifier", "Node", "Parameter",
            "Program", "Time", "TimeInterval", "Variable", "Objective",
            "Condition", "Factorize", "Attribute", "Hyperedge", "MDP", "State",
-           "Sizing", "Action", "Auxiliary", "MDPObjective"]
+           "Sizing", "Action", "Auxiliary", "MDPObjective", "LimitedSizeDict"]
