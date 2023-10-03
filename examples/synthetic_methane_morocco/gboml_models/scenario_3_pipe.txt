@@ -1,0 +1,113 @@
+#TIMEHORIZON
+T = 1*8760;
+
+#GLOBAL
+    wacc = 0.07;
+    number_years_horizon = T/8760;
+    cap_co2 = 0.0;
+    co2_emission_cost = 0.0;
+    contingency_10 = 1.1;
+    contingency_30 = 1.3;
+    gas_demand = 0.0739299599388333;
+
+//---- Remote Hub power production ----// 
+
+    #NODE SOLAR_PV_PLANTS = import SOLAR_PV_PLANTS from "Remote_hub_power_production.gboml";
+    #NODE WIND_PLANTS = import WIND_PLANTS from "Remote_hub_power_production.gboml";
+    #NODE BATTERY_STORAGE = import BATTERY_STORAGE from "Remote_hub_power_production.gboml";
+    #NODE HVDC = import HVDC from "Remote_hub_power_production.gboml";
+    
+    #HYPEREDGE POWER_BALANCE_ELEC_PROD
+        #CONSTRAINTS
+            SOLAR_PV_PLANTS.elec_out[t] + WIND_PLANTS.elec_out[t] + BATTERY_STORAGE.elec_out[t] == BATTERY_STORAGE.elec_in[t] + HVDC.elec_in[t];
+
+
+//---- Remote hub CO2 management ----//
+
+    #NODE DIRECT_AIR_CAPTURE_PLANTS_BASED_ON_SOLID_ADSORPTION = import DIRECT_AIR_CAPTURE_PLANTS_BASED_ON_SOLID_ADSORPTION from "Remote_hub_CO2_management.gboml";
+    #NODE CO2_STORAGE = import CO2_STORAGE from "Remote_hub_CO2_management.gboml";
+
+    #HYPEREDGE CO2_BALANCE_HUB
+        #CONSTRAINTS
+            PIPE_CO2_OFF_SHORE.co2_out[t] + DIRECT_AIR_CAPTURE_PLANTS_BASED_ON_SOLID_ADSORPTION.co2_out[t] + CO2_STORAGE.co2_out[t] == CO2_STORAGE.co2_in[t] + METHANATION_PLANTS.co2_in[t];
+
+    #HYPEREDGE HEAT_BALANCE
+        #CONSTRAINTS
+            METHANATION_PLANTS.heat_out[t] >= DIRECT_AIR_CAPTURE_PLANTS_BASED_ON_SOLID_ADSORPTION.heat_in[t];
+
+    
+//---- Remote hub CH4 production line ----//
+
+    #NODE DESALINATION_PLANTS = import DESALINATION_PLANTS from "Remote_hub_CH4_production_line.gboml";
+    #NODE WATER_STORAGE = import WATER_STORAGE from "Remote_hub_CH4_production_line.gboml";
+    #NODE ELECTROLYSIS_PLANTS = import ELECTROLYSIS_PLANTS from "Remote_hub_CH4_production_line.gboml";
+    #NODE HYDROGEN_STORAGE = import HYDROGEN_STORAGE from "Remote_hub_CH4_production_line.gboml";
+    #NODE METHANATION_PLANTS = import METHANATION_PLANTS from "Remote_hub_CH4_production_line.gboml";
+
+
+    #HYPEREDGE POWER_BALANCE_HUB
+        #CONSTRAINTS
+            HVDC.elec_out[t] == ELECTROLYSIS_PLANTS.elec_in[t] + HYDROGEN_STORAGE.elec_in[t] + DESALINATION_PLANTS.elec_in[t] + WATER_STORAGE.elec_in[t] + DIRECT_AIR_CAPTURE_PLANTS_BASED_ON_SOLID_ADSORPTION.elec_in[t] +  METHANE_TRANSPORT_STORAGE.HUB_elec_in[t] + PIPE_CO2_OFF_SHORE.elec_in[t];
+
+    #HYPEREDGE WATER_BALANCE_HUB
+        #CONSTRAINTS
+            DESALINATION_PLANTS.water_out[t] + METHANATION_PLANTS.water_out[t] + WATER_STORAGE.water_out[t] == WATER_STORAGE.water_in[t] + ELECTROLYSIS_PLANTS.water_in[t] + DIRECT_AIR_CAPTURE_PLANTS_BASED_ON_SOLID_ADSORPTION.water_in[t];
+
+    #HYPEREDGE HYDROGEN_BALANCE_HUB
+        #CONSTRAINTS
+            ELECTROLYSIS_PLANTS.hydrogen_out[t] + HYDROGEN_STORAGE.hydrogen_out[t] == HYDROGEN_STORAGE.hydrogen_in[t] + DIRECT_AIR_CAPTURE_PLANTS_BASED_ON_SOLID_ADSORPTION.hydrogen_in[t] + METHANATION_PLANTS.hydrogen_in[t];
+
+
+//---- Commodities transportation  ----//
+
+    #NODE METHANE_TRANSPORT_STORAGE = import METHANE_TRANSPORT_STORAGE from "Commodity_transportation.gboml";
+    #NODE PIPE_CO2_OFF_SHORE = import PIPE_CO2_OFF_SHORE from "Commodity_transportation.gboml";
+    
+    
+    #HYPEREDGE METHANE_BALANCE_HUB
+        #CONSTRAINTS
+            METHANATION_PLANTS.methane_out[t] == METHANE_TRANSPORT_STORAGE.methane_in[t];
+
+    #HYPEREDGE METHANE_BALANCE_DESTINATION
+        #PARAMETERS
+            demand = global.gas_demand;
+        #CONSTRAINTS
+            METHANE_TRANSPORT_STORAGE.PIPE_methane_out[t] + METHANE_TRANSPORT_STORAGE.REG_methane_out[t] == METHANE_TRANSPORT_STORAGE.LIQ_methane_in[t] + demand;
+
+
+//---- CO2 capture, Belgium ----//
+
+    #NODE PCCC_BE = import PCCC_BE from "Belgium.gboml";
+    
+    
+    #HYPEREDGE CO2_BALANCE_DESTINATION
+        #CONSTRAINTS
+            PIPE_CO2_OFF_SHORE.co2_in[t] ==  PCCC_BE.co2_captured[t];
+            
+    
+    #HYPEREDGE CO2_PROD_DESTINATION
+        #PARAMETERS
+            demand = global.gas_demand;
+            conversion_factor_methane = 0.364; // kt CH4 / kt CO2
+        #CONSTRAINTS
+            PCCC_BE.co2_source[t] ==  demand/conversion_factor_methane;
+
+
+//---- Hub power generation, Belgium ----//
+
+    //#NODE CCGT_BE = import CCGT_BE from "Belgium.gboml" 
+    #NODE SOLAR_PV_PLANTS_BE = import SOLAR_PV_PLANTS from "Remote_hub_power_production.gboml" 
+      with capacity_factor_PV = import "belgium_pv_capacity_factor_one_year.csv";
+    #NODE WIND_PLANTS_BE = import WIND_PLANTS from "Remote_hub_power_production.gboml" 
+      with capacity_factor_wind = import "belgium_wind_capacity_factor_one_year.csv";
+    #NODE BATTERY_STORAGE_BE = import BATTERY_STORAGE from "Remote_hub_power_production.gboml";
+    #NODE HVDC_BE = import HVDC from "Remote_hub_power_production.gboml" 
+      with line_lenght = 50;
+         
+    #HYPEREDGE POWER_BALANCE_ELEC_PROD_BE
+        #CONSTRAINTS
+            SOLAR_PV_PLANTS_BE.elec_out[t] + WIND_PLANTS_BE.elec_out[t] + BATTERY_STORAGE_BE.elec_out[t] == BATTERY_STORAGE_BE.elec_in[t] + HVDC_BE.elec_in[t];
+             
+    #HYPEREDGE ELEC_BALANCE_DESTINATION
+        #CONSTRAINTS
+            HVDC_BE.elec_out[t] == PCCC_BE.elec_in[t] + METHANE_TRANSPORT_STORAGE.BE_elec_in[t];

@@ -1,0 +1,543 @@
+#TIMEHORIZON
+T = 1*8760;
+
+#GLOBAL
+    wacc = 0.07;
+    number_years_horizon = T/8760;
+    cap_co2 = 0.0;
+    co2_emission_cost = 0.0;
+    contingency_10 = 1.1;
+    contingency_30 = 1.3;
+    
+#NODE CO2_CARRIER
+    #PARAMETERS
+    #NODE CO2_LIQUEFACTION_PLANTS_BE  // 28°C and 15 bara.
+        #PARAMETERS
+            full_capex = 55.8 * global.contingency_10;  //  M euro / kt / h
+            lifetime = 30.0;
+            annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+            fom = 2.79;  // MEur/year 
+            vom = 0.0;
+            conversion_factor_electricity = 0.014; // GWh / kt(co2) Data ENS.DK 0.16
+            conversion_factor_co2 = 0.99; // Data ENS.DK
+            minimum_level = 1.0;
+            ramp_rate_up = 0.0;
+            ramp_rate_down = 0.0;
+        #VARIABLES
+            internal: capacity;
+            external: elec_in[T];
+            external: co2_in[T];
+            external: liquefied_co2_out[T];
+        #CONSTRAINTS
+            liquefied_co2_out[t] <= capacity;
+            //minimum_level * capacity <= liquefied_co2_out[t];
+            elec_in[t] == conversion_factor_electricity * liquefied_co2_out[t];
+            co2_in[t] == conversion_factor_co2 * liquefied_co2_out[t];
+            //liquefied_co2_out[t] <= liquefied_co2_out[t-1] + ramp_rate_up * capacity;
+            //liquefied_co2_out[t-1] <= liquefied_co2_out[t] + ramp_rate_down * capacity;
+            capacity >= 0;
+            elec_in[t] >= 0;
+            liquefied_co2_out[t] >= 0;
+            co2_in[t] >= 0;
+        #OBJECTIVES
+            min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+            min: vom * liquefied_co2_out[t];
+            
+    #NODE LIQUEFIED_CO2_STORAGE_BE  // data Berger et al, Tableau Data ENS.DK ??
+        #PARAMETERS
+            full_capex_stock = 2.3 * global.contingency_10; //M euro / kt
+            full_capex_flow = 0.0 * global.contingency_10; // 48.6 ?
+            lifetime_stock = 30.0;
+            lifetime_flow = 30.0;
+            annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+            annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+            fom_stock = 0.0675;
+            fom_flow = 0.0; 
+            vom_stock = 0.0;
+            vom_flow = 0.0;
+        #VARIABLES
+            internal: capacity_flow;
+            internal: capacity_stock;
+            internal: liquefied_co2_stored[T];
+            external: liquefied_co2_in[T];
+            external: liquefied_co2_out[T];
+        #CONSTRAINTS
+            liquefied_co2_in[t] <= capacity_flow;
+            liquefied_co2_out[t] <= capacity_flow;
+            liquefied_co2_stored[t] <= capacity_stock;
+            liquefied_co2_stored[0] == liquefied_co2_stored[T-1];
+            liquefied_co2_stored[t+1] == liquefied_co2_stored[t] + liquefied_co2_in[t] - liquefied_co2_out[t];
+            capacity_flow >= 0;
+            capacity_stock >= 0;
+            liquefied_co2_stored[t] >= 0;
+            liquefied_co2_in[t] >= 0;
+            liquefied_co2_out[t] >= 0;
+        #OBJECTIVES
+            min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+            min: vom_stock * liquefied_co2_stored[t] + vom_flow * liquefied_co2_in[t];
+      
+   #NODE LIQUEFIED_CO2_CARRIERS // Data ENS.DK 10 kt CO2 capacity
+       #PARAMETERS
+           number_carriers = 7;
+           full_capex = 5 * global.contingency_10; // M€/kt
+           lifetime = 40.0;
+           annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+           fom = 0.0; // 0.25; // MEur/year
+           vom = 0.0;
+           schedule = import "schedule_safi_one_year.csv";
+           loading_time = 24;
+           travel_time = 100;
+           conversion_factor = 1.0;
+           conversion_factor_methane = 15.42; // GWh/kt
+           energy_consumption = 0.0150/(24*10); // GWh/h/kt CO2
+       #VARIABLES
+           internal: capacity; // kt
+           external: liquefied_co2_in[T];
+           external: liquefied_co2_out[T];
+           external: liquefied_methane_in[T]; // GWh/h
+           
+       #CONSTRAINTS
+           liquefied_co2_in[t] <= schedule[t] * capacity / loading_time;
+           liquefied_co2_in[t] == liquefied_co2_out[t+travel_time]*conversion_factor;
+           liquefied_co2_out[t] == 0 where t < travel_time;
+           // Below: availability_at_RREH * GWH/h/kt CO2 * days of travelling * Go there and back * reference capacity ens.dk * capacity * 1/hours of loading; 
+           liquefied_methane_in[t+travel_time] * conversion_factor_methane == schedule[t] * energy_consumption * travel_time* 2 * capacity / loading_time ;  // kt/h 
+           liquefied_methane_in[t] >= 0;
+           // liquefied_methane_in[t] == 0 where t < travel_time;
+           capacity >= 0;
+           liquefied_co2_in[t] >= 0;
+           liquefied_co2_out[t] >= 0;
+       #OBJECTIVES
+           min: global.number_years_horizon * (annualised_capex + fom) * capacity * number_carriers;
+           min: vom * liquefied_co2_in[t];
+           
+   #NODE CO2_LIQUEFACTION_PLANTS_HUB // 28°C and 15 bara.
+       #PARAMETERS
+           full_capex = 55.8 * global.contingency_10;  
+           lifetime = 30.0;
+           annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+           fom = 2.79;  // MEur/year 
+           vom = 0.0;
+           conversion_factor_electricity = 0.014; // GWh / kt(co2) Data ENS.DK 0.16
+           conversion_factor_co2 = 0.99; // Data ENS.DK
+           minimum_level = 1.0;
+           ramp_rate_up = 0.0;
+           ramp_rate_down = 0.0;
+       #VARIABLES
+           internal: capacity;
+           external: elec_in[T];
+           external: co2_in[T];
+           external: liquefied_co2_out[T];
+       #CONSTRAINTS
+           liquefied_co2_out[t] <= capacity;
+           //minimum_level * capacity <= liquefied_co2_out[t];
+           elec_in[t] == conversion_factor_electricity * liquefied_co2_out[t];
+           co2_in[t] == conversion_factor_co2 * liquefied_co2_out[t];
+           //liquefied_co2_out[t] <= liquefied_co2_out[t-1] + ramp_rate_up * capacity;
+           //liquefied_co2_out[t-1] <= liquefied_co2_out[t] + ramp_rate_down * capacity;
+           capacity >= 0;
+           elec_in[t] >= 0;
+           liquefied_co2_out[t] >= 0;
+           co2_in[t] >= 0;
+       #OBJECTIVES
+           min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+           min: vom * liquefied_co2_out[t];
+           
+   #NODE LIQUEFIED_CO2_STORAGE_HUB
+       #PARAMETERS
+           full_capex_stock = 2.3 * global.contingency_10;
+           full_capex_flow = 0.0 * global.contingency_10; 
+           lifetime_stock = 30.0;
+           lifetime_flow = 30.0;
+           annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+           annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+           fom_stock = 0.0675;
+           fom_flow = 0.0; 
+           vom_stock = 0.0;
+           vom_flow = 0.0;
+       #VARIABLES
+           internal: capacity_flow;
+           internal: capacity_stock;
+           internal: liquefied_co2_stored[T];
+           external: liquefied_co2_in[T];
+           external: liquefied_co2_out[T];
+       #CONSTRAINTS
+           liquefied_co2_in[t] <= capacity_flow;
+           liquefied_co2_out[t] <= capacity_flow;
+           liquefied_co2_stored[t] <= capacity_stock;
+           liquefied_co2_stored[0] == liquefied_co2_stored[T-1];
+           liquefied_co2_stored[t+1] == liquefied_co2_stored[t] + liquefied_co2_in[t] - liquefied_co2_out[t];
+           capacity_flow >= 0;
+           capacity_stock >= 0;
+           liquefied_co2_stored[t] >= 0;
+           liquefied_co2_in[t] >= 0;
+           liquefied_co2_out[t] >= 0;
+       #OBJECTIVES
+           min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+           min: vom_stock * liquefied_co2_stored[t] + vom_flow * liquefied_co2_in[t];
+                 
+   #NODE LIQUEFIED_CO2_REGASIFICATION
+       #PARAMETERS
+           full_capex = 25.1 * global.contingency_10;  
+           lifetime = 30.0;
+           annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+           fom = 1.25; //  MEur/year 
+           vom = 0.0;
+           conversion_factor = 0.98;
+       #VARIABLES
+           internal: capacity;
+           external: liquefied_co2_in[T];
+           external: co2_out[T];
+       #CONSTRAINTS
+            liquefied_co2_in[t] <= capacity;
+            co2_out[t] == conversion_factor * liquefied_co2_in[t];
+            capacity >= 0;
+            co2_out[t] >= 0;
+            liquefied_co2_in[t] >= 0;
+       #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * liquefied_co2_in[t];
+
+    #HYPEREDGE LIQUEFIED_CO2_BALANCE_BE
+        #CONSTRAINTS
+            LIQUEFIED_CO2_CARRIERS.liquefied_co2_in[t] + LIQUEFIED_CO2_STORAGE_BE.liquefied_co2_in[t] == LIQUEFIED_CO2_STORAGE_BE.liquefied_co2_out[t] + CO2_LIQUEFACTION_PLANTS_BE.liquefied_co2_out[t];
+     
+    #HYPEREDGE LIQUEFIED_CO2_BALANCE_HUB
+        #CONSTRAINTS
+            LIQUEFIED_CO2_REGASIFICATION.liquefied_co2_in[t] + LIQUEFIED_CO2_STORAGE_HUB.liquefied_co2_in[t] == LIQUEFIED_CO2_STORAGE_HUB.liquefied_co2_out[t] + LIQUEFIED_CO2_CARRIERS.liquefied_co2_out[t] + CO2_LIQUEFACTION_PLANTS_HUB.liquefied_co2_out[t];
+                               
+    #VARIABLES
+        external: BE_elec_in[T] <- CO2_LIQUEFACTION_PLANTS_BE.elec_in[T];
+        external: HUB_elec_in[T] <- CO2_LIQUEFACTION_PLANTS_HUB.elec_in[T];
+        external: BE_co2_in[T] <- CO2_LIQUEFACTION_PLANTS_BE.co2_in[T];
+        external: HUB_co2_in[T] <- CO2_LIQUEFACTION_PLANTS_HUB.co2_in[T];
+        external: co2_out[T] <- LIQUEFIED_CO2_REGASIFICATION.co2_out[T];
+        external: liquefied_methane_in[T] <- LIQUEFIED_CO2_CARRIERS.liquefied_methane_in[T]; 
+    
+        
+        
+#NODE METHANE_CARRIER
+    #PARAMETERS
+    #NODE METHANE_LIQUEFACTION_PLANTS
+            #PARAMETERS
+                full_capex = 5913.0 * global.contingency_10;
+                lifetime = 30.0;
+                annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+                fom = 147.825; // MEur/year
+                vom = 0.0;
+                conversion_factor_electricity = 0.616;
+                conversion_factor_methane = 1.0;
+                minimum_level = 1.0;
+                ramp_rate_up = 0.0;
+                ramp_rate_down = 0.0;
+            #VARIABLES
+                internal: capacity;
+                external: elec_in[T];
+                external: methane_in[T];
+                external: liquefied_methane_out[T];
+            #CONSTRAINTS
+                liquefied_methane_out[t] <= capacity;
+                minimum_level * capacity <= liquefied_methane_out[t];
+                elec_in[t] == conversion_factor_electricity * liquefied_methane_out[t];
+                methane_in[t] == conversion_factor_methane * liquefied_methane_out[t];
+                liquefied_methane_out[t] <= liquefied_methane_out[t-1] + ramp_rate_up * capacity;
+                liquefied_methane_out[t-1] <= liquefied_methane_out[t] + ramp_rate_down * capacity;
+                capacity >= 0;
+                elec_in[t] >= 0;
+                liquefied_methane_out[t] >= 0;
+                methane_in[t] >= 0;
+            #OBJECTIVES
+                min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+                min: vom * liquefied_methane_out[t];
+                
+    #NODE LIQUEFIED_METHANE_STORAGE_HUB
+        #PARAMETERS
+            full_capex_stock = 2.641 * global.contingency_10;
+            full_capex_flow = 0.001 * global.contingency_10;
+            lifetime_stock = 30.0;
+            lifetime_flow = 30.0;
+            annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+            annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+            fom_stock = 0.05282;
+            fom_flow = 0.0;
+            vom_stock = 0.0;
+            vom_flow = 0.0;
+        #VARIABLES
+            internal: capacity_flow;
+            internal: capacity_stock;
+            internal: liquefied_methane_stored[T];
+            external: liquefied_methane_in[T];
+            external: liquefied_methane_out[T];
+        #CONSTRAINTS
+            liquefied_methane_in[t] <= capacity_flow;
+            liquefied_methane_out[t] <= capacity_flow;
+            liquefied_methane_stored[t] <= capacity_stock;
+            liquefied_methane_stored[0] == liquefied_methane_stored[T-1];
+            liquefied_methane_stored[t+1] == liquefied_methane_stored[t] + liquefied_methane_in[t] - liquefied_methane_out[t];
+            capacity_flow >= 0;
+            capacity_stock >= 0;
+            liquefied_methane_stored[t] >= 0;
+            liquefied_methane_in[t] >= 0;
+            liquefied_methane_out[t] >= 0;
+        #OBJECTIVES
+            min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+            min: vom_stock * liquefied_methane_stored[t] + vom_flow * liquefied_methane_in[t];
+      
+    #NODE LIQUEFIED_METHANE_CARRIERS
+        #PARAMETERS
+            number_carriers = 7;
+            full_capex = 2.537 * global.contingency_10;
+            lifetime = 30.0;
+            annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+            fom = 0.12685; // MEur/year
+            vom = 0.0;
+            schedule = import "schedule_safi_one_year.csv";
+            loading_time = 24;
+            travel_time = 100;
+            conversion_factor = 1.0 - 5e-5 * travel_time;
+        #VARIABLES
+            internal: capacity;
+            external: liquefied_methane_in[T];
+            external: liquefied_methane_out[T];
+        #CONSTRAINTS
+            liquefied_methane_in[t] <= schedule[t] * capacity / loading_time;
+            liquefied_methane_out[t+travel_time] == conversion_factor * liquefied_methane_in[t];
+            liquefied_methane_out[t] == 0 where t < travel_time;
+            capacity >= 0;
+            liquefied_methane_in[t] >= 0;
+            liquefied_methane_out[t] >= 0;
+        #OBJECTIVES
+            min: global.number_years_horizon * (annualised_capex + fom) * capacity * number_carriers;
+            min: vom * liquefied_methane_in[t];
+            
+    #NODE LIQUEFIED_METHANE_STORAGE_DESTINATION
+        #PARAMETERS
+            full_capex_stock = 2.641 * global.contingency_10;
+            full_capex_flow = 0.001 * global.contingency_10;
+            lifetime_stock = 30.0;
+            lifetime_flow = 30.0;
+            annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+            annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+            fom_stock = 0.05282;
+            fom_flow = 0.0;
+            vom_stock = 0.0;
+            vom_flow = 0.0;
+        #VARIABLES
+            internal: capacity_flow;
+            internal: capacity_stock;
+            internal: liquefied_methane_stored[T];
+            external: liquefied_methane_in[T];
+            external: liquefied_methane_out[T];
+        #CONSTRAINTS
+            liquefied_methane_in[t] <= capacity_flow;
+            liquefied_methane_out[t] <= capacity_flow;
+            liquefied_methane_stored[t] <= capacity_stock;
+            liquefied_methane_stored[0] == liquefied_methane_stored[T-1];
+            liquefied_methane_stored[t+1] == liquefied_methane_stored[t] + liquefied_methane_in[t] - liquefied_methane_out[t];
+            capacity_flow >= 0;
+            capacity_stock >= 0;
+            liquefied_methane_stored[t] >= 0;
+            liquefied_methane_in[t] >= 0;
+            liquefied_methane_out[t] >= 0;
+        #OBJECTIVES
+            min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+            min: vom_stock * liquefied_methane_stored[t] + vom_flow * liquefied_methane_in[t];
+     
+    #NODE LIQUEFIED_METHANE_REGASIFICATION
+        #PARAMETERS
+            full_capex = 1248.3 * global.contingency_10;
+            lifetime = 30.0;
+            annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+            fom = 24.97; // MEur/year
+            vom = 0.0;
+            conversion_factor = 0.98;
+        #VARIABLES
+            internal: capacity;
+            external: liquefied_methane_in[T];
+            external: methane_out[T];
+        #CONSTRAINTS
+            liquefied_methane_in[t] <= capacity;
+            methane_out[t] == conversion_factor * liquefied_methane_in[t];
+            capacity >= 0;
+            methane_out[t] >= 0;
+            liquefied_methane_in[t] >= 0;
+        #OBJECTIVES
+            min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+            min: vom * liquefied_methane_in[t];
+            
+    
+    #HYPEREDGE LIQUEFIED_METHANE_BALANCE_DESTINATION
+        #CONSTRAINTS
+            LIQUEFIED_METHANE_CARRIERS.liquefied_methane_out[t] + LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_out[t] == LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_in[t] + LIQUEFIED_METHANE_REGASIFICATION.liquefied_methane_in[t];
+                                
+    #VARIABLES
+        external: elec_in[T] <- METHANE_LIQUEFACTION_PLANTS.elec_in[T];
+        external: methane_in[T] <- METHANE_LIQUEFACTION_PLANTS.methane_in[T];
+        external: methane_out[T] <- LIQUEFIED_METHANE_REGASIFICATION.methane_out[T];
+        external: liquefied_methane_out[T] <- METHANE_LIQUEFACTION_PLANTS.liquefied_methane_out[T];
+        external: storage_liquefied_methane_out[T] <- LIQUEFIED_METHANE_STORAGE_HUB.liquefied_methane_out[T];
+        external: storage_liquefied_methane_in[T] <- LIQUEFIED_METHANE_STORAGE_HUB.liquefied_methane_in[T];
+        external: liquefied_methane_in[T] <- LIQUEFIED_METHANE_CARRIERS.liquefied_methane_in[T];
+
+
+#NODE PIPE_CO2_OFF_SHORE // 0.12-0.5 kt/h
+     // DATA from ENS.DK
+    #PARAMETERS
+        length = 2780;                           // length of the pipe in km
+        capex = 4 * length * global.contingency_10;                // M€/kt/h
+        fom = 20 * 1/(10**3) * length;                // M€/kt/h
+        vom = 0;                                // M€/kt
+        lifetime = 50.0;                        // years
+        electricity_required_for_CO2 = 0.00002;   //GW/kt/h
+        efficiency_pipe = 1.0;
+        yearly_capex = capex * global.wacc / (1 - (1 + global.wacc)**(-lifetime));
+    #VARIABLES
+        external: co2_in[T]; // kt/h
+        external: co2_out[T]; // kt/h
+        external: elec_in[T]; // GWH(e)
+        internal: capacity; // kt/h
+    #CONSTRAINTS
+        co2_out[t] == efficiency_pipe * co2_in[t];
+        capacity >= 0;
+        co2_in[t] >= 0;
+        co2_in[t] <= capacity;
+        elec_in[t] == electricity_required_for_CO2 * co2_in[t];
+        
+    #OBJECTIVES
+        min: (yearly_capex + fom) * capacity * global.number_years_horizon;
+        min: vom * co2_in[t];
+        
+
+
+#NODE METHANE_TRANSPORT_STORAGE
+    #PARAMETERS
+    #NODE PIPE_METHANE_OFF_SHORE // 1000 - 4000 MW (MWh / h),  70 bar
+         // DATA from ENS.DK
+        #PARAMETERS
+            conversion_factor_methane = 15.42;                            // GWh / kt 
+            length = 2780;                                                // length of the pipe in km
+            capex = 0.4 * conversion_factor_methane * length * global.contingency_10;             // M€/kt/h    (0.4 MEur / GWh/h / km)
+            fom = 0.2 * 1/(10**3) * conversion_factor_methane * length;    // M€/kt/h
+            vom = 0;                                                      // M€/kt
+            lifetime = 50.0;                                              // years
+            electricity_required_for_methane = 0.007 * conversion_factor_methane;   //GW/kt/h
+            efficiency_pipe = 1.0;
+            yearly_capex = capex * global.wacc / (1 - (1 + global.wacc)**(-lifetime));
+        #VARIABLES
+            external: methane_in[T]; // kt/h
+            external: methane_out[T]; // kt/h
+            external: elec_in[T]; // GWH(e)
+            internal: capacity; // kt/h
+        #CONSTRAINTS
+            methane_out[t] == efficiency_pipe * methane_in[t];
+            capacity >= 0;
+            methane_in[t] >= 0;
+            methane_in[t] <= capacity;
+            elec_in[t] == electricity_required_for_methane * methane_in[t];
+            
+        #OBJECTIVES
+            min: (yearly_capex + fom) * capacity * global.number_years_horizon;
+            min: vom * methane_in[t];
+     
+     #NODE METHANE_LIQUEFACTION_PLANTS
+             #PARAMETERS
+                 full_capex = 5913.0 * global.contingency_10;
+                 lifetime = 30.0;
+                 annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+                 fom = 147.825; // MEur/year
+                 vom = 0.0;
+                 conversion_factor_electricity = 0.616;
+                 conversion_factor_methane = 1.0;
+                 minimum_level = 1.0;
+                 ramp_rate_up = 0.0;
+                 ramp_rate_down = 0.0;
+             #VARIABLES
+                 internal: capacity;
+                 external: elec_in[T];
+                 external: methane_in[T];
+                 external: liquefied_methane_out[T];
+             #CONSTRAINTS
+                 liquefied_methane_out[t] <= capacity;
+                 minimum_level * capacity <= liquefied_methane_out[t];
+                 elec_in[t] == conversion_factor_electricity * liquefied_methane_out[t];
+                 methane_in[t] == conversion_factor_methane * liquefied_methane_out[t];
+                 liquefied_methane_out[t] <= liquefied_methane_out[t-1] + ramp_rate_up * capacity;
+                 liquefied_methane_out[t-1] <= liquefied_methane_out[t] + ramp_rate_down * capacity;
+                 capacity >= 0;
+                 elec_in[t] >= 0;
+                 liquefied_methane_out[t] >= 0;
+                 methane_in[t] >= 0;
+             #OBJECTIVES
+                 min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+                 min: vom * liquefied_methane_out[t];
+                 
+     #NODE LIQUEFIED_METHANE_STORAGE_DESTINATION
+         #PARAMETERS
+             full_capex_stock = 2.641 * global.contingency_10;
+             full_capex_flow = 0.001 * global.contingency_10;
+             lifetime_stock = 30.0;
+             lifetime_flow = 30.0;
+             annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+             annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+             fom_stock = 0.05282;
+             fom_flow = 0.0;
+             vom_stock = 0.0;
+             vom_flow = 0.0;
+         #VARIABLES
+             internal: capacity_flow;
+             internal: capacity_stock;
+             internal: liquefied_methane_stored[T];
+             external: liquefied_methane_in[T];
+             external: liquefied_methane_out[T];
+         #CONSTRAINTS
+             liquefied_methane_in[t] <= capacity_flow;
+             liquefied_methane_out[t] <= capacity_flow;
+             liquefied_methane_stored[t] <= capacity_stock;
+             liquefied_methane_stored[0] == liquefied_methane_stored[T-1];
+             liquefied_methane_stored[t+1] == liquefied_methane_stored[t] + liquefied_methane_in[t] - liquefied_methane_out[t];
+             capacity_flow >= 0;
+             capacity_stock >= 0;
+             liquefied_methane_stored[t] >= 0;
+             liquefied_methane_in[t] >= 0;
+             liquefied_methane_out[t] >= 0;
+         #OBJECTIVES
+             min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+             min: vom_stock * liquefied_methane_stored[t] + vom_flow * liquefied_methane_in[t];
+             
+    #NODE LIQUEFIED_METHANE_REGASIFICATION
+        #PARAMETERS
+            full_capex = 1248.3 * global.contingency_10;
+            lifetime = 30.0;
+            annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+            fom = 24.97; // MEur/year
+            vom = 0.0;
+            conversion_factor = 0.98;
+        #VARIABLES
+            internal: capacity;
+            external: liquefied_methane_in[T];
+            external: methane_out[T];
+        #CONSTRAINTS
+            liquefied_methane_in[t] <= capacity;
+            methane_out[t] == conversion_factor * liquefied_methane_in[t];
+            capacity >= 0;
+            methane_out[t] >= 0;
+            liquefied_methane_in[t] >= 0;
+        #OBJECTIVES
+            min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+            min: vom * liquefied_methane_in[t];
+
+        #HYPEREDGE LIQUEFIED_METHANE_BALANCE_BE
+            #CONSTRAINTS
+                METHANE_LIQUEFACTION_PLANTS.liquefied_methane_out[t] + LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_out[t] == LIQUEFIED_METHANE_STORAGE_DESTINATION.liquefied_methane_in[t] + LIQUEFIED_METHANE_REGASIFICATION.liquefied_methane_in[t];
+        
+        
+    #VARIABLES
+        external: HUB_elec_in[T] <- PIPE_METHANE_OFF_SHORE.elec_in[T];
+        external: BE_elec_in[T] <- METHANE_LIQUEFACTION_PLANTS.elec_in[T];
+        external: methane_in[T] <- PIPE_METHANE_OFF_SHORE.methane_in[T];
+        external: REG_methane_out[T] <- LIQUEFIED_METHANE_REGASIFICATION.methane_out[T];
+        external: LIQ_methane_in[T] <- METHANE_LIQUEFACTION_PLANTS.methane_in[T];
+        external: PIPE_methane_out[T] <- PIPE_METHANE_OFF_SHORE.methane_out[T];
+
+    
+    

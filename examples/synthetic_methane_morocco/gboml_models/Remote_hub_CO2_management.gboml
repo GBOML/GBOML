@@ -1,0 +1,222 @@
+#TIMEHORIZON
+T = 1*8760;
+
+#GLOBAL
+    wacc = 0.07;
+    number_years_horizon = T/8760;
+    cap_co2 = 0.0;
+    co2_emission_cost = 0.0;
+    contingency_10 = 1.1;
+    contingency_30 = 1.3;
+
+#NODE DIRECT_AIR_CAPTURE_PLANTS_BASED_ON_SOLID_ADSORPTION // 2030
+    #PARAMETERS
+        full_capex = 6000 * global.contingency_30;
+        lifetime = 20.0;
+        annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+        fom = 300; // MEur/kt
+        vom = 0.0; // MEur/kt
+        conversion_factor_electricity = 0.15; // Gwh/kt(co2)
+        conversion_factor_water = 5.0;
+        heat_consumption = 1.46; // GWh/kt(co2)
+        LHV_hydrogen = 33.3; // Gwh/kt(h2)
+        minimum_level = 1.0;
+        ramp_rate_up = 0.0;
+        ramp_rate_down = 0.0;
+        heat_recovery_factor = 0.2; // GWh/kt(co2)
+    #VARIABLES
+        internal: capacity; // kt/h - carbon dioxide is the reference flow for sizing
+        external: elec_in[T];
+        external: water_in[T];
+        external: hydrogen_in[T];
+        external: co2_out[T];
+        external: heat_in[T]; // GWh from methanation
+    #CONSTRAINTS
+        co2_out[t] <= capacity;
+        minimum_level * capacity <= co2_out[t];
+        elec_in[t] == conversion_factor_electricity * co2_out[t];
+        water_in[t] == conversion_factor_water * co2_out[t];
+        hydrogen_in[t] * LHV_hydrogen + heat_in[t] + heat_recovery_factor * co2_out[t-1]  == heat_consumption * co2_out[t];
+        co2_out[t] <= co2_out[t-1] + ramp_rate_up * capacity;
+        co2_out[t-1] <= co2_out[t] + ramp_rate_down * capacity;
+        capacity >= 0;
+        elec_in[t] >= 0;
+        water_in[t] >= 0;
+        hydrogen_in[t] >= 0;
+        co2_out[t] >= 0;
+        heat_in[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * co2_out[t];
+
+
+#NODE DIRECT_AIR_CAPTURE_PLANTS
+    #PARAMETERS
+        full_capex = 4801.4 * global.contingency_30;
+        lifetime = 30.0;
+        annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+        fom = 0.0; // MEur/year
+        vom = 0.0207; // MEur/kt
+        conversion_factor_electricity = 0.1091;
+        conversion_factor_water = 5.0;
+        heat_consumption = 1.46; // GWh/kt(co2)
+        LHV_hydrogen = 33.3; // Gwh/kt(h2)
+        minimum_level = 1.0;
+        ramp_rate_up = 0.0;
+        ramp_rate_down = 0.0;
+        max_steam_level = 275/900;
+        min_hydrogen_level = 600/900;
+    #VARIABLES
+        internal: capacity; // kt/h - carbon dioxide is the reference flow for sizing
+        external: elec_in[T];
+        //external: hydrogen_in[T];
+        external: water_in[T];
+        external: co2_out[T];
+        //external: heat_in[T]; // GWh from methanation
+    #CONSTRAINTS
+        co2_out[t] <= capacity;
+        minimum_level * capacity <= co2_out[t];
+        elec_in[t] == conversion_factor_electricity * co2_out[t] + heat_consumption * co2_out[t];
+        water_in[t] == conversion_factor_water * co2_out[t];
+        //hydrogen_in[t] * LHV_hydrogen + heat_in[t] == heat_consumption * co2_out[t];
+        //heat_in[t] <= max_steam_level * heat_consumption * co2_out[t];
+        //hydrogen_in[t] * LHV_hydrogen >= min_hydrogen_level * heat_consumption * co2_out[t];
+        co2_out[t] <= co2_out[t-1] + ramp_rate_up * capacity;
+        co2_out[t-1] <= co2_out[t] + ramp_rate_down * capacity;
+        capacity >= 0;
+        elec_in[t] >= 0;
+        water_in[t] >= 0;
+        //hydrogen_in[t] >= 0;
+        co2_out[t] >= 0;
+        //heat_in[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * co2_out[t];
+
+#NODE POWER_PLANTS
+    #PARAMETERS    
+    co2_energy_ratio_coal = 0.91; //  kt (co2) / GWh
+    co2_energy_ratio_gas = 0.35; //  kt (co2) / GWh
+    
+    #NODE SAFI_POWER_STATION       
+        #PARAMETERS           
+            annual_yielded_energy = 10000;  // GWh
+            distance_to_hub = 1.6;  // km               
+        #VARIABLES           
+            internal: co2_out[T];  // kt (co2)               
+        #CONSTRAINTS           
+            co2_out[t] == POWER_PLANTS.co2_energy_ratio_coal * annual_yielded_energy / (365*24);
+            co2_out[t] >= 0;
+
+            
+    #VARIABLES
+        internal: co2_out_SAFI[T] <- SAFI_POWER_STATION.co2_out[T];
+        external: co2_out[T];  // kt (co2)
+    #CONSTRAINTS        
+        co2_out[t] == co2_out_SAFI[t];
+        co2_out[t] >= 0.0;
+        
+#NODE PCCC
+    #PARAMETERS    
+        unit_kt_h = 0.0;
+        energy_co2 = 0.0;
+        pre_installed_capacity = 0.0;
+        max_capacity = 5.0;                       // kt - maximum capacity of carbon capture 
+        //capex_existing = 3150.0 * global.contingency_30;                         // M€/kt/h
+        //fom_existing = 0.0;
+        //vom_existing = 0.0;
+        //lifetime_existing = 20;
+        capex = 3150.0 * global.contingency_30;                         // M€/kt/h
+        fom = 0.0;
+        vom = 0.0;
+        lifetime = 20;
+        elec_in_required_for_CO2 = 0.4125;  // MWh/t or GWh/kt
+        //yearly_capex_existing = capex_existing * global.wacc / (1 - (1 + global.wacc)**(-lifetime_existing));
+        yearly_capex = capex * global.wacc / (1 - (1 + global.wacc)**(-lifetime));
+        //yearly_existing_cost = (yearly_capex_existing + fom_existing) * global.number_years_horizon * pre_installed_capacity; 
+        //ramp_rate_up = 0.0;
+        //ramp_rate_down = 0.0;        
+    #VARIABLES    
+        internal: new_capacity;
+        external: elec_in[T];
+        external: co2_released[T];
+        external: co2_captured[T];        
+    #CONSTRAINTS    
+        elec_in[t] >= 0;
+        new_capacity >= 0;
+        new_capacity <= max_capacity - pre_installed_capacity;
+        co2_captured[t] >= 0;
+        co2_released[t] >= 0;
+        co2_captured[t] <= new_capacity;
+        elec_in[t] == elec_in_required_for_CO2 * co2_captured[t];
+        //co2_captured[t] <= co2_captured[t-1] + ramp_rate_up * new_capacity;
+        //co2_captured[t-1] <= co2_captured[t] + ramp_rate_down * new_capacity;        
+    #OBJECTIVES    
+        min: (yearly_capex + fom) * global.number_years_horizon * new_capacity;     // M€
+        min: vom * co2_captured[t];                             // M€
+        min: global.co2_emission_cost * co2_released[t];        // M€
+
+
+#NODE CO2_STORAGE
+    #PARAMETERS
+        full_capex_stock = 2.3 * global.contingency_10;
+        full_capex_flow = (55.8+25.1) * global.contingency_10;
+        lifetime_stock = 30.0;
+        lifetime_flow = 30.0;
+        annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+        annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+        fom_stock = 0.0675;
+        fom_flow = 2.79 + 1.25; // MEur/(kt/h)-year (carbon dioxide liquefaction + regasification)
+        vom_stock = 0.0;
+        vom_flow = 0.0;
+        conversion_factor_electricity = 0.014;
+    #VARIABLES
+        internal: capacity_flow;
+        internal: capacity_stock;
+        internal: co2_stored[T];
+        external: elec_in[T];
+        external: co2_in[T];
+        external: co2_out[T];
+    #CONSTRAINTS
+        co2_in[t] <= capacity_flow;
+        co2_out[t] <= capacity_flow;
+        co2_stored[t] <= capacity_stock;
+        co2_stored[0] == co2_stored[T-1];
+        co2_stored[t+1] == co2_stored[t] + co2_in[t] - co2_out[t];
+        elec_in[t] == conversion_factor_electricity * co2_in[t];
+        capacity_flow >= 0;
+        capacity_stock >= 0;
+        co2_stored[t] >= 0;
+        co2_in[t] >= 0;
+        co2_out[t] >= 0;
+        elec_in[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+        min: vom_stock * co2_stored[t] + vom_flow * co2_in[t];
+
+#NODE PIPE_CO2_ON_SHORE_VERY_BIG // 0.12-0.5 kt/h
+     // DATA from ENS.DK
+    #PARAMETERS
+        length = 1.6;                           // length of the pipe in km
+        capex = 2.3 * length * global.contingency_10;                // M€/kt/h
+        fom = 20 * 1/(10**3) * length;                // M€/kt/h
+        vom = 0;                                // M€/kt
+        lifetime = 50.0;                        // years
+        electricity_required_for_CO2 = 0.00002;   //GW/kt/h
+        efficiency_pipe = 1.0;
+        yearly_capex = capex * global.wacc / (1 - (1 + global.wacc)**(-lifetime));
+    #VARIABLES
+        external: flow_in[T]; // kt/h
+        external: flow_out[T]; // kt/h
+        external: elec_in[T]; // GWH(e)
+        internal: capacity; // kt/h
+    #CONSTRAINTS
+        flow_out[t] == efficiency_pipe * flow_in[t];
+        capacity >= 0;
+        flow_in[t] >= 0;
+        flow_in[t] <= capacity;
+        elec_in[t] == electricity_required_for_CO2 * flow_in[t];
+        
+    #OBJECTIVES
+        min: (yearly_capex + fom) * capacity * global.number_years_horizon;
+        min: vom * flow_in[t];

@@ -1,0 +1,185 @@
+#TIMEHORIZON
+T = 1*8760;
+
+#GLOBAL
+    wacc = 0.07;
+    number_years_horizon = T/8760;
+    cap_co2 = 0.0;
+    co2_emission_cost = 0.0;
+    contingency_10 = 1.1;
+    contingency_30 = 1.3;
+    
+
+#NODE DESALINATION_PLANTS
+    #PARAMETERS
+        full_capex = 28.08 * global.contingency_30;
+        lifetime = 20.0;
+        annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+        fom = 0.0; // MEur/year
+        vom = 0.000315;
+        conversion_factor_electricity = 0.004;
+        minimum_level = 1.0;
+        ramp_rate_up = 0.0;
+        ramp_rate_down = 0.0;
+    #VARIABLES
+        internal: capacity; // kt/h - freshwater is the reference flow for sizing
+        external: elec_in[T];
+        external: water_out[T];
+    #CONSTRAINTS
+        water_out[t] <= capacity;
+        minimum_level * capacity <= water_out[t];
+        elec_in[t] == conversion_factor_electricity * water_out[t];
+        water_out[t] <= water_out[t-1] + ramp_rate_up * capacity;
+        water_out[t-1] <= water_out[t] + ramp_rate_down * capacity;
+        capacity >= 0;
+        elec_in[t] >= 0;
+        water_out[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * water_out[t];
+
+#NODE WATER_STORAGE
+    #PARAMETERS
+        full_capex_stock = 0.065 * global.contingency_10;
+        full_capex_flow = 1.55923 * global.contingency_10;
+        lifetime_stock = 30.0;
+        lifetime_flow = 30.0;
+        annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+        annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+        fom_stock = 0.0013;
+        fom_flow = 0.0312;
+        vom_stock = 0.0;
+        vom_flow = 0.0;
+        conversion_factor_electricity = 0.00036;
+    #VARIABLES
+        internal: capacity_flow;
+        internal: capacity_stock;
+        internal: water_stored[T];
+        external: elec_in[T];
+        external: water_in[T];
+        external: water_out[T];
+    #CONSTRAINTS
+        water_in[t] <= capacity_flow;
+        water_out[t] <= capacity_flow;
+        water_stored[t] <= capacity_stock;
+        water_stored[0] == water_stored[T-1];
+        water_stored[t+1] == water_stored[t] + water_in[t] - water_out[t];
+        elec_in[t] == conversion_factor_electricity * water_in[t];
+        capacity_flow >= 0;
+        capacity_stock >= 0;
+        water_stored[t] >= 0;
+        water_in[t] >= 0;
+        water_out[t] >= 0;
+        elec_in[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+        min: vom_stock * water_stored[t] + vom_flow * water_in[t];
+
+#NODE ELECTROLYSIS_PLANTS
+    #PARAMETERS
+        full_capex = 800.0 * global.contingency_30;
+        lifetime = 15.0;
+        annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+        fom = 30.0; // MEur/year
+        vom = 0.0;
+        conversion_factor_electricity = 53;
+        conversion_factor_water = 9.0;
+        minimum_level = 0.05;
+    #VARIABLES
+        internal: capacity; // GW - reference flow for sizing is electricity
+        external: elec_in[T]; // GWh/h
+        external: water_in[T]; // kt/h
+        external: hydrogen_out[T]; // kt/h
+    #CONSTRAINTS
+        elec_in[t] <= capacity;
+        minimum_level * capacity <= elec_in[t];
+        elec_in[t] == conversion_factor_electricity * hydrogen_out[t];
+        water_in[t] == conversion_factor_water * hydrogen_out[t];
+        capacity >= 0;
+        elec_in[t] >= 0;
+        hydrogen_out[t] >= 0;
+        water_in[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * elec_in[t];
+
+#NODE HYDROGEN_STORAGE
+    #PARAMETERS
+        full_capex_stock = 45.0 * global.contingency_10;
+        full_capex_flow = 0.0 * global.contingency_10;
+        lifetime_stock = 30.0;
+        lifetime_flow = 30.0;
+        annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+        annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+        fom_stock = 2.25;
+        fom_flow = 0.0;
+        vom_stock = 0.0;
+        vom_flow = 0.0;
+        conversion_factor_electricity = 1.3;
+        minimum_level = 0.05;
+    #VARIABLES
+        internal: capacity_flow;
+        internal: capacity_stock;
+        internal: hydrogen_stored[T];
+        external: elec_in[T];
+        external: hydrogen_in[T];
+        external: hydrogen_out[T];
+    #CONSTRAINTS
+        hydrogen_in[t] <= capacity_flow;
+        hydrogen_out[t] <= capacity_flow;
+        minimum_level * capacity_stock <= hydrogen_stored[t];
+        hydrogen_stored[t] <= capacity_stock;
+        hydrogen_stored[0] == hydrogen_stored[T-1];
+        hydrogen_stored[t+1] == hydrogen_stored[t] + hydrogen_in[t] - hydrogen_out[t];
+        elec_in[t] == conversion_factor_electricity * hydrogen_in[t];
+        capacity_flow >= 0;
+        capacity_stock >= 0;
+        hydrogen_stored[t] >= 0;
+        hydrogen_in[t] >= 0;
+        hydrogen_out[t] >= 0;
+        elec_in[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+        min: vom_stock * hydrogen_stored[t] + vom_flow * hydrogen_in[t];
+
+
+#NODE METHANATION_PLANTS
+    #PARAMETERS
+        HHV_CH4 = 15.441;  // GWh / kt
+        full_capex = 300.0 * global.contingency_30 * HHV_CH4; // to obtain cost in MEur/(kt/h)
+        lifetime = 20.0;
+        annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+        fom = 29.4 * HHV_CH4; // MEur/year
+        vom = 0.;
+        conversion_factor_hydrogen = 0.5;
+        conversion_factor_water = 2.25;
+        conversion_factor_co2 = 2.75;
+        conversion_factor_heat = 0.71/5.28; // GW (heat)/ GW (methane)
+        minimum_level = 1.0;
+        ramp_rate_up = 0.0;
+        ramp_rate_down = 0.0;
+    #VARIABLES
+        internal: capacity; // kt/h - reference flow for sizing is methane
+        external: hydrogen_in[T];
+        external: co2_in[T];
+        external: methane_out[T];
+        external: water_out[T];
+        external: heat_out[T]; // Gwh/h
+    #CONSTRAINTS
+        methane_out[t] <= capacity;
+        minimum_level * capacity <= methane_out[t];
+        hydrogen_in[t] == conversion_factor_hydrogen * methane_out[t];
+        co2_in[t] == conversion_factor_co2 * methane_out[t];
+        water_out[t] == conversion_factor_water * methane_out[t];
+        heat_out[t] == conversion_factor_heat * HHV_CH4 * methane_out[t];
+        methane_out[t] <= methane_out[t-1] + ramp_rate_up * capacity;
+        methane_out[t-1] <= methane_out[t] + ramp_rate_down * capacity;
+        capacity >= 0;
+        methane_out[t] >= 0;
+        hydrogen_in[t] >= 0;
+        heat_out[t] >= 0;
+        co2_in[t] >= 0;
+        water_out[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * methane_out[t];

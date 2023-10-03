@@ -1,0 +1,73 @@
+#TIMEHORIZON
+T = 1*8760;
+
+#GLOBAL
+    wacc = 0.07;
+    number_years_horizon = T/8760;
+    gas_demand = 0.0739299599388333; // kt/h
+    contingency_10 = 1.1;
+    contingency_30 = 1.3;
+
+//---- Remote Hub power production ----// 
+
+    #NODE SOLAR_PV_PLANTS = import SOLAR_PV_PLANTS from "Remote_hub_power_production.gboml";
+    #NODE WIND_PLANTS = import WIND_PLANTS from "Remote_hub_power_production.gboml";
+    #NODE BATTERY_STORAGE = import BATTERY_STORAGE from "Remote_hub_power_production.gboml";
+    #NODE HVDC = import HVDC from "Remote_hub_power_production.gboml";
+    
+    #HYPEREDGE POWER_BALANCE_ELEC_PROD
+        #CONSTRAINTS
+            SOLAR_PV_PLANTS.elec_out[t] + WIND_PLANTS.elec_out[t] + BATTERY_STORAGE.elec_out[t] == BATTERY_STORAGE.elec_in[t] + HVDC.elec_in[t];
+
+    
+    
+//---- Remote hub CH4 production line ----//
+
+
+    #NODE DESALINATION_PLANTS = import DESALINATION_PLANTS from "Remote_hub_CH4_production_line.gboml";
+    #NODE WATER_STORAGE = import WATER_STORAGE from "Remote_hub_CH4_production_line.gboml";
+    #NODE ELECTROLYSIS_PLANTS = import ELECTROLYSIS_PLANTS from "Remote_hub_CH4_production_line.gboml";
+    #NODE HYDROGEN_STORAGE = import HYDROGEN_STORAGE from "Remote_hub_CH4_production_line.gboml";
+    #NODE METHANATION_PLANTS = import METHANATION_PLANTS from "Remote_hub_CH4_production_line.gboml";
+
+    
+    #HYPEREDGE WATER_BALANCE_HUB
+    #PARAMETERS
+        demand = 0;
+    #CONSTRAINTS
+        DESALINATION_PLANTS.water_out[t] + METHANATION_PLANTS.water_out[t] + WATER_STORAGE.water_out[t] == WATER_STORAGE.water_in[t] + ELECTROLYSIS_PLANTS.water_in[t] + demand;
+
+    #HYPEREDGE HYDROGEN_BALANCE_HUB
+        #PARAMETERS
+            demand = 0;
+        #CONSTRAINTS
+            ELECTROLYSIS_PLANTS.hydrogen_out[t] + HYDROGEN_STORAGE.hydrogen_out[t] == HYDROGEN_STORAGE.hydrogen_in[t] + METHANATION_PLANTS.hydrogen_in[t] + demand;
+
+
+
+//---- Commodities transportation  ----//
+
+
+    #NODE METHANE_CARRIER = import METHANE_CARRIER from "Commodity_transportation.gboml";
+    
+    #HYPEREDGE LIQUEFIED_METHANE_BALANCE_HUB
+        #CONSTRAINTS
+            METHANE_CARRIER.liquefied_methane_out[t] + METHANE_CARRIER.storage_liquefied_methane_out[t] == METHANE_CARRIER.storage_liquefied_methane_in[t] + METHANE_CARRIER.liquefied_methane_in[t];
+
+    #HYPEREDGE POWER_BALANCE_HUB
+        #CONSTRAINTS
+            HVDC.elec_out[t] == ELECTROLYSIS_PLANTS.elec_in[t] + HYDROGEN_STORAGE.elec_in[t] + DESALINATION_PLANTS.elec_in[t] + WATER_STORAGE.elec_in[t]  + METHANE_CARRIER.elec_in[t];
+
+
+    #HYPEREDGE METHANE_BALANCE_HUB
+        #CONSTRAINTS
+            METHANATION_PLANTS.methane_out[t] == METHANE_CARRIER.methane_in[t];
+
+    
+    #HYPEREDGE METHANE_BALANCE_DESTINATION
+        #PARAMETERS
+            demand =  global.gas_demand;
+        #CONSTRAINTS
+            METHANE_CARRIER.methane_out[t] == demand;
+
+
