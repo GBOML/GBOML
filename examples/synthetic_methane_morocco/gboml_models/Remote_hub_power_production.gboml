@@ -1,0 +1,121 @@
+#TIMEHORIZON
+T = 1*8760;
+
+#GLOBAL
+    wacc = 0.07;
+    number_years_horizon = T/8760;
+    cap_co2 = 0.0;
+    co2_emission_cost = 0.0;
+    contingency_10 = 1.1;
+    contingency_30 = 1.3;
+
+#NODE SOLAR_PV_PLANTS
+    #PARAMETERS
+        full_capex = 380.0 * global.contingency_10;
+        lifetime = 25.0;
+        annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+        fom = 7.25; // MEur/year
+        vom = 0.0;
+        capacity_factor_PV = import "maroc_pv_capacity_factor_one_year.csv"; // Dimensionless
+        max_capacity = 500.0; // GW
+    #VARIABLES
+        internal: capacity;
+        external: elec_out[T];
+    #CONSTRAINTS
+        elec_out[t] <= capacity_factor_PV[t] * capacity;
+        capacity <= max_capacity;
+        capacity >= 0;
+        elec_out[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * elec_out[t];
+
+#NODE WIND_PLANTS
+    #PARAMETERS
+        full_capex = 1040.0 * global.contingency_10;
+        lifetime = 30.0;
+        annualised_capex = full_capex * global.wacc * (1 + global.wacc)**lifetime / ((1 + global.wacc)**lifetime - 1); // MEur
+        fom = 12.6; // MEur/year
+        vom = 0.00135; // MEur/GWh
+        capacity_factor_wind = import "maroc_wind_capacity_factor_one_year.csv"; // Dimensionless
+        max_capacity = 500.0; // GW
+    #VARIABLES
+        internal: capacity;
+        external: elec_out[T];
+    #CONSTRAINTS
+        elec_out[t] <= capacity_factor_wind[t] * capacity;
+        capacity <= max_capacity;
+        capacity >= 0;
+        elec_out[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * elec_out[t];
+
+#NODE BATTERY_STORAGE
+    #PARAMETERS
+        full_capex_stock = 142.0 * global.contingency_30;
+        full_capex_flow = 160.0 * global.contingency_30;
+        lifetime_stock = 10.0;
+        lifetime_flow = 10.0;
+        annualised_capex_stock = full_capex_stock * global.wacc * (1 + global.wacc)**lifetime_stock / ((1 + global.wacc)**lifetime_stock - 1); // MEur
+        annualised_capex_flow = full_capex_flow * global.wacc * (1 + global.wacc)**lifetime_flow / ((1 + global.wacc)**lifetime_flow - 1); // MEur
+        fom_stock = 0.0;
+        fom_flow = 0.5;
+        vom_stock = 0.0018;
+        vom_flow = 0.0;
+        charge_discharge_ratio = 1.0;
+        self_discharge = 0.00004;
+        efficiency_in = 0.959;
+        efficiency_out = 0.959;
+    #VARIABLES
+        internal: capacity_flow;
+        internal: capacity_stock;
+        internal: electricity_stored[T];
+        external: elec_in[T];
+        external: elec_out[T];
+    #CONSTRAINTS
+        elec_in[t] <= capacity_flow;
+        elec_out[t] <= charge_discharge_ratio * capacity_flow;
+        electricity_stored[t] <= capacity_stock;
+        electricity_stored[0] == electricity_stored[T-1];
+        electricity_stored[t+1] == (1 - self_discharge) * electricity_stored[t] + efficiency_in * elec_in[t] - elec_out[t] / efficiency_out;
+        capacity_flow >= 0;
+        capacity_stock >= 0;
+        electricity_stored[t] >= 0;
+        elec_in[t] >= 0;
+        elec_out[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex_stock + fom_stock) * capacity_stock + global.number_years_horizon * (annualised_capex_flow + fom_flow) * capacity_flow;
+        min: vom_stock * electricity_stored[t] + vom_flow * elec_in[t];
+
+#NODE HVDC
+    #PARAMETERS
+        line_lenght = 650; // km
+        full_capex_lines = 0.25 * global.contingency_30 * line_lenght;
+        full_capex_stations = 2 * 115.0 * global.contingency_30;
+        lifetime_lines = 40.0;
+        lifetime_stations = 40.0;
+        annualised_capex_lines = full_capex_lines * global.wacc * (1 + global.wacc)**lifetime_lines / ((1 + global.wacc)**lifetime_lines - 1); // MEur
+        annualised_capex_stations = full_capex_stations * global.wacc * (1 + global.wacc)**lifetime_stations / ((1 + global.wacc)**lifetime_stations - 1); // MEur
+        annualised_capex = annualised_capex_lines + annualised_capex_stations; // MEur/GW-year (Lines + Stations)
+        fom = 2.5 + 4.6; // MEur/year
+        vom = 0.0;
+        efficiency_HVDC = 0.985 - 3.5e-5 * line_lenght;
+    #VARIABLES
+        internal: capacity;
+        external: elec_in[T];
+        external: elec_out[T];
+    #CONSTRAINTS
+        elec_in[t] <= capacity;
+        elec_out[t] == efficiency_HVDC * elec_in[t];
+        capacity >= 0;
+        elec_in[t] >= 0;
+        elec_out[t] >= 0;
+    #OBJECTIVES
+        min: global.number_years_horizon * (annualised_capex + fom) * capacity;
+        min: vom * elec_in[t];
+
+#HYPEREDGE POWER_BALANCE_ELEC_PROD
+    #CONSTRAINTS
+        SOLAR_PV_PLANTS.elec_out[t] + WIND_PLANTS.elec_out[t] + BATTERY_STORAGE.elec_out[t] == BATTERY_STORAGE.elec_in[t] + HVDC.elec_in[t];
+
