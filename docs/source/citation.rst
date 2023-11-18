@@ -2,7 +2,7 @@ Citing GBOML
 ------------
 An early version of the GBOML framework was introduced in a paper: https://www.frontiersin.org/articles/10.3389/fenrg.2021.671279/full.
 GBOML software has been published in the Journal of Open-Source Software : https://joss.theoj.org/papers/10.21105/joss.04158.
-The inner workings of GBOML and a benchmark have been discussed in a recent paper published in Optimization Methods and Software : https://www.tandfonline.com/doi/full/10.1080/10556788.2023.2246169 .
+The inner workings of GBOML and a benchmark have been discussed in a recent paper published in Optimization Methods and Software : https://www.tandfonline.com/doi/full/10.1080/10556788.2023.2246169.
 
 To cite the software :
 
