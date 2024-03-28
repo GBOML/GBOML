@@ -6,21 +6,6 @@ The inner workings of GBOML and a benchmark have been discussed in a recent pape
 
 To cite the software :
 
-.. code-block:: 
-
-    @article{Miftari2022,
-      doi = {10.21105/joss.04158},
-      url = {https://doi.org/10.21105/joss.04158},
-      year = {2022},
-      publisher = {The Open Journal},
-      volume = {7},
-      number = {72},
-      pages = {4158},
-      author = {Bardhyl Miftari and Mathias Berger and Hatim Djelassi and Damien Ernst},
-      title = {GBOML: Graph-Based Optimization Modeling Language},
-      journal = {Journal of Open Source Software}
-    }
-
 .. code-block::
 
     @article{Miftari2023,
@@ -35,4 +20,19 @@ To cite the software :
         doi = {10.1080/10556788.2023.2246169},
         URL = {https://doi.org/10.1080/10556788.2023.2246169},
         eprint = {https://doi.org/10.1080/10556788.2023.2246169}
+    }
+
+.. code-block::
+
+    @article{Miftari2022,
+      doi = {10.21105/joss.04158},
+      url = {https://doi.org/10.21105/joss.04158},
+      year = {2022},
+      publisher = {The Open Journal},
+      volume = {7},
+      number = {72},
+      pages = {4158},
+      author = {Bardhyl Miftari and Mathias Berger and Hatim Djelassi and Damien Ernst},
+      title = {GBOML: Graph-Based Optimization Modeling Language},
+      journal = {Journal of Open Source Software}
     }
