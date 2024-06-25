@@ -13,10 +13,10 @@ class TestImport(unittest.TestCase):
             """
                 #TIMEHORIZON
                     T = 8760;
-                #NODE A extends B from "instances/imports/b_nogen.gboml";
+                #NODE A extends B from "imports/b_nogen.gboml";
             """
         )
-        print(resolve_imports(tree, Path('.'), parser))
+        print(resolve_imports(tree, Path(__file__).parent / "instances", parser))
 
     def test_import_nogen_2(self):
         parser = GBOMLParser()
@@ -24,14 +24,14 @@ class TestImport(unittest.TestCase):
             """
                 #TIMEHORIZON
                     T = 8760;
-                #NODE A extends B from "instances/imports/b_nogen.gboml"
+                #NODE A extends B from "imports/b_nogen.gboml"
                     #PARAMETERS
                         i = 2;
                     #VARIABLES
                         pass;
             """
         )
-        print(resolve_imports(tree, Path('.'), parser))
+        print(resolve_imports(tree, Path(__file__).parent / "instances", parser))
 
     def test_import_gen_1(self):
         parser = GBOMLParser()
@@ -39,14 +39,14 @@ class TestImport(unittest.TestCase):
             """
                 #TIMEHORIZON
                     T = 8760;
-                #NODE A extends B[2] from "instances/imports/b_gen.gboml"
+                #NODE A extends B[2] from "imports/b_gen.gboml"
                     #PARAMETERS
                         j = 2;
                     #VARIABLES
                         pass;
             """
         )
-        print(resolve_imports(tree, Path('.'), parser))
+        print(resolve_imports(tree, Path(__file__).parent / "instances", parser))
 
     @unittest.expectedFailure
     def test_import_gen_2(self):
@@ -55,14 +55,14 @@ class TestImport(unittest.TestCase):
             """
                 #TIMEHORIZON
                     T = 8760;
-                #NODE A extends B[2] from "instances/imports/b_gen.gboml"
+                #NODE A extends B[2] from "imports/b_gen.gboml"
                     #PARAMETERS
                         i = 2; //this should fail, as i is an index of B
                     #VARIABLES
                         pass;
             """
         )
-        print(resolve_imports(tree, Path('.'), parser))
+        print(resolve_imports(tree, Path(__file__).parent / "instances", parser))
 
 if __name__ == '__main__':
     unittest.main()
