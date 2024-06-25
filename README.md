@@ -33,17 +33,19 @@ Documentation is available on Read the Docs:
 
 * [Read the documentation online](https://gboml.readthedocs.io/en/latest/)
 
+You can find examples of usage on the [GBOML-examples repository](https://github.com/GBOML/GBOML-examples)
+
 ## Community guidelines
 
 To contribute changes:
 
-1. Fork the project on Gitlab
+1. Fork the project on Github
 2. Create a feature branch to work on in your fork (`git checkout -b new-feature`)
 3. Commit your changes to the feature branch
-4. Push the branch to Gitlab (`git push origin my-new-feature`)
-5. On Gitlab, create a new pull request from the feature branch
+4. Push the branch to Github (`git push origin my-new-feature`)
+5. On Github, create a new pull request from the feature branch
 
-Issues and questions shall be reported in the [issues directory](https://gitlab.uliege.be/smart_grids/public/gboml/-/issues).
+Issues and questions shall be reported in the [issues directory](https://github.com/GBOML/GBOML/issues).
 
 ## Citing GBOML
 
