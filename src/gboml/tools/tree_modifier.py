@@ -158,7 +158,7 @@ def modify(element: T, by: dict[typing.Type[AnyGBOMLObject], typing.Callable[[An
     match element:
         case GBOMLObject(): return _modify_gbomlobject(element, by)
         case list(): return _modify_list(element, by)
-        case int() | str() | None: return element
+        case int() | str() | float() | None: return element
         case other: raise RuntimeError(f"Unknown type {other.__class__}")
 
 
