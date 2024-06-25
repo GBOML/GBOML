@@ -6,8 +6,8 @@
     c = 2e2;
     d = -1;
     e <- 2e-2;
-    f = 0:2;
-    f = {i for i in 0:10, i for i in 100:120};
+    f = [0:2];
+    f = {i for i in [0:10], i for i in [100:120]};
     g = [0:10:2];
 #NODE nodeI  = import nodeA from "hello.gboml";
 #NODE nodeI2 = import nodeA from "hello.gboml" with
@@ -22,6 +22,11 @@
 #HYPEREDGE E[i] for i in [0:10]
     #CONSTRAINTS
         pass;
+
+#NODE node1 extends A from "lol.txt"
+    #VARIABLES
+        pass;
+
 #NODE node1 extends A from "lol.txt" @cquetuveux
     #PARAMETERS
         a = 2;
@@ -32,9 +37,6 @@
         f <- {A, B};
         dict <- {"heu": A, "je": B};
         func(x) <- x*2;
-    #CONSTRAINTS
-        sum(e.x for e in @pv) == 0;
-        dict["heu"].x == dict["je"].x + f(2);
     #NODE A
         #VARIABLES
             external: x @tag;
@@ -51,6 +53,8 @@
         internal integer: d[T+2];
         internal binary: e[T-2];
     #CONSTRAINTS
+        sum(e.x for e in @pv) == 0;
+        dict["heu"].x == dict["je"].x + f(2);
         2+f(2,2,{2})*(2-2/2%2**2) == -2.2*0;
         2 >= 0;
         0 <= 2;
