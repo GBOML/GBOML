@@ -1,0 +1,8 @@
+%override value: (function unit?) | var_or_param | (INT unit?) | (FLOAT unit?) | ("(" expression ")")
+
+?unit: "|" mul_unit_expr "|"
+?mul_unit_expr: _separated_list{div_unit_expr, "*"}
+?div_unit_expr: _separated_list{exp_unit_expr, "/"}
+?exp_unit_expr: value_unit_expr ("**" INT)?
+?value_unit_expr: UNIT | ("(" exp_unit_expr ")")
+UNIT: /[^\|\*\/ ]+/

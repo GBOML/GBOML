@@ -18,10 +18,14 @@ def _vargs(f, data, children, _meta):
     """ Wrapper for methods in GBOMLLarkTransformer """
     return f(gen_meta(data), *children)
 
+
+default_lark_def = open((pathlib.Path(__file__).parent / "gboml.lark").resolve()).read()
+
+
 class GBOMLParser:
-    def __init__(self):
-        self.lark_def = (pathlib.Path(__file__).parent / "gboml.lark")
-        self.parser = Lark(open(self.lark_def.resolve()).read(), start="start", parser="lalr")
+    def __init__(self, lark_def=default_lark_def):
+        self.lark_def = lark_def
+        self.parser = Lark(self.lark_def, start="start", parser="lalr")
 
 
     def parse_file(self, filename: str) -> GBOMLGraph:
