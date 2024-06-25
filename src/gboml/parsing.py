@@ -11,7 +11,9 @@ from gboml.tools.tree_modifier import modify, visit
 
 def _op_transform(op): return lambda *x, meta: ExpressionOp(op, list(x), meta=meta)
 def _bool_op_transform(op): return lambda *x, meta: BoolExpressionOp(op, list(x), meta=meta)
-def gen_meta(lark_token: Token) -> Meta: return Meta(line=lark_token.line, column=lark_token.column, filename=None)
+def gen_meta(lark_token: Token) -> Meta:
+    print(lark_token.line, lark_token.column)
+    return Meta(line=lark_token.line, column=lark_token.column, filename=None)
 
 
 def _vargs(f, data, children, _meta):
