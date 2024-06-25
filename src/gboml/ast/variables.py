@@ -55,7 +55,7 @@ class IndexingParameterDefinition(Definition):
 @dataclass
 class VariableDefinition(NamedGBOMLObject):
     name: str
-    indices: list[str]
+    indices: list[RValue]
     scope: VarScope
     type: VarType
     bound_lower: Optional[Expression]

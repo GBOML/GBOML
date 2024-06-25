@@ -211,7 +211,7 @@ class GBOMLParser:
             def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):
                 return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
 
-            def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[str])],
+            def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[RValue])],
                                     imports_from: Optional[list[VarOrParam]],
                                     bound_lower: Optional[Expression], bound_upper: Optional[Expression], tags: set[str]):
                 if imports_from is not None and len(imports_from) != len(names):
