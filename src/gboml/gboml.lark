@@ -83,9 +83,9 @@ OBJ_TYPE: "min" | "max"
 
 // LOOPS
 ?loop: multi_loop | implicit_loop
-?multi_loop: (base_loop | eq_loop)+
+?multi_loop: (base_loop | like_loop)+
 base_loop: "for" ID "in" iterable ["where" bool_expression]
-eq_loop: "for" ID "=" var_or_param ["where" bool_expression]
+like_loop: "for" ID "like" var_or_param ["where" bool_expression] //var_or_param must point to an indexing param
 implicit_loop: "where" bool_expression
 
 // BOOLEAN EXPRESSIONS

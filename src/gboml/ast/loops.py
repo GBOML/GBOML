@@ -22,7 +22,7 @@ class BaseLoop(Loop):
 
 
 @dataclass
-class EqLoop(Loop):
+class LikeLoop(Loop):
     varid: str
     on: VarOrParam
     condition: Optional[BoolExpression]

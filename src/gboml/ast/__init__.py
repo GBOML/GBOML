@@ -1,7 +1,7 @@
 __all__ = [
     "Meta", "GBOMLObject", "VarScope", "VarType", "SOSType", "ObjType",
     "Operator", "ExpressionObj", "Expression", "BoolExpression", "VarOrParamLeaf",
-    "VarOrParam", "Array", "Loop", "BaseLoop", "EqLoop", "Function", "BoolExpressionOp",
+    "VarOrParam", "Array", "Loop", "BaseLoop", "LikeLoop", "Function", "BoolExpressionOp",
     "BoolExpressionComparison", "ScopeChange", "ImportFile", "Definition", "Constraint",
     "StdConstraint", "SOSConstraint", "Objective", "VariableDefinition", "Node",
     "HyperEdge", "NodeDefinition", "HyperEdgeDefinition",

@@ -92,7 +92,7 @@ class GBOMLParser:
                 "constraint_sos": SOSConstraint,
                 "objective": Objective,
                 "base_loop": BaseLoop,
-                "eq_loop": EqLoop,
+                "like_loop": LikeLoop,
                 "implicit_loop": ImplicitLoop,
                 "subtraction": _op_transform(Operator.minus),
                 "sum": _op_transform(Operator.plus),
