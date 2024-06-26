@@ -4,21 +4,18 @@ from gboml.parsing import GBOMLParser
 from gboml.semantic import semantic_check
 from gboml.scope import RootScope
 
-tree = GBOMLParser().parse("""#TIMEHORIZON
-    T = 1;
-#GLOBAL
-    b = 4;
+tree = GBOMLParser().parse("""// Test working constrainting and optimizing only one element of vector
 
-// Working example where x = -4
+#TIMEHORIZON
+T = 10;
 
-#NODE H
-#VARIABLES
-internal : x;
-internal : y;
+#NODE A
+#VARIABLES 
+internal : x[T];
 #CONSTRAINTS
-x<=-4;
+x[T-1]>=0;
 #OBJECTIVES
-max : x + global.b;
+min: x[T-1];
 """)
     # c = 2e2;
     # d = -1;
