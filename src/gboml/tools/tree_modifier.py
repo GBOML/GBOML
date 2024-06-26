@@ -105,13 +105,13 @@ paths_to = _compute_paths_to()
 #       and it takes ~20ms. We probably shouldn't care.
 
 
-def _modify_list(l, by):
+def _modify_list(l, by_before, by_after):
     # we do not copy l if it is not modified
     copied = False
 
     for i in range(len(l)):
         cur = l[i]
-        out = modify(l[i], by)
+        out = modify(l[i], by_before, by_after)
         if out is not cur:
             # first copy l if we need to modify it
             if copied is False:
@@ -122,47 +122,66 @@ def _modify_list(l, by):
     return l
 
 
-def _modify_gbomlobject(obj, by):
-    # if we now what to do with the current object, let's do it
+def _modify_gbomlobject(obj, by_before, by_after):
+    # if we know what to do with the current object, let's do it
     for x in family_list[obj.__class__]:
-        if x in by:
-            obj = by[x](obj)
+        if x in by_before:
+            obj = by_before[x](obj)
             break
 
     # and now the hard part
     interesting_fields = set()
-    for by_type in by:
+    for by_type in by_before:
+        interesting_fields |= paths_to[by_type][obj.__class__]
+    for by_type in by_after:
         interesting_fields |= paths_to[by_type][obj.__class__]
     modified = {}
     for field_name in interesting_fields:
         cur = getattr(obj, field_name)
-        out = modify(cur, by)
+        out = modify(cur, by_before, by_after)
         if out is not cur:
             modified[field_name] = out
     if len(modified):
-        return dataclasses.replace(obj, **modified)
+        obj = dataclasses.replace(obj, **modified)
+
+    # if we know what to do with the current object, let's do it
+    for x in family_list[obj.__class__]:
+        if x in by_after:
+            obj = by_after[x](obj)
+            break
+
     return obj
 
 
 T = typing.TypeVar('T')
 
 
-def modify(element: T, by: dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject], AnyGBOMLObject]]) -> T:
+def modify(element: T,
+           by_before: dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]] = None,
+           by_after: dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]] = None) -> T:
     """
-        Recursively modifies a GBOMLGraph tree (or any part of it) according to rules set in the dict `by`.
-        `by` entries should be in the form `(cls: fun)`, where cls is a class derivating from GBOMLObject and
+        Recursively modifies a GBOMLGraph tree (or any part of it) according to rules set in the dict `by_before` and `by_after`.
+        `by_...` entries should be in the form `(cls: fun)`, where cls is a class derivating from GBOMLObject and
         fun a callable function that takes as input the object to modify and returns its new value. `fun` will
         be called on all elements that derivates from class `fun`. If multiple `cls` are valid, the class
-        that is the nearest from the object is chosen.
+        that is the nearest from the object is chosen. The elements in `by_before` will be called before
+        the recursive modifications, and, for `by_after`, after the recursive modification of the element.
     """
+    if by_before is None and by_after is None:
+        return element
+    if by_before is None:
+        by_before = {}
+    if by_after is None:
+        by_after = {}
+
     match element:
-        case GBOMLObject(): return _modify_gbomlobject(element, by)
-        case list(): return _modify_list(element, by)
+        case GBOMLObject(): return _modify_gbomlobject(element, by_before, by_after)
+        case list(): return _modify_list(element, by_before, by_after)
         case int() | str() | float() | None: return element
         case other: raise RuntimeError(f"Unknown type {other.__class__}")
 
 
-def visit(element: typing.Any, call: dict[typing.Type[GBOMLObject], typing.Callable[[GBOMLObject], None]]):
+def visit(element: typing.Any, call: dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject], None]]):
     """
         Recursively visit a GBOMLGraph tree (or any part of it), calling functions in the dict `call` each time it
         sees an object of the right type.
@@ -174,3 +193,81 @@ def visit(element: typing.Any, call: dict[typing.Type[GBOMLObject], typing.Calla
         f(v)
         return v
     return modify(element, {x: partial(_, y) for x, y in call.items()})
+
+
+def modify_hier(element: T,
+                store_hier: set[typing.Type[AnyGBOMLObject]],
+                by_before: dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]] = None,
+                by_after: dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]] = None):
+    """
+        Recursively modifies a GBOMLGraph tree (or any part of it) according to rules set in the dict `by_before` and `by_after`.
+        `by_...` entries should be in the form `(cls: fun)`, where cls is a class derivating from GBOMLObject and
+        fun a callable function that takes as input the object to modify and returns its new value. `fun` will
+        be called on all elements that derivates from class `fun`, and will receive two arguments:
+        - the element found
+        - the hierarchy of elements, whose types are in store_hier, visited to reach the element
+        If multiple `cls` are valid, the class that is the nearest from the object is chosen.
+        The elements in `by_before` will be called before the recursive modifications, and, for `by_after`,
+        after the recursive modification of the element.
+    """
+    if by_before is None and by_after is None:
+        return element
+    if by_before is None:
+        by_before = {}
+    if by_after is None:
+        by_after = {}
+
+    hierarchy = []
+
+    def push(x):
+        hierarchy.append(x)
+        return x
+
+    def pop(x):
+        hierarchy.pop()
+        return x
+
+    def push_and_f(f):
+        def g(x):
+            push(x)
+            return f(x, hierarchy)
+        return g
+
+    def f_and_pop(f):
+        def g(x):
+            out = f(x, hierarchy)
+            pop(x)
+            return out
+        return g
+
+    def just_f(f):
+        def g(x):
+            return f(x, hierarchy)
+        return g
+
+    new_by_before = {
+        t: just_f(f) if t not in store_hier else push_and_f(f)
+        for t, f in by_before.items()
+    } | {
+        t: push for t in store_hier if t not in by_before
+    }
+
+    new_by_after = {
+        t: just_f(f) if t not in store_hier else f_and_pop(f)
+        for t, f in by_after.items()
+    } | {
+        t: pop for t in store_hier if t not in by_after
+    }
+
+    return modify(element, new_by_before, new_by_after)
+
+def visit_hier(element: typing.Any,
+               store_hier: set[typing.Type[AnyGBOMLObject]],
+               call: dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject, list[AnyGBOMLObject]], None]]):
+    """
+        Combine the effects of visit and modify_hier.
+    """
+    def _(f, v, l):
+        f(v, l)
+        return v
+    return modify_hier(element, store_hier, {x: partial(_, f) for x, f in call.items()})
