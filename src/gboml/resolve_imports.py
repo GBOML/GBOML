@@ -12,7 +12,7 @@ from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.tools.tree_modifier import modify
 
 # Singleton used in _load_file to detect cyclic imports
-WORKING = object
+WORKING = object()
 
 inheritable_ast = NodeDefinition | NodeGenerator | HyperEdgeDefinition | HyperEdgeGenerator
 
