@@ -56,6 +56,7 @@ class NamedAstScope(Scope, Generic[T]):
 
     def __post_init__(self):
         self.name = self.ast.name
+        self.ast.scope = self
         super(NamedAstScope, self).__post_init__()
 
 
