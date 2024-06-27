@@ -14,9 +14,5 @@ def _check_var_in_scope(element: VarOrParam, hier: set[NodeDefinition|NodeGenera
         except KeyError:
             _scope_error(element.path, subElement)
 
-# TODO node can only access parent's params, nothing else in its parent
-# TODO "=" only constants
-# TODO "<-" can use nodes and stuff
-
 def semantic_check(globalScope: GlobalScope):
     visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue}, {VarOrParam: _check_var_in_scope})
