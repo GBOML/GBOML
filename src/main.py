@@ -2,12 +2,10 @@
 
 from gboml.parsing import GBOMLParser
 from gboml.semantic import semantic_check
-from gboml.scope import RootScope
+from gboml.scope import GlobalScope
 
 tree = GBOMLParser().parse("""
 #TIMEHORIZON T = 1;
-#GLOBAL
-    b = 4;
 
 #NODE A
     #PARAMETERS
@@ -26,53 +24,20 @@ tree = GBOMLParser().parse("""
                 #CONSTRAINTS
                     x >= A.a;
             #VARIABLES
-                internal : x <- D.x;
+                internal : y <- D.x;
             #CONSTRAINTS
-                x <= B.b+A.a+c+global.b;
+                y <= B.b+A.a+c+global.z;
         #VARIABLES
-            internal : x <- C.x;
+            internal : x <- C.y;
     #VARIABLES
         internal : x <- B.x;
     #OBJECTIVES
         min : x + a;
 """)
 
-
-['B', 'b']
-['A', 'a']
-['c']
-['global', 'b']
-['x']
-['A', 'a']
-['x']
-['D', 'x']
-['C', 'x']
-['x']
-['a']
-['B', 'x']
-['B', 'b']
-['A', 'a']
-['c']
-['global', 'b']
-['x']
-['A', 'a']
-['x']
-['D', 'x']
-['C', 'x']
-['B', 'b']
-['A', 'a']
-['c']
-['global', 'b']
-['x']
-['A', 'a']
-['x']
-['D', 'x']
-['A', 'a']
-['x']
-
 print(tree)
 # print(tree.meta)
 # print(tree.global_defs[0].meta)
-rootScope = RootScope(tree)
-semantic_check(rootScope)
-#parse_file("test/test1.txt")
+globalScope = GlobalScope(tree)
+semantic_check(globalScope)
+# parse_file("test/test1.txt")

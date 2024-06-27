@@ -1,9 +1,9 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Type
 
-from gboml.ast import NodeDefinition, GBOMLGraph, VariableDefinition, Definition, NodeGenerator, NamedGBOMLObject, \
-    HyperEdge, HyperEdgeGenerator, HyperEdgeDefinition
+from gboml.ast import *
+from gboml.tools.tree_modifier import visit, visit_hier
 
 T = TypeVar('T', bound=NamedGBOMLObject)
 
@@ -109,7 +109,7 @@ class DefNodeScope(NamedAstScope[NodeDefinition]):
         self._add_all_to_scope(self.ast.variables)
 
         parents = [self.parent]
-        while not isinstance(parents[-1], RootScope):
+        while not isinstance(parents[-1], GlobalScope):
             parents.append(parents[-1].parent)
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
@@ -139,7 +139,7 @@ class DefHyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
         self._add_all_to_scope(self._parent_nodes)
 
         parents = [self.parent]
-        while not isinstance(parents[-1], RootScope):
+        while not isinstance(parents[-1], GlobalScope):
             parents.append(parents[-1].parent)
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
@@ -156,18 +156,24 @@ class UnresolvedHyperEdgeGeneratorScope(NamedAstScope[NodeGenerator], Unresolvab
 
 HyperEdgeScope = DefHyperEdgeScope | UnresolvedHyperEdgeGeneratorScope
 
+def _add_scope_to_varOrParam(var: VarOrParam, scope: Scope):
+    print("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", scope.path)
+    print(list(map(lambda var: var.name, var.path)))
+    var.scope = scope
+
 @dataclass
 class ScopedDefinition(NamedAstScope[NodeDefinition]):
     def __post_init__(self):
         super(ScopedDefinition, self).__post_init__()
         self.content = self.parent.content
-
+        visit(self.ast, {VarOrParam: lambda var: _add_scope_to_varOrParam(var, self)})
 
 @dataclass
 class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
     def __post_init__(self):
         super(ScopedVariableDefinition, self).__post_init__()
         self.content = self.parent.content
+        visit(self.ast, {VarOrParam: lambda var: _add_scope_to_varOrParam(var, self)})
 
 
 def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope:
@@ -179,7 +185,6 @@ def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope
         case Scope(): return ast_or_scope
         case _: raise RuntimeError(f"Unknown Type {ast_or_scope.__class__}")
 
-
 def create_hyperedge_scope(ast: HyperEdge, parent: Scope, nodes_in_parent: list[NodeScope]) -> Scope:
     match ast:
         case HyperEdgeDefinition(): return DefHyperEdgeScope(parent, ast, nodes_in_parent)
@@ -187,18 +192,7 @@ def create_hyperedge_scope(ast: HyperEdge, parent: Scope, nodes_in_parent: list[
 
 @dataclass
 class GlobalScope(Scope):
-    ast: GBOMLGraph = field(repr=False)
     name: str = field(init=False, default="global")
-
-    def __post_init__(self):
-        super(GlobalScope, self).__post_init__()
-        self.content = {}
-        self._add_all_to_scope(self.ast.global_defs)
-
-
-@dataclass
-class RootScope(Scope):
-    name: str = field(init=False, default="root")
     path: list[str] = field(init=False, default_factory=lambda: [])
     parent: Scope = field(init=False, default=None)
     ast: GBOMLGraph = field(repr=False)
@@ -206,6 +200,7 @@ class RootScope(Scope):
     hyperedges: dict[str, HyperEdgeScope] = field(init=False, repr=False)
 
     def __post_init__(self):
-        self.content = {"global": GlobalScope(self, self.ast)}
+        self.content = {}
+        self._add_all_to_scope(self.ast.global_defs)
         self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, self.nodes.values()) for h in self.ast.hyperedges}
