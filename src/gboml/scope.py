@@ -156,24 +156,17 @@ class UnresolvedHyperEdgeGeneratorScope(NamedAstScope[NodeGenerator], Unresolvab
 
 HyperEdgeScope = DefHyperEdgeScope | UnresolvedHyperEdgeGeneratorScope
 
-def _add_scope_to_varOrParam(var: VarOrParam, scope: Scope):
-    print("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", scope.path)
-    print(list(map(lambda var: var.name, var.path)))
-    # var.scope = scope
-
 @dataclass
 class ScopedDefinition(NamedAstScope[NodeDefinition]):
     def __post_init__(self):
         super(ScopedDefinition, self).__post_init__()
         self.content = self.parent.content
-        visit(self.ast, {VarOrParam: lambda var: _add_scope_to_varOrParam(var, self)})
 
 @dataclass
 class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
     def __post_init__(self):
         super(ScopedVariableDefinition, self).__post_init__()
         self.content = self.parent.content
-        visit(self.ast, {VarOrParam: lambda var: _add_scope_to_varOrParam(var, self)})
 
 
 def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope:
