@@ -159,7 +159,7 @@ HyperEdgeScope = DefHyperEdgeScope | UnresolvedHyperEdgeGeneratorScope
 def _add_scope_to_varOrParam(var: VarOrParam, scope: Scope):
     print("HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH", scope.path)
     print(list(map(lambda var: var.name, var.path)))
-    var.scope = scope
+    # var.scope = scope
 
 @dataclass
 class ScopedDefinition(NamedAstScope[NodeDefinition]):

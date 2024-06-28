@@ -1,40 +1,60 @@
 #!/usr/bin/env python3
 
 from gboml.parsing import GBOMLParser
+from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.semantic import semantic_check
 from gboml.scope import GlobalScope
 
 tree = GBOMLParser().parse("""
-#TIMEHORIZON T = 1;
+
+#TIMEHORIZON T = 2;
 
 #NODE A
     #PARAMETERS
-        a = 1;
+        param = 1;
     #NODE B
         #PARAMETERS
-            b = 2;
+            param = 2;
         #NODE C
             #PARAMETERS
-                c = 3;
+                param = 3;
             #NODE D
                 #PARAMETERS
-                    d = 4;
+                    param = 4;
                 #VARIABLES
-                    internal : x;
+                    external : x[T];
                 #CONSTRAINTS
-                    x >= A.a;
+                    x[t] >= A.param;
+
+            #NODE E
+                #PARAMETERS
+                    param = 5.5;
+                #VARIABLES
+                    external integer : y[T];
+                #CONSTRAINTS
+                    y[t] >= param;
+                #OBJECTIVES
+                    min: y[t];
+
+            #HYPEREDGE H
+                #PARAMETERS
+                    param = A.param;
+                #CONSTRAINTS
+                    E.y[t]+D.x[t] == param+9;
+
             #VARIABLES
-                internal : y <- D.x;
+                internal : x[T] <- D.x[T];
             #CONSTRAINTS
-                y <= B.b+A.a+c+global.z;
+                x[t] <= B.param+A.param+param;
         #VARIABLES
-            internal : x <- C.y;
+            internal : x[T] <- C.x[T];
     #VARIABLES
-        internal : x <- B.x;
+        internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x + a;
+        min : x[t-5] ;
 """)
 
+# tree = remove_redundant_definitions(tree)
 print(tree)
 # print(tree.meta)
 # print(tree.global_defs[0].meta)
