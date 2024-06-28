@@ -163,6 +163,14 @@ class ScopedDefinition(NamedAstScope[NodeDefinition]):
         self.content = self.parent.content
 
 @dataclass
+class ScopedFunctionDefinition(NamedAstScope[NodeDefinition]):
+    def __post_init__(self):
+        super(ScopedFunctionDefinition, self).__post_init__()
+        if intersection := self.parent.content.keys() & self.ast.args:
+            raise RuntimeError(f"Identifier {intersection} is already used")
+        self.content = self.parent.content | dict.fromkeys(self.ast.args)
+
+@dataclass
 class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
     def __post_init__(self):
         super(ScopedVariableDefinition, self).__post_init__()
@@ -173,6 +181,7 @@ def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope
     match ast_or_scope:
         case NodeDefinition(): return DefNodeScope(parent, ast_or_scope)
         case NodeGenerator(): return UnresolvedNodeGeneratorScope(parent, ast_or_scope)
+        case FunctionDefinition(): return ScopedFunctionDefinition(parent, ast_or_scope)
         case Definition(): return ScopedDefinition(parent, ast_or_scope)
         case VariableDefinition(): return ScopedVariableDefinition(parent, ast_or_scope)
         case Scope(): return ast_or_scope

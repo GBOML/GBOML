@@ -12,6 +12,7 @@ tree = GBOMLParser().parse("""
 #NODE A
     #PARAMETERS
         param = 1;
+        f(a) <- a;
     #NODE B
         #PARAMETERS
             param = 2;
