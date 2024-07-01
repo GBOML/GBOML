@@ -137,7 +137,7 @@ obj_deactivate: _deactivate
 
 
 // FUNCTIONS
-function: ID "(" separated_maybe_empty_list{generated_rvalue, ","} ")"
+function: ID "(" separated_list{generated_rvalue, ","} ")"
 
 // VAR OR PARAM LINK
 var_or_param: separated_list{var_or_param_leaf, "."}
