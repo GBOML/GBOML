@@ -6,18 +6,20 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
     # if there is any parent VarOrParam in hier, return (sub-VarOrParam are handled from the parent)
     if any(isinstance(hierItem, VariableDefinition | VarOrParam) for hierItem in reversed(hier[:-1])):
         return
+    if not hier:
+        print()
     print(element, list(map(lambda _: (type(_), isinstance(_, NodeDefinition | FunctionDefinition)), hier)))
     if scope is None:  # get the scope of the last node/fct in hier
         scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, NodeDefinition | FunctionDefinition))
     parentScope = scope
     for leaf in element.path[:2]:
-        # print(type(scope), scope.parent.content.keys())
+        print(leaf.name, type(scope), scope.content.keys())
         try:
             scope = scope[leaf.name]
             isDeclaredAsArray = isinstance(scope, ScopedVariableDefinition) and bool(scope.ast.indices)
         except KeyError as err:
             # if TIMEHORIZON is set, 'T' and 't' are allowed
-            if scope and scope['global'].parent.ast.time_horizon is not None and (leaf.name == 't' or leaf.name == 'T'):
+            if scope and parentScope['global'].parent.ast.time_horizon is not None and (leaf.name == 't' or leaf.name == 'T'):
                 isDeclaredAsArray = False  # indices are not allowed
                 scope = {}  # a following leaf in element.path is not allowed (next leaf.name will raise KeyError)
             else:
@@ -39,6 +41,7 @@ def semantic_check(globalScope: GlobalScope):
 # TODO if no TIMEHORIZON, we can use T as name of variable
 # TODO add expressions to a "dict"
 
+# TODO check if isDeclaredAsArray is correct for non-x[T] definition
 # TODO check for scope in FunctionDefinition (args of fct are done, but check for the overall fct usage - if it is detected correctly)
 # TODO check for scope in for i ....
 
