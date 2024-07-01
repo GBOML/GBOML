@@ -3,16 +3,15 @@ from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier
 
 def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|VarOrParam] = [], scope: Scope = None) -> None:
-    # if there is any parent VarOrParam in hier, return (sub-VarOrParam are handled at the same time as the parent)
+    # if there is any parent VarOrParam in hier, return (sub-VarOrParam are handled from the parent)
     if any(isinstance(hierItem, VariableDefinition | VarOrParam) for hierItem in reversed(hier[:-1])):
         return
     print(element, list(map(lambda _: (type(_), isinstance(_, NodeDefinition | FunctionDefinition)), hier)))
-    if scope is None:  # get the scope of the last node in hier
+    if scope is None:  # get the scope of the last node/fct in hier
         scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, NodeDefinition | FunctionDefinition))
     parentScope = scope
-    for leaf in element.path:
-        # TODO from the 2nd iteration, check that previous leaf was a list of nodes
-        print(type(scope), scope.parent.content.keys())
+    for leaf in element.path[:2]:
+        # print(type(scope), scope.parent.content.keys())
         try:
             scope = scope[leaf.name]
             isDeclaredAsArray = isinstance(scope, ScopedVariableDefinition) and bool(scope.ast.indices)
@@ -27,8 +26,9 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
         isUsedAsArray = bool(leaf.indices)
         if isUsedAsArray != isDeclaredAsArray:
             raise KeyError(f"SEMANTIC ERROR: {leaf.name} (from {list(map(lambda e: e.name, element.path))}): mixing declaration type and use type (array Vs. scalar) {leaf.meta}!")
-        elif isUsedAsArray:  # check scope of all sub-VarOrParam
-            visit(element, {VarOrParam: lambda var: None if var is element else _check_var_in_scope(var, scope = parentScope)})
+
+    # visit all VarOrParam indices at once
+    visit(element, {VarOrParam: lambda var: None if var is element else _check_var_in_scope(var, scope = parentScope)})
 
 def semantic_check(globalScope: GlobalScope):
     # check variables shadowing TODO (parts already done in scope.py._add_to_scope(), but not T/t)

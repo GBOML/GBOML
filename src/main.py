@@ -54,7 +54,7 @@ tree = GBOMLParser().parse("""
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] ;
+        min : x[t-5][t] ;
 """)
 
 # tree = remove_redundant_definitions(tree)
