@@ -166,9 +166,13 @@ class ScopedDefinition(NamedAstScope[NodeDefinition]):
 class ScopedFunctionDefinition(NamedAstScope[NodeDefinition]):
     def __post_init__(self):
         super(ScopedFunctionDefinition, self).__post_init__()
+        self.content = self.parent.content
+        
+    # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
+    def _finalize_init(self):
         if intersection := self.parent.content.keys() & self.ast.args:
             raise RuntimeError(f"Identifier {intersection} is already used")
-        self.content = self.parent.content | dict.fromkeys(self.ast.args)
+        self.content = self.parent.content | dict.fromkeys(self.ast.args, {})
 
 @dataclass
 class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
@@ -206,3 +210,4 @@ class GlobalScope(Scope):
         self._add_all_to_scope(self.ast.global_defs)
         self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, self.nodes.values()) for h in self.ast.hyperedges}
+        visit(self.ast, {FunctionDefinition: lambda fct: fct.scope._finalize_init()})

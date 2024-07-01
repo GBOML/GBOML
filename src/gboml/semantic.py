@@ -12,13 +12,13 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
     parentScope = scope
     for leaf in element.path:
         # TODO from the 2nd iteration, check that previous leaf was a list of nodes
-        print(type(scope))
+        print(type(scope), scope.parent.content.keys())
         try:
             scope = scope[leaf.name]
             isDeclaredAsArray = isinstance(scope, ScopedVariableDefinition) and bool(scope.ast.indices)
         except KeyError as err:
             # if TIMEHORIZON is set, 'T' and 't' are allowed
-            if scope and scope['global'].parent.ast.time_horizon is not None and leaf.name == 't':
+            if scope and scope['global'].parent.ast.time_horizon is not None and (leaf.name == 't' or leaf.name == 'T'):
                 isDeclaredAsArray = False  # indices are not allowed
                 scope = {}  # a following leaf in element.path is not allowed (next leaf.name will raise KeyError)
             else:

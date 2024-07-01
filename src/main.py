@@ -8,11 +8,13 @@ from gboml.scope import GlobalScope
 tree = GBOMLParser().parse("""
 
 #TIMEHORIZON T = 2;
+#GLOBAL
+    pi = 314;
 
 #NODE A
     #PARAMETERS
         param = 1;
-        f(a) <- a;
+        f(a) <- a + global.pi;
     #NODE B
         #PARAMETERS
             param = 2;
