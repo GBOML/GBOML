@@ -14,7 +14,13 @@ tree = GBOMLParser().parse("""
 #NODE A
     #PARAMETERS
         param = 1;
-        f(a) <- a + global.pi;
+        a <- 1;
+        a <- a + 1;
+        a <- a + 1;
+        a <- a + 1;
+        f(a) <- global.pi ** a;
+        f(b) <- global.pi ** b;
+
     #NODE B
         #PARAMETERS
             param = 2;
@@ -54,10 +60,10 @@ tree = GBOMLParser().parse("""
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + f(global.pi,param);
+        min : x[t-5] + f(global.pi);
 """)
 
-# tree = remove_redundant_definitions(tree)
+tree = remove_redundant_definitions(tree)
 print(tree)
 # print(tree.meta)
 # print(tree.global_defs[0].meta)
