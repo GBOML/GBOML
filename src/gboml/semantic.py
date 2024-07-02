@@ -46,12 +46,10 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
     visit(element, {VarOrParam: lambda var: None if var is element else _check_var_in_scope(var, scope = parentScope)})
 
 def semantic_check(globalScope: GlobalScope):
-    # check variables shadowing TODO (parts already done in scope.py._add_to_scope(), but not T/t)
     pass
     # check if variables are in scope
     visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue,VariableDefinition,FunctionDefinition,VarOrParam}, {VarOrParam: _check_var_in_scope, Function: _check_fct_in_scope})
 
-# TODO if no TIMEHORIZON, we can use T as name of variable
 # TODO add expressions to a "dict"
 
 # TODO check if isDeclaredAsArray is correct for non-x[T] definition

@@ -26,16 +26,15 @@ class Scope:
 
     def _add_to_scope(self, ast, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> "Scope | None":
         if ast.name in self.content:
-            scope_to_add = wrapper(create_scope(ast, self))
-            # if scope_to_add.path != self.content[ast.name].path:
             if whenPresent == OverrideBehavior.fail:
                 raise RuntimeError(f"Identifier {ast.name} is already used")
             elif whenPresent == OverrideBehavior.ignore:
                 return None
-            # else:
-            print("redefinition", type(scope_to_add))
-            print(type(self.content[ast.name]))
-            print()
+            else:
+                pass
+
+        if ast.name in ['T', 't']:
+            raise KeyError(f"Identifier {ast.name} cannot be redifined (reserved keyword)")
 
         self.content[ast.name] = wrapper(create_scope(ast, self))
         return self.content[ast.name]
