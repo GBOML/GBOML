@@ -5,9 +5,6 @@ from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.semantic import semantic_check
 from gboml.scope import GlobalScope
 
-# ConstantDefinition(name='m', value=Array(content=[GeneratedRValue(value=VarOrParam(path=[VarOrParamLeaf(name='i', indices=[])]),loop=BaseLoop(varid='i', on=Range(start=0, end=10, step=None), condition=None)),
-                                                  # GeneratedRValue(value=VarOrParam(path=[VarOrParamLeaf(name='i', indices=[])]),loop=BaseLoop(varid='i', on=Range(start=100, end=120, step=None), condition=None))]), tags=set())
-
 tree = GBOMLParser().parse("""
 
 #TIMEHORIZON T = 2;

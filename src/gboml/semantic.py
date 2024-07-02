@@ -21,7 +21,7 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
     # if there is any parent VarOrParam in hier, return (sub-VarOrParam are handled from the parent)
     if any(isinstance(hierItem, VariableDefinition | VarOrParam) for hierItem in reversed(hier[:-1])):
         return
-    print(element, list(map(lambda _: (type(_), isinstance(_, NodeDefinition | FunctionDefinition | GeneratedRValue)), hier)))
+    # print(element, list(map(lambda _: (type(_), isinstance(_, NodeDefinition | FunctionDefinition | GeneratedRValue)), hier)))
     if scope is None:  # get the scope of the last node/fct in hier
         scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, NodeDefinition | FunctionDefinition | GeneratedRValue))
     parentScope = scope
