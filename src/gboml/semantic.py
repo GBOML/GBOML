@@ -29,7 +29,7 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
         # print(leaf.name, type(scope), scope.content.keys())
         try:
             scope = scope[leaf.name]
-            isDeclaredAsArray = isinstance(scope, ScopedVariableDefinition) and bool(scope.ast.indices)
+            isDeclaredAsArray = isinstance(scope, ScopedVariableDefinition) and bool(scope.ast.indices) or isinstance(scope, ScopedDefinition) and isinstance(scope.ast.value, Array)
         except KeyError:
             # if TIMEHORIZON is set, 'T' and 't' are allowed
             if scope and (leaf.name == 't' or leaf.name == 'T') and parentScope['global'].parent.ast.time_horizon is not None:
@@ -41,12 +41,13 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
         isUsedAsArray = bool(leaf.indices)
         if isUsedAsArray != isDeclaredAsArray:
             raise KeyError(f"SEMANTIC ERROR: {leaf.name} (from {list(map(lambda e: e.name, element.path))}): mixing declaration type and use type (array Vs. scalar) {leaf.meta}!")
+        if isDeclaredAsArray:
+            break
 
     # visit all VarOrParam indices at once
     visit(element, {VarOrParam: lambda var: None if var is element else _check_var_in_scope(var, scope = parentScope)})
 
 def semantic_check(globalScope: GlobalScope):
-    pass
     # check if variables are in scope
     visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue,VariableDefinition,FunctionDefinition,VarOrParam}, {VarOrParam: _check_var_in_scope, Function: _check_fct_in_scope})
 
