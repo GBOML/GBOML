@@ -5,6 +5,9 @@ from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.semantic import semantic_check
 from gboml.scope import GlobalScope
 
+# ConstantDefinition(name='m', value=Array(content=[GeneratedRValue(value=VarOrParam(path=[VarOrParamLeaf(name='i', indices=[])]),loop=BaseLoop(varid='i', on=Range(start=0, end=10, step=None), condition=None)),
+                                                  # GeneratedRValue(value=VarOrParam(path=[VarOrParamLeaf(name='i', indices=[])]),loop=BaseLoop(varid='i', on=Range(start=100, end=120, step=None), condition=None))]), tags=set())
+
 tree = GBOMLParser().parse("""
 
 #TIMEHORIZON T = 2;
@@ -15,11 +18,14 @@ tree = GBOMLParser().parse("""
     #PARAMETERS
         param = 1;
         subnodes = {P};
+        z=4;
         a <- 1;
         a <- a + 1;
         a <- a + 1;
         a <- a + 1;
         f(a) <- global.pi ** a;
+        m = {a for a in [0:10], i for i in [100:120]};
+        dict = {f(param) * 2 - 3: P, "je": B};
         f(b) <- global.pi ** b;
     #NODE P
         pass;
@@ -63,7 +69,7 @@ tree = GBOMLParser().parse("""
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + f(global.pi) + subnodes;
+        min : x[t-5] + f(global.pi) + subnodes[param];
 """)
 
 tree = remove_redundant_definitions(tree)

@@ -6,6 +6,7 @@ from gboml.ast import *
 from gboml.tools.tree_modifier import visit, visit_hier
 
 T = TypeVar('T', bound=NamedGBOMLObject)
+U = TypeVar('U', bound=GBOMLObject)
 
 
 class OverrideBehavior(Enum):
@@ -38,6 +39,21 @@ class Scope:
 
         self.content[ast.name] = wrapper(create_scope(ast, self))
         return self.content[ast.name]
+
+    def _add_unnamed_to_scope(self, name, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> None:
+        if name in self.content:
+            print(self.content)
+            if whenPresent == OverrideBehavior.fail:
+                raise RuntimeError(f"Identifier {name} is already used")
+            elif whenPresent == OverrideBehavior.ignore:
+                return
+            else:
+                pass
+
+        if name in ['T', 't']:
+            raise KeyError(f"Identifier {ast.name} cannot be redifined (reserved keyword)")
+
+        self.content[name] = {}
 
     def _add_all_to_scope(self, l, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> list["Scope"]:
         return [y for x in l for y in [self._add_to_scope(x, wrapper, whenPresent)] if y is not None]
@@ -100,6 +116,25 @@ class ChildNodeScope(Scope):
 
 
 @dataclass
+class GeneratedRValueScope(Scope, Generic[U]):
+    parent: "Scope" = field(repr=False)
+    ast: U
+    name: str = field(init=False, default=None)
+    path: list[str] = field(init=False)
+    content: dict[str, "Scope"] = field(init=False)
+
+    def __post_init__(self):
+        self.ast.scope = self
+        self.path = self.parent.path
+        self.content = self.parent.content
+
+    # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
+    def _finalize_init(self):
+        self.content = self.parent.content.copy()
+        self._add_unnamed_to_scope(self.ast.loop.varid)
+    
+
+@dataclass
 class DefNodeScope(NamedAstScope[NodeDefinition]):
     nodes: dict[str, "NodeScope"] = field(init=False, repr=False)
     hyperedges: dict[str, "HyperEdgeScope"] = field(init=False, repr=False)
@@ -118,6 +153,8 @@ class DefNodeScope(NamedAstScope[NodeDefinition]):
 
         self.nodes = {x.parent.name: x.parent for x in node_scopes}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, list(self.nodes.values())) for h in self.ast.hyperedges}
+
+        visit(self.ast, {GeneratedRValue: lambda rval: GeneratedRValueScope(self, rval)})
 
 
 @dataclass
@@ -175,7 +212,7 @@ class ScopedFunctionDefinition(NamedAstScope[NodeDefinition]):
     def _finalize_init(self):
         if intersection := self.parent.content.keys() & self.ast.args:
             raise RuntimeError(f"Identifier {intersection} is already used")
-        self.content = self.parent.content | dict.fromkeys(self.ast.args, {})
+        self.content |= dict.fromkeys(self.ast.args, {})
 
 @dataclass
 class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
@@ -213,4 +250,4 @@ class GlobalScope(Scope):
         self._add_all_to_scope(self.ast.global_defs)
         self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, self.nodes.values()) for h in self.ast.hyperedges}
-        visit(self.ast, {FunctionDefinition: lambda fct: fct.scope._finalize_init()})
+        visit(self.ast, {FunctionDefinition: lambda fct: fct.scope._finalize_init(), GeneratedRValue: lambda genval: genval.scope._finalize_init()})
