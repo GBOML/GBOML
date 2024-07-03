@@ -47,6 +47,10 @@ from gboml.tools.tree_modifier import modify
 
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
+    if isinstance(elem, GBOMLGraph):
+        global_defs = _merge_definitions(elem.global_defs)
+        if global_defs is not None:
+            elem = dataclasses.replace(elem, global_defs=global_defs)
     return modify(elem, {Node: _modify_node, HyperEdge: _modify_hyperedge})
 
 
@@ -63,7 +67,7 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
     return modify(pdef, {VarOrParam: change_var})
 
 
-def _merge_parameters(parameters: list[Definition]) -> list[Definition] | None:
+def _merge_definitions(parameters: list[Definition]) -> list[Definition] | None:
     need_update = False
     params: dict[str, list[Definition]] = {}
     for p in parameters:
@@ -117,7 +121,7 @@ def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> 
 def _modify_node(node: NodeDefinition | NodeGenerator) -> NodeDefinition | NodeGenerator:
     todo = {}
 
-    params = _merge_parameters(node.parameters)
+    params = _merge_definitions(node.parameters)
     if params is not None:
         todo["parameters"] = params
 
@@ -131,7 +135,7 @@ def _modify_node(node: NodeDefinition | NodeGenerator) -> NodeDefinition | NodeG
 
 
 def _modify_hyperedge(hyperedge: HyperEdgeDefinition | HyperEdgeGenerator) -> HyperEdgeDefinition | HyperEdgeGenerator:
-    params = _merge_parameters(hyperedge.parameters)
+    params = _merge_definitions(hyperedge.parameters)
     if params is not None:
         return dataclasses.replace(hyperedge, parameters=params)
     return hyperedge
