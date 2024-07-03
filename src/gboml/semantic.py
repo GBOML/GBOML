@@ -50,5 +50,3 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
 def semantic_check(globalScope: GlobalScope):
     # check if variables are in scope
     visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue,VariableDefinition,FunctionDefinition,VarOrParam}, {VarOrParam: _check_var_in_scope, Function: _check_fct_in_scope})
-
-# TODO check with a different function for VariableDefinition

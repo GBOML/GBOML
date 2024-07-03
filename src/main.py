@@ -2,12 +2,15 @@
 
 from gboml.parsing import GBOMLParser
 from gboml.redundant_definitions import remove_redundant_definitions
+from gboml.resolve_imports import resolve_imports
 from gboml.semantic import semantic_check
 from gboml.scope import GlobalScope
 from gboml.ast import GeneratedRValue, MultiLoop
 from gboml.tools.tree_modifier import modify
 import dataclasses
+import os
 
+# TODO works really well, but GeneratedRValue.value is declared as "cannot be another genVal"
 def _extend_multiloop(genval: GeneratedRValue) -> GeneratedRValue:
     if isinstance(genval.loop, MultiLoop):
         genval_i = dataclasses.replace(genval, loop=genval.loop.sub[-1])
@@ -16,11 +19,14 @@ def _extend_multiloop(genval: GeneratedRValue) -> GeneratedRValue:
         return genval_i
     return genval
 
-tree = GBOMLParser().parse("""
 
+tree = GBOMLParser().parse("""
 #TIMEHORIZON T = 2;
 #GLOBAL
+    a = 75;
     pi = 314;
+    m = {a for i2 in [0:10] where i2 + a < 6 for i in [1:2] where i2 % i == 0};
+    pi = 456;
 
 #NODE A
     #PARAMETERS
@@ -32,7 +38,7 @@ tree = GBOMLParser().parse("""
         a <- a + 1;
         a <- a + 1;
         f(a) <- global.pi ** a;
-        m = {a for i2 in [0:10] where i2 + a < 6 for i in [1:2] where i2 % i == 0};
+        
         dict = {f(param) * 2 - 3: P, "je": B};
         f(b) <- global.pi ** b;
     #NODE P
@@ -80,6 +86,7 @@ tree = GBOMLParser().parse("""
         min : x[t-5] + f(global.pi) + subnodes[param];
 """)
 
+# tree = resolve_imports(tree, os.getcwd())
 tree = remove_redundant_definitions(tree)
 tree = modify(tree, {GeneratedRValue: _extend_multiloop})
 print(tree)

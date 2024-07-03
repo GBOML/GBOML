@@ -41,6 +41,7 @@ redefined. This includes:
          internal: a @tag5 @tag6
 """
 import dataclasses
+import typing
 
 from gboml.ast import *
 from gboml.tools.tree_modifier import modify
@@ -48,10 +49,19 @@ from gboml.tools.tree_modifier import modify
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
     if isinstance(elem, GBOMLGraph):
-        global_defs = _merge_definitions(elem.global_defs)
-        if global_defs is not None:
-            elem = dataclasses.replace(elem, global_defs=global_defs)
-    return modify(elem, {Node: _modify_node, HyperEdge: _modify_hyperedge})
+        elem = _merge_attributes(elem, {'global_defs': _merge_definitions, 'nodes': _merge_definitions, 'hyperedges': _merge_definitions})
+    return modify(elem, {
+        Node: lambda node: _merge_attributes(node, {'parameters': _merge_definitions, 'variables': _merge_node_variables}),
+        HyperEdge: lambda hedge: _merge_attributes(hedge, {'parameters': _merge_definitions})
+    })
+
+
+def _merge_attributes(elem: AnyGBOMLObject, attrs_to_mergemethods: dict[str, typing.Callable[[list[GBOMLObject]], list[GBOMLObject] | None]]) -> AnyGBOMLObject:
+    todo = {}
+    for attr, merge_method in attrs_to_mergemethods.items():
+        if (defs := merge_method(getattr(elem, attr))) is not None:
+            todo[attr] = defs
+    return dataclasses.replace(elem, **todo) if todo else elem
 
 
 def _name_change(pdef: Definition, old_name: str, new_name: str):
@@ -116,29 +126,6 @@ def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> 
     if need_update:
         return list(vars.values())
     return None
-
-
-def _modify_node(node: NodeDefinition | NodeGenerator) -> NodeDefinition | NodeGenerator:
-    todo = {}
-
-    params = _merge_definitions(node.parameters)
-    if params is not None:
-        todo["parameters"] = params
-
-    vars = _merge_node_variables(node.variables)
-    if vars is not None:
-        todo["vars"] = vars
-
-    if len(todo):
-        return dataclasses.replace(node, **todo)
-    return node
-
-
-def _modify_hyperedge(hyperedge: HyperEdgeDefinition | HyperEdgeGenerator) -> HyperEdgeDefinition | HyperEdgeGenerator:
-    params = _merge_definitions(hyperedge.parameters)
-    if params is not None:
-        return dataclasses.replace(hyperedge, parameters=params)
-    return hyperedge
 
 
 if __name__ == '__main__':

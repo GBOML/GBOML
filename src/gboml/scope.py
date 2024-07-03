@@ -174,6 +174,8 @@ class DefHyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
             parents.append(parents[-1].parent)
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
+        visit_hier(self.ast, {HyperEdgeDefinition, GeneratedRValue}, {GeneratedRValue: lambda rval,hier: GeneratedRValueScope(hier[-2].scope, rval)})
+
 
 @dataclass
 class UnresolvedHyperEdgeGeneratorScope(NamedAstScope[NodeGenerator], Unresolvable):
@@ -241,6 +243,8 @@ class GlobalScope(Scope):
     def __post_init__(self):
         self.content = {}
         self._add_all_to_scope(self.ast.global_defs)
+        for globdef in self.ast.global_defs:
+            visit_hier(globdef, {GeneratedRValue}, {GeneratedRValue: lambda rval,hier: GeneratedRValueScope(hier[-2].scope if len(hier) >= 2 else self, rval)})
         self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, self.nodes.values()) for h in self.ast.hyperedges}
         visit(self.ast, {FunctionDefinition: lambda fct: fct.scope._finalize_init(), GeneratedRValue: lambda genval: genval.scope._finalize_init()})
