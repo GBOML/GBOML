@@ -40,21 +40,6 @@ class Scope:
         self.content[ast.name] = wrapper(create_scope(ast, self))
         return self.content[ast.name]
 
-    def _add_unnamed_to_scope(self, name, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> None:
-        if name in self.content:
-            print(self.content)
-            if whenPresent == OverrideBehavior.fail:
-                raise RuntimeError(f"Identifier {name} is already used")
-            elif whenPresent == OverrideBehavior.ignore:
-                return
-            else:
-                pass
-
-        if name in ['T', 't']:
-            raise KeyError(f"Identifier {ast.name} cannot be redifined (reserved keyword)")
-
-        self.content[name] = {}
-
     def _add_all_to_scope(self, l, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> list["Scope"]:
         return [y for x in l for y in [self._add_to_scope(x, wrapper, whenPresent)] if y is not None]
 
@@ -130,8 +115,14 @@ class GeneratedRValueScope(Scope, Generic[U]):
 
     # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
     def _finalize_init(self):
-        self.content = self.parent.content.copy()
-        self._add_unnamed_to_scope(self.ast.loop.varid)
+        try:
+            self.parent[self.ast.loop.varid]
+            raise RuntimeError(f"Identifier {self.ast.loop.varid} is already used")
+        except KeyError:
+            pass
+
+    def __getitem__(self, item):
+        return {} if item == self.ast.loop.varid else self.parent[item]
     
 
 @dataclass
@@ -154,7 +145,7 @@ class DefNodeScope(NamedAstScope[NodeDefinition]):
         self.nodes = {x.parent.name: x.parent for x in node_scopes}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, list(self.nodes.values())) for h in self.ast.hyperedges}
 
-        visit(self.ast, {GeneratedRValue: lambda rval: GeneratedRValueScope(self, rval)})
+        visit_hier(self.ast, {NodeDefinition, GeneratedRValue}, {GeneratedRValue: lambda rval,hier: GeneratedRValueScope(hier[-2].scope, rval)})
 
 
 @dataclass
@@ -208,11 +199,13 @@ class ScopedFunctionDefinition(NamedAstScope[NodeDefinition]):
         super(ScopedFunctionDefinition, self).__post_init__()
         self.content = self.parent.content
         
-    # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
+    # needed post_post_init because we need parent's scope fully filled in to check if intersects
     def _finalize_init(self):
         if intersection := self.parent.content.keys() & self.ast.args:
             raise RuntimeError(f"Identifier {intersection} is already used")
-        self.content |= dict.fromkeys(self.ast.args, {})
+
+    def __getitem__(self, item):
+        return {} if item in self.ast.args else self.parent[item]
 
 @dataclass
 class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
