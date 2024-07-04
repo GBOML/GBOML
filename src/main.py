@@ -39,7 +39,7 @@ tree = GBOMLParser().parse("""
         a <- a + 1;
         f(a) <- global.pi ** a;
         
-        dict = {f(param) * 2 - 3: P, "je": B};
+        dict = {f(param) * w - 3: P for w in [1:3:2], "je": B};
         f(b) <- global.pi ** b;
     #NODE P
         pass;
@@ -86,13 +86,18 @@ tree = GBOMLParser().parse("""
         min : x[t-5] + f(global.pi) + subnodes[param];
 """)
 
-# tree = resolve_imports(tree, os.getcwd())
-tree = remove_redundant_definitions(tree)
-tree = modify(tree, {GeneratedRValue: _extend_multiloop})
-print(tree)
+for i in reversed(range(1, 29)):
+    if i in (23, 24, 25):
+        continue
+    print(f"------------------------------- {i} -------------------------------------")
+    tree = GBOMLParser().parse_file(f"../tests/instances/ok/test{i}.txt")
+    # tree = resolve_imports(tree, os.getcwd())
+    tree = remove_redundant_definitions(tree)
+    tree = modify(tree, {GeneratedRValue: _extend_multiloop})
+    print(tree)
 
-# print(tree.meta)
-# print(tree.global_defs[0].meta)
-globalScope = GlobalScope(tree)
-semantic_check(globalScope)
-# parse_file("test/test1.txt")
+    # print(tree.meta)
+    # print(tree.global_defs[0].meta)
+    globalScope = GlobalScope(tree)
+    semantic_check(globalScope)
+    # parse_file("test/test1.txt")

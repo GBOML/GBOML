@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Generic, TypeVar, Type
+from typing import Generic, TypeVar, Type, ClassVar
 
 from gboml.ast import *
 from gboml.tools.tree_modifier import visit, visit_hier
@@ -101,12 +101,10 @@ class ChildNodeScope(Scope):
 
 
 @dataclass
-class GeneratedRValueScope(Scope, Generic[U]):
-    parent: "Scope" = field(repr=False)
-    ast: U
+class HasLoopInScope(Scope, Generic[U]):
     name: str = field(init=False, default=None)
-    path: list[str] = field(init=False)
-    content: dict[str, "Scope"] = field(init=False)
+    ast: U
+    astTypes: ClassVar[set[type[GBOMLObject]]] = {NodeGenerator, HyperEdgeGenerator, GeneratedRValue, DictEntry, StdConstraint, SOSConstraint, Objective}
 
     def __post_init__(self):
         self.ast.scope = self
@@ -115,14 +113,15 @@ class GeneratedRValueScope(Scope, Generic[U]):
 
     # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
     def _finalize_init(self):
-        try:
-            self.parent[self.ast.loop.varid]
-            raise RuntimeError(f"Identifier {self.ast.loop.varid} is already used")
-        except KeyError:
-            pass
+        if self.ast.loop is not None:
+            try:
+                self.parent[self.ast.loop.varid]
+                raise RuntimeError(f"Identifier {self.ast.loop.varid} is already used")
+            except KeyError:
+                pass
 
     def __getitem__(self, item):
-        return {} if item == self.ast.loop.varid else self.parent[item]
+        return self.parent[item] if self.ast.loop is None or item != self.ast.loop.varid else {}
     
 
 @dataclass
@@ -145,7 +144,7 @@ class DefNodeScope(NamedAstScope[NodeDefinition]):
         self.nodes = {x.parent.name: x.parent for x in node_scopes}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, list(self.nodes.values())) for h in self.ast.hyperedges}
 
-        visit_hier(self.ast, {NodeDefinition, GeneratedRValue}, {GeneratedRValue: lambda rval,hier: GeneratedRValueScope(hier[-2].scope, rval)})
+        visit_hier(self.ast, {NodeDefinition} | HasLoopInScope.astTypes, dict.fromkeys(HasLoopInScope.astTypes, lambda astObj,hier: HasLoopInScope(hier[-2].scope, astObj)))
 
 
 @dataclass
@@ -174,7 +173,7 @@ class DefHyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
             parents.append(parents[-1].parent)
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
-        visit_hier(self.ast, {HyperEdgeDefinition, GeneratedRValue}, {GeneratedRValue: lambda rval,hier: GeneratedRValueScope(hier[-2].scope, rval)})
+        visit_hier(self.ast, {HyperEdgeDefinition} | HasLoopInScope.astTypes, dict.fromkeys(HasLoopInScope.astTypes, lambda astObj,hier: HasLoopInScope(hier[-2].scope, astObj)))
 
 
 @dataclass
@@ -241,10 +240,12 @@ class GlobalScope(Scope):
     hyperedges: dict[str, HyperEdgeScope] = field(init=False, repr=False)
 
     def __post_init__(self):
+        processLoopScope = lambda astObj,hier: HasLoopInScope(hier[-2].scope if len(hier) >= 2 else self, astObj)
+
         self.content = {}
         self._add_all_to_scope(self.ast.global_defs)
         for globdef in self.ast.global_defs:
-            visit_hier(globdef, {GeneratedRValue}, {GeneratedRValue: lambda rval,hier: GeneratedRValueScope(hier[-2].scope if len(hier) >= 2 else self, rval)})
+            visit_hier(globdef, HasLoopInScope.astTypes, dict.fromkeys(HasLoopInScope.astTypes, processLoopScope))
         self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, self.nodes.values()) for h in self.ast.hyperedges}
-        visit(self.ast, {FunctionDefinition: lambda fct: fct.scope._finalize_init(), GeneratedRValue: lambda genval: genval.scope._finalize_init()})
+        visit(self.ast, dict.fromkeys({FunctionDefinition} | HasLoopInScope.astTypes, lambda astObj: astObj.scope._finalize_init()))

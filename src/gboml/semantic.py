@@ -6,6 +6,8 @@ from gboml.tools.tree_modifier import visit, visit_hier
 # what about attaching error to a new scope.variable? if that var already has an error, don't add another one; at the end simply visit() and raise all errors
 
 def _check_fct_in_scope(element: Function, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|VarOrParam] = []) -> None:
+    if element.name == 'sum':
+        return
     scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, NodeDefinition))
     try:
         scope = scope[element.name]
@@ -21,9 +23,9 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
     # if there is any parent VarOrParam in hier, return (sub-VarOrParam are handled from the parent)
     if any(isinstance(hierItem, VariableDefinition | VarOrParam) for hierItem in reversed(hier[:-1])):
         return
-    # print(element, list(map(lambda _: (type(_), isinstance(_, NodeDefinition | FunctionDefinition | GeneratedRValue)), hier)))
+    # print(element, list(map(lambda _: (type(_), isinstance(_, NodeDefinition | HyperEdgeDefinition| FunctionDefinition | GeneratedRValue)), hier)))
     if scope is None:  # get the scope of the last node/fct/genrval in hier
-        scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, NodeDefinition | FunctionDefinition | GeneratedRValue))
+        scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*HasLoopInScope.astTypes, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
     parentScope = scope
     for leaf in element.path[:2]:
         # print(leaf.name, type(scope), scope.content.keys())
