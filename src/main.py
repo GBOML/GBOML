@@ -83,21 +83,21 @@ tree = GBOMLParser().parse("""
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + f(global.pi) + subnodes[param];
+        min : x[t-5] + sum(l for l in x[T], param) + f(global.pi) + subnodes[param];
 """)
 
 for i in reversed(range(1, 29)):
     if i in (23, 24, 25):
         continue
     print(f"------------------------------- {i} -------------------------------------")
-    tree = GBOMLParser().parse_file(f"../tests/instances/ok/test{i}.txt")
-    # tree = resolve_imports(tree, os.getcwd())
-    tree = remove_redundant_definitions(tree)
-    tree = modify(tree, {GeneratedRValue: _extend_multiloop})
-    print(tree)
+    # tree = GBOMLParser().parse_file(f"../tests/instances/ok/test{i}.txt")
+# tree = resolve_imports(tree, os.getcwd())
+tree = remove_redundant_definitions(tree)
+tree = modify(tree, {GeneratedRValue: _extend_multiloop})
+print(tree)
 
-    # print(tree.meta)
-    # print(tree.global_defs[0].meta)
-    globalScope = GlobalScope(tree)
-    semantic_check(globalScope)
-    # parse_file("test/test1.txt")
+# print(tree.meta)
+# print(tree.global_defs[0].meta)
+globalScope = GlobalScope(tree)
+semantic_check(globalScope)
+# parse_file("test/test1.txt")

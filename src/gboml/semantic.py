@@ -6,14 +6,15 @@ from gboml.tools.tree_modifier import visit, visit_hier
 # what about attaching error to a new scope.variable? if that var already has an error, don't add another one; at the end simply visit() and raise all errors
 
 def _check_fct_in_scope(element: Function, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|VarOrParam] = []) -> None:
-    if element.name == 'sum':
-        return
     scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, NodeDefinition))
     try:
         scope = scope[element.name]
         declaredArgsLen = len(scope.ast.args)
     except KeyError:
-        raise KeyError(f"SEMANTIC ERROR: function {element.name} can not be used in this scope {element.meta}!")
+        if element.name != 'sum':
+            raise KeyError(f"SEMANTIC ERROR: function {element.name} can not be used in this scope {element.meta}!")
+        else:
+            declaredArgsLen = 1
 
     if len(element.operands) != declaredArgsLen:
         raise KeyError(f"SEMANTIC ERROR: {element.name}(): expected {declaredArgsLen} arguments but got {len(element.operands)} at {element.meta}!")
