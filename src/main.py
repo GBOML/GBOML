@@ -40,7 +40,7 @@ tree = GBOMLParser().parse("""
         f(a) <- global.pi ** a;
         
         dict = {f(param) * w - 3: P for w in [1:3:2], "je": B};
-        f(b) <- global.pi ** b;
+        f(b) <- global.pi ** b.x;
     #NODE P
         pass;
 
@@ -83,7 +83,7 @@ tree = GBOMLParser().parse("""
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + sum(l for l in x[T], param) + f(global.pi) + subnodes[param];
+        min : x[t-5] + sum(l for l in x[T]) + f(global.pi) + subnodes[param];
 """)
 
 for i in reversed(range(1, 29)):

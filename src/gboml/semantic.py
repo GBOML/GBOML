@@ -44,7 +44,7 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
         isUsedAsArray = bool(leaf.indices)
         if isUsedAsArray != isDeclaredAsArray:
             raise KeyError(f"SEMANTIC ERROR: {leaf.name} (from {list(map(lambda e: e.name, element.path))}): mixing declaration type and use type (array Vs. scalar) {leaf.meta}!")
-        if isDeclaredAsArray:
+        if isDeclaredAsArray or isinstance(parentScope, HasLoopInScope | ScopedFunctionDefinition):
             break
 
     # visit all VarOrParam indices at once
