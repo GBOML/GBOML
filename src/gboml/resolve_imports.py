@@ -20,7 +20,7 @@ def _load_file(fpath: Path, parser: GBOMLParser, file_cache: dict[Path, GBOMLGra
     """ Loads a file and resolves its imports. file_cache is used as a cache for already-seen files. """
     fpath = fpath.absolute()
     if fpath not in file_cache:
-        file_cache[fpath] = resolve_imports(parser.parse_file(fpath), fpath.parent, file_cache)
+        file_cache[fpath] = resolve_imports(parser.parse_file(fpath), fpath.parent, parser, file_cache)
     elif file_cache[fpath] is WORKING:
         raise RuntimeError("Cyclic import")
     return file_cache[fpath]
