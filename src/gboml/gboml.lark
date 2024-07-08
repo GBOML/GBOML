@@ -23,7 +23,7 @@ _PASS.1: "pass"
 // HEADER
 start: [time_horizon] global_block program_block
 program_block: _program*
-?time_horizon: "#TIMEHORIZON" "T" "=" INT ";"
+?time_horizon: "#TIMEHORIZON" "T" "=" expression ";"
 global_block: _block_repeat_or_pass{"#GLOBAL",definition}?
 _program: node | hyperedge
 
