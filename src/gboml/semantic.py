@@ -24,19 +24,13 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
     # if there is any parent VarOrParam in hier, return (sub-VarOrParam are handled from the parent)
     if any(isinstance(hierItem, VariableDefinition | VarOrParam) for hierItem in reversed(hier[:-1])):
         return
-    # print()
-    # boo = element.path[0].name == 'x' and len(element.path) == 1
-    # if boo:
-        # print(element, list(map(lambda _: (type(_), isinstance(_, NodeDefinition | HyperEdgeDefinition| FunctionDefinition | GeneratedRValue)), hier)))
     if scope is None:  # get the scope of the last node/fct/genrval in hier
         scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*HasLoopInScope.astTypes, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
     origScope = scope
     for leaf in element.path[:2]:
-        # if boo:
-            # print(leaf.name, type(scope), scope.content.keys())
         try:
             scope = scope[leaf.name]
-            isDeclaredAsArray = isinstance(scope, ScopedVariableDefinition) and bool(scope.ast.indices) or isinstance(scope, ScopedDefinition) and isinstance(scope.ast.value, Array)
+            isDeclaredAsArray = isinstance(scope, ScopedVariableDefinition) and bool(scope.ast.indices) or isinstance(scope, ScopedDefinition) and isinstance(scope.ast.value, Array | Range)
         except KeyError:
             # if TIMEHORIZON is set, 'T' and 't' are allowed
             if scope and (leaf.name == 't' or leaf.name == 'T') and origScope['global'].parent.ast.time_horizon is not None:
@@ -45,13 +39,11 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
             else:
                 raise KeyError(f"SEMANTIC ERROR: {leaf.name} (from {list(map(lambda e: e.name, element.path))}) can not be used in this scope {leaf.meta}!")
 
-        # if boo and origScope.ast.loop is not None:
-            # print()
         if isinstance(origScope, HasLoopInScope | ScopedFunctionDefinition) and not scope:
             break
         isBeingIteratedOn = leaf is element.path[-1] and isinstance(origScope, HasLoopInScope) and origScope.ast.loop is not None and element is origScope.ast.loop.on
         isUsedAsArray = bool(leaf.indices) or isBeingIteratedOn
-        if isUsedAsArray != isDeclaredAsArray: # and not (isinstance(origScope, HasLoopInScope) and origScope.ast.loop is not None):
+        if isUsedAsArray != isDeclaredAsArray:
             raise KeyError(f"SEMANTIC ERROR: {leaf.name} (from {list(map(lambda e: e.name, element.path))}): mixing declaration type and use type (array Vs. scalar) {leaf.meta}!")
         if isDeclaredAsArray:
             break
@@ -62,3 +54,8 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
 def semantic_check(globalScope: GlobalScope):
     # check if variables are in scope
     visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue,VariableDefinition,FunctionDefinition,VarOrParam}, {VarOrParam: _check_var_in_scope, Function: _check_fct_in_scope})
+
+
+# TODO check for HyperEdgeGen and NodeGen if they are used with indices (isUsedAsArray isDeclared asArray)
+# TODO change .lark because TIMHORIZON doesn't support "2*2"
+
