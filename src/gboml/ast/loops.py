@@ -19,6 +19,7 @@ class BaseLoop(Loop):
     varid: str
     on: Iterable
     condition: Optional[BoolExpression]
+    loop: Optional[Loop] = field(default=None)  # for nested loops
 
 
 @dataclass

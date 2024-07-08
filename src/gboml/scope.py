@@ -104,24 +104,57 @@ class ChildNodeScope(Scope):
 class HasLoopInScope(Scope, Generic[U]):
     name: str = field(init=False, default=None)
     ast: U
-    astTypes: ClassVar[set[type[GBOMLObject]]] = {NodeGenerator, HyperEdgeGenerator, GeneratedRValue, DictEntry, StdConstraint, SOSConstraint, Objective}
+    astTypes: ClassVar[set[type[GBOMLObject]]] = {NodeGenerator, HyperEdgeGenerator, GeneratedRValue, DictEntry, StdConstraint, SOSConstraint, Objective, Loop}
+    varids: list[str] = field(init=False)
 
     def __post_init__(self):
         self.ast.scope = self
         self.path = self.parent.path
         self.content = self.parent.content
+        self.varids = []
 
     # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
     def _finalize_init(self):
-        if self.ast.loop is not None:
-            try:
-                self.parent[self.ast.loop.varid]
-                raise RuntimeError(f"Identifier {self.ast.loop.varid} is already used")
-            except KeyError:
-                pass
+        # only parent loop (of nested loops) should check for already defined variables
+        if isinstance(self.ast, Loop) and not isinstance(self.parent.ast, Loop):
+            varids = [self.ast.varid]
+            i = self.ast
+            while (i := i.loop) is not None:
+                varids.append(i.varid)
+
+            seen = set()
+            duplicates = [varid for varid in varids if varid in seen or seen.add(varid)]
+            if duplicates:
+                raise RuntimeError(f"Identifier {duplicates} is already used")
+            else:
+                for varid in self.varids:
+                    try:
+                        self.parent[varid]
+                        raise RuntimeError(f"Identifier {self.ast.loop.varid} is already used")
+                    except KeyError:
+                        pass
+            
+            self.varids = varids
+            self.parent.varids = varids
 
     def __getitem__(self, item):
-        return self.parent[item] if self.ast.loop is None or item != self.ast.loop.varid else {}
+        if isinstance(self.ast, Loop):
+            if self.ast.loop is not None:
+                scope = self.ast.loop.scope
+                while isinstance(scope.ast, Loop):
+                    if item == scope.ast.varid:
+                        raise KeyError("{item} is not accessible")
+                    if scope.ast.loop is None:
+                        break
+                    scope = scope.ast.loop.scope
+            elif item == self.ast.varid:
+                return {}
+        elif item in self.varids:
+            return {}
+        
+        return self.parent[item]
+
+        # return {} if isinstance(self.ast, Loop) and item == self.ast.varid or item in self.varids else self.parent[item]
     
 
 @dataclass

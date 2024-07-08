@@ -5,17 +5,18 @@ from gboml.tools.tree_modifier import visit, visit_hier
 # TODO define function to raise error; TODO do not stop at first error
 # what about attaching error to a new scope.variable? if that var already has an error, don't add another one; at the end simply visit() and raise all errors
 
-def _get_scope_from_hier(hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|VarOrParam]) -> Scope:
+def _get_scope_from_hier(hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|Loop|VarOrParam]) -> Scope:
     return next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*HasLoopInScope.astTypes, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
 
-def _check_nodeGen_index(element: NodeGenerator, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|VarOrParam] = []) -> None:
+def _check_nodeGen_index(element: NodeGenerator, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|Loop|VarOrParam] = []) -> None:
     scope = _get_scope_from_hier(hier)
-    try:
-        scope[element.indices[0]]
-    except KeyError:
-        raise KeyError(f"SEMANTIC ERROR: {element.indices[0]} (from {element.name}) can not be used in this scope {element.meta}!")
+    for index in element.indices:
+        try:
+            scope[index]
+        except KeyError:
+            raise KeyError(f"SEMANTIC ERROR: {index} (from {element.name}) can not be used in this scope {element.meta}!")
 
-def _check_fct_in_scope(element: Function, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|VarOrParam] = []) -> None:
+def _check_fct_in_scope(element: Function, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|Loop|VarOrParam] = []) -> None:
     scope = _get_scope_from_hier(hier)
     try:
         scope = scope[element.name]
@@ -30,7 +31,7 @@ def _check_fct_in_scope(element: Function, hier: list[NodeDefinition|NodeGenerat
         raise KeyError(f"SEMANTIC ERROR: {element.name}(): expected {declaredArgsLen} arguments but got {len(element.operands)} at {element.meta}!")
 
 
-def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|VarOrParam] = [], scope: Scope = None) -> None:
+def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|Loop|VarOrParam] = [], scope: Scope = None) -> None:
     # if there is any parent VarOrParam in hier, return (sub-VarOrParam are handled from the parent)
     if any(isinstance(hierItem, VariableDefinition | VarOrParam) for hierItem in reversed(hier[:-1])):
         return
@@ -51,7 +52,7 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
 
         if isinstance(origScope, HasLoopInScope | ScopedFunctionDefinition) and not scope:
             break
-        isBeingIteratedOn = leaf is element.path[-1] and isinstance(origScope, HasLoopInScope) and origScope.ast.loop is not None and element is origScope.ast.loop.on
+        isBeingIteratedOn = leaf is element.path[-1] and isinstance(origScope.ast, Loop) and element is origScope.ast.on
         isUsedAsArray = bool(leaf.indices) or isBeingIteratedOn
         if isUsedAsArray != isDeclaredAsArray:
             raise KeyError(f"SEMANTIC ERROR: {leaf.name} (from {list(map(lambda e: e.name, element.path))}): mixing declaration type and use type (array Vs. scalar) {leaf.meta}!")
@@ -63,9 +64,7 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
 
 def semantic_check(globalScope: GlobalScope):
     # check if variables are in scope
-    visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue,VariableDefinition,FunctionDefinition,VarOrParam}, {VarOrParam: _check_var_in_scope, Function: _check_fct_in_scope, NodeGenerator: _check_nodeGen_index})
+    visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue,VariableDefinition,FunctionDefinition,Loop,VarOrParam}, {VarOrParam: _check_var_in_scope, Function: _check_fct_in_scope, NodeGenerator: _check_nodeGen_index})
 
 
-# TODO check for HyperEdgeGen and NodeGen if they are used with indices (isUsedAsArray isDeclared asArray)
-# TODO change .lark because TIMHORIZON doesn't support "2*2"
-
+# TODO SOSConstraints

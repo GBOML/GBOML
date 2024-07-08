@@ -5,23 +5,23 @@ from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.resolve_imports import resolve_imports
 from gboml.semantic import semantic_check
 from gboml.scope import GlobalScope
-from gboml.ast import GeneratedRValue, MultiLoop
+from gboml.ast import BaseLoop, MultiLoop
 from gboml.tools.tree_modifier import modify
 import dataclasses
 import os
+from pathlib import Path
 
-# TODO works really well, but GeneratedRValue.value is declared as "cannot be another genVal"
-def _extend_multiloop(genval: GeneratedRValue) -> GeneratedRValue:
-    if isinstance(genval.loop, MultiLoop):
-        genval_i = dataclasses.replace(genval, loop=genval.loop.sub[-1])
-        for loop in reversed(genval.loop.sub[:-1]):
-            genval_i = GeneratedRValue(genval_i, loop)
-        return genval_i
-    return genval
+# TODO works really well, but then MultiLoop isn't useful anymore. Could remove at the AST creation ?
+def _extend_multiloop(mloop: MultiLoop) -> BaseLoop:
+    prevloop = mloop.sub[-1]
+    for subloop in reversed(mloop.sub[:-1]):
+        subloop = dataclasses.replace(subloop, loop=prevloop)
+        prevloop = subloop
+    return prevloop
 
 
 tree = GBOMLParser().parse("""
-#TIMEHORIZON T = 2;
+#TIMEHORIZON T = 24;
 #GLOBAL
     a = 75;
     pi = 314;
@@ -40,9 +40,16 @@ tree = GBOMLParser().parse("""
         f(a) <- global.pi ** a;
         
         dict = {f(param) * w - 3: P for w in [1:3:2], "je": B};
-        f(b) <- global.pi ** b.x;
+        f(b) <- global.pi ** b[b].x;
+        hello = [0:2];
     #NODE P
         pass;
+
+    #NODE GEN[i][j] for i in [0:3] where i == 3 for j in [3:6]
+        #PARAMETERS
+            x = i * j;
+        #VARIABLES
+            pass;
 
     #NODE B
         #PARAMETERS
@@ -80,20 +87,23 @@ tree = GBOMLParser().parse("""
                 x[t] <= B.param+A.param+param;
         #VARIABLES
             internal : x[T] <- C.x[T];
+            internal : baba;
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + sum(l for l in x[T]) + f(global.pi) + subnodes[param];
+        min : x[t-5] + sum(l for l in hello where l < 2) + f(global.pi) + subnodes[param];
+
 """)
 
-for i in reversed(range(1, 29)):
-    if i in (23, 24, 25):
-        continue
+for i in reversed(range(29)):
+    if i == 25:
+        continue  # no test25.txt
     print(f"------------------------------- {i} -------------------------------------")
-    # tree = GBOMLParser().parse_file(f"../tests/instances/ok/test{i}.txt")
-# tree = resolve_imports(tree, os.getcwd())
+# parser = GBOMLParser()
+# tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
+# tree = resolve_imports(tree, Path('../tests/instances/ok/'), parser)
 tree = remove_redundant_definitions(tree)
-tree = modify(tree, {GeneratedRValue: _extend_multiloop})
+tree = modify(tree, {MultiLoop: _extend_multiloop})
 print(tree)
 
 # print(tree.meta)
