@@ -5,8 +5,18 @@ from gboml.tools.tree_modifier import visit, visit_hier
 # TODO define function to raise error; TODO do not stop at first error
 # what about attaching error to a new scope.variable? if that var already has an error, don't add another one; at the end simply visit() and raise all errors
 
+def _get_scope_from_hier(hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|VarOrParam]) -> Scope:
+    return next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*HasLoopInScope.astTypes, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
+
+def _check_nodeGen_index(element: NodeGenerator, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|VarOrParam] = []) -> None:
+    scope = _get_scope_from_hier(hier)
+    try:
+        scope[element.indices[0]]
+    except KeyError:
+        raise KeyError(f"SEMANTIC ERROR: {element.indices[0]} (from {element.name}) can not be used in this scope {element.meta}!")
+
 def _check_fct_in_scope(element: Function, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|VarOrParam] = []) -> None:
-    scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, NodeDefinition))
+    scope = _get_scope_from_hier(hier)
     try:
         scope = scope[element.name]
         declaredArgsLen = len(scope.ast.args)
@@ -25,7 +35,7 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
     if any(isinstance(hierItem, VariableDefinition | VarOrParam) for hierItem in reversed(hier[:-1])):
         return
     if scope is None:  # get the scope of the last node/fct/genrval in hier
-        scope = next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*HasLoopInScope.astTypes, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
+        scope = _get_scope_from_hier(hier)
     origScope = scope
     for leaf in element.path[:2]:
         try:
@@ -53,7 +63,7 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
 
 def semantic_check(globalScope: GlobalScope):
     # check if variables are in scope
-    visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue,VariableDefinition,FunctionDefinition,VarOrParam}, {VarOrParam: _check_var_in_scope, Function: _check_fct_in_scope})
+    visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,SOSConstraint,Objective,DictEntry,GeneratedRValue,VariableDefinition,FunctionDefinition,VarOrParam}, {VarOrParam: _check_var_in_scope, Function: _check_fct_in_scope, NodeGenerator: _check_nodeGen_index})
 
 
 # TODO check for HyperEdgeGen and NodeGen if they are used with indices (isUsedAsArray isDeclared asArray)
