@@ -2,9 +2,6 @@ from gboml.ast import *
 from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier
 
-# TODO define function to raise error; TODO do not stop at first error
-# what about attaching error to a new scope.variable? if that var already has an error, don't add another one; at the end simply visit() and raise all errors
-
 def _get_scope_from_hier(hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|SOSConstraint|Objective|DictEntry|GeneratedRValue|VariableDefinition|FunctionDefinition|GeneratedRValue|Loop|VarOrParam]) -> Scope:
     return next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*HasLoopInScope.astTypes, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
 
@@ -46,11 +43,11 @@ def _check_var_in_scope(element: VarOrParam, hier: list[NodeDefinition|NodeGener
             # if TIMEHORIZON is set, 'T' and 't' are allowed
             if scope and (leaf.name == 't' or leaf.name == 'T') and origScope['global'].parent.ast.time_horizon is not None:
                 isDeclaredAsArray = False  # indices are not allowed
-                scope = {}  # a following leaf in element.path is not allowed (next leaf.name will raise KeyError)
+                scope = EmptyScope()  # a following leaf in element.path is not allowed (next leaf.name will raise KeyError)
             else:
                 raise KeyError(f"SEMANTIC ERROR: {leaf.name} (from {list(map(lambda e: e.name, element.path))}) can not be used in this scope {leaf.meta}!")
 
-        if isinstance(origScope, HasLoopInScope | ScopedFunctionDefinition) and not scope:
+        if isinstance(origScope, HasLoopInScope | ScopedFunctionDefinition) and isinstance(scope, EmptyScope):
             break
         isBeingIteratedOn = leaf is element.path[-1] and isinstance(origScope.ast, Loop) and element is origScope.ast.on
         isUsedAsArray = bool(leaf.indices) or isBeingIteratedOn
@@ -68,3 +65,11 @@ def semantic_check(globalScope: GlobalScope):
 
 
 # TODO SOSConstraints
+# TODO Len
+# TODO likeloop
+# TODO reverse AST during parsing for loops and element that contains these loops
+
+
+# function decorator ↓ (or separate additionnal argument to all functions)
+# TODO define function to raise error; TODO do not stop at first error
+# what about attaching error to a new scope.variable? if that var already has an error, don't add another one; at the end simply visit() and raise all errors
