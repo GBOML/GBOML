@@ -1,7 +1,11 @@
+import typing
 from dataclasses import dataclass
 from enum import Enum
 
-from gboml.ast.expressions import ExpressionObj, Expression, BoolExpression
+from gboml.ast.expressions import ExpressionObj, BoolExpressionObj
+
+if typing.TYPE_CHECKING:
+    from gboml.ast.rvalue import Expression, PossiblyGeneratedExpression
 
 
 class Operator(Enum):
@@ -26,20 +30,20 @@ class Operator(Enum):
 @dataclass
 class ExpressionOp(ExpressionObj):
     operator: Operator
-    operands: list[Expression]
+    operands: list["Expression"]
 
 
 @dataclass
-class BoolExpressionOp(BoolExpression):
+class BoolExpressionOp(BoolExpressionObj):
     operator: Operator
-    operands: list[BoolExpression]
+    operands: list["Expression"]
 
 
 @dataclass
-class BoolExpressionComparison(BoolExpression):
-    lhs: Expression
+class BoolExpressionComparison(BoolExpressionObj):
+    lhs: "Expression"
     operator: Operator
-    rhs: Expression
+    rhs: "Expression"
 
     def __bool__(self):
         """ Checks if lhs and rhs are *exactly* the same tree in an eq relation """
@@ -54,4 +58,9 @@ class ExpressionUseGenScope(ExpressionObj):
     """ This reserved expression indicates that the child must be evaluated using the scope of the
         generator (in a node/edge generator), that is the scope of the parent + the loop of the generator.
     """
-    child: Expression
+    child: "Expression"
+
+@dataclass
+class ExpressionFunctionCall(ExpressionObj):
+    lhs: "Expression"
+    operands: list["PossiblyGeneratedExpression"]

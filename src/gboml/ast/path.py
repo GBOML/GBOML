@@ -4,13 +4,13 @@ from dataclasses import dataclass, field
 from gboml.ast.base import GBOMLObject
 from gboml.ast.expressions import ExpressionObj
 if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import RValue
+    from gboml.ast.rvalue import Expression
 
 
 @dataclass
 class VarOrParamLeaf(GBOMLObject):
     name: str
-    indices: list["RValue"] = field(default_factory=list)
+    indices: list["Expression"] = field(default_factory=list)
 
 
 @dataclass

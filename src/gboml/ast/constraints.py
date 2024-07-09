@@ -5,11 +5,10 @@ from typing import Optional
 from gboml.ast.activation import Activation
 from gboml.ast.base import GBOMLObject
 from gboml.ast.expression_operators import Operator
-from gboml.ast.expressions import Expression
 from gboml.ast.loops import Loop
 
 if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import RValueWithGen
+    from gboml.ast.rvalue import PossiblyGeneratedExpression, Expression
 
 @dataclass
 class Constraint(GBOMLObject):
@@ -18,16 +17,16 @@ class Constraint(GBOMLObject):
 
 @dataclass
 class StdConstraint(Constraint):
-    lhs: Expression
+    lhs: "Expression"
     op: Operator
-    rhs: Expression
+    rhs: "Expression"
     loop: Optional[Loop] = None
     tags: set[str] = field(default_factory=set)
 
 @dataclass
 class FunctionConstraint(Constraint):
-    fname: str
-    operands: list["RValueWithGen"]
+    lhs: "Expression"
+    operands: list["PossiblyGeneratedExpression"]
     loop: Optional[Loop] = None
     tags: set[str] = field(default_factory=set)
 

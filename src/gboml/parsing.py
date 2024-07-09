@@ -6,6 +6,7 @@ from gboml.ast import *
 from typing import Optional, Tuple, Iterable
 from collections import namedtuple
 
+from gboml.ast import GeneratedExpression
 from gboml.tools.tree_modifier import visit
 
 
@@ -88,8 +89,6 @@ class GBOMLParser:
             to_obj = {
                 "var_or_param_leaf": VarOrParamLeaf,
                 "var_or_param": VarOrParam,
-                "constraint_std": StdConstraint,
-                "constraint_func": FunctionConstraint,
                 "objective": Objective,
                 "base_loop": BaseLoop,
                 "like_loop": LikeLoop,
@@ -101,14 +100,14 @@ class GBOMLParser:
                 "division": _op_transform(Operator.divide),
                 "modulo": _op_transform(Operator.modulo),
                 "unary_minus": _op_transform(Operator.unary_minus),
+                "function_call": ExpressionFunctionCall,
                 "bool_expression_and": _bool_op_transform(Operator.b_and),
                 "bool_expression_or": _bool_op_transform(Operator.b_or),
                 "bool_expression_not": _bool_op_transform(Operator.b_not),
                 "bool_expression_comparison": BoolExpressionComparison,
-                "function": Function,
                 "import": ImportFile,
                 "variable_scope_change": ScopeChange,
-                "generated_rvalue": GeneratedRValue,
+                "generated_expression": GeneratedExpression,
                 "range": Range,
                 "dict_entry": DictEntry,
                 "array": Array,
@@ -210,7 +209,7 @@ class GBOMLParser:
             def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):
                 return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
 
-            def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[RValue])],
+            def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[Expression])],
                                     imports_from: Optional[list[VarOrParam]],
                                     bound_lower: Optional[Expression], bound_upper: Optional[Expression], tags: set[str]):
                 if imports_from is not None and len(imports_from) != len(names):
@@ -226,14 +225,14 @@ class GBOMLParser:
             def multi_loop(self, meta: Meta, *loops: Tuple[Loop]):
                 return MultiLoop(list(loops), meta=meta)
 
-            def array_or_dict(self, meta: Meta, entries: list[RValueWithGen | DictEntry]):
+            def array_or_dict(self, meta: Meta, entries: list[PossiblyGeneratedExpression | DictEntry]):
                 if all(isinstance(x, DictEntry) for x in entries):
                     return Dictionary(entries, meta=meta)
                 if all(not isinstance(x, DictEntry) for x in entries):
                     return Array(entries, meta=meta)
                 raise Exception("An array cannot contain dictionary entries (and conversely)")
 
-            def definition_std_param(self, meta: Meta, name: str, args: Optional[list[str]], typ: DefinitionType, val: RValue, tags: set[str]):
+            def definition_std_param(self, meta: Meta, name: str, args: Optional[list[str]], typ: DefinitionType, val: Expression, tags: set[str]):
                 if args is not None:
                     if typ != DefinitionType.expression:
                         raise Exception("Functions can only be defined as expressions (use `<-` instead of `=`)")
@@ -242,3 +241,12 @@ class GBOMLParser:
                     return ExpressionDefinition(name, val, tags, meta=meta)
                 else:
                     return ConstantDefinition(name, val, tags, meta=meta)
+
+            def constraint(self, meta: Meta, name: Optional[str], expr: Expression, loop: Optional[Loop], tags: set[str]):
+                if isinstance(expr, BoolExpressionComparison):
+                    if expr.operator not in [Operator.lesser_or_equal, Operator.greater_or_equal, Operator.equal]:
+                        raise Exception("Comparisons in constraints can only be done using <=, >=, or =")
+                    return StdConstraint(name, expr.lhs, expr.operator, expr.rhs, loop, tags, meta=meta)
+                if isinstance(expr, ExpressionFunctionCall):
+                    return FunctionConstraint(name, expr.lhs, expr.operands, loop, tags, meta=meta)
+                raise Exception("Not a valid constraint; it should be either a comparison or a function call")
