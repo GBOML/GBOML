@@ -2,12 +2,11 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from gboml.ast.expressions import Expression
 from gboml.ast.functions import Function
 from gboml.ast.arrays import Array, Range
 from gboml.ast.base import GBOMLObject, NamedGBOMLObject
 from gboml.ast.path import VarOrParam
-from gboml.ast.rvalue import RValue
+from gboml.ast.rvalue import Expression
 
 
 class VarScope(Enum):
@@ -33,19 +32,19 @@ class Definition(NamedGBOMLObject):
 
 @dataclass
 class ConstantDefinition(Definition):
-    value: RValue
+    value: Expression
     tags: set[str] = field(default_factory=set)
 
 
 @dataclass
 class ExpressionDefinition(Definition):
-    value: RValue
+    value: Expression
     tags: set[str] = field(default_factory=set)
 
 @dataclass
 class FunctionDefinition(Definition):
     args: list[str]
-    value: RValue
+    value: Expression
     tags: set[str] = field(default_factory=set)
 
 @dataclass
@@ -55,7 +54,7 @@ class IndexingParameterDefinition(Definition):
 @dataclass
 class VariableDefinition(NamedGBOMLObject):
     name: str
-    indices: list[RValue]
+    indices: list[Expression]
     scope: VarScope
     type: VarType
     bound_lower: Optional[Expression]

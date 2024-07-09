@@ -3,16 +3,17 @@ from dataclasses import dataclass
 from gboml.ast.arrays import Array, Range, Dictionary
 from gboml.ast.base import GBOMLObject
 from gboml.ast.loops import Loop
-from gboml.ast.expressions import Expression, BoolExpression
+from gboml.ast.expressions import BoolExpressionObj, ExpressionObj
 from gboml.ast.import_file import ImportFile
 
-RValue = BoolExpression | Expression | Array | ImportFile | str | Range | Dictionary
 
+LeafValue = Array | ImportFile | str | Range | Dictionary | int | float
+Expression = BoolExpressionObj | ExpressionObj | LeafValue
 
 @dataclass
-class GeneratedRValue(GBOMLObject):
-    value: RValue
+class GeneratedExpression(GBOMLObject):
+    value: Expression
     loop: Loop
 
 
-RValueWithGen = RValue | GeneratedRValue
+PossiblyGeneratedExpression = Expression | GeneratedExpression

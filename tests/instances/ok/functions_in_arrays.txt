@@ -1,0 +1,15 @@
+#TIMEHORIZON T = 1;
+
+
+#NODE Children
+    #PARAMETERS
+        a(i) <- 2 * i;
+        b(i) <- 3 * i;
+        array <- {a, b};
+        c <- array[0](1);
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x == c;
+    #OBJECTIVES
+        max : x;
