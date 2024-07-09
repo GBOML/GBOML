@@ -1,19 +1,15 @@
+import typing
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Optional
 
 from gboml.ast.activation import Activation
-from gboml.ast.arrays import Array
 from gboml.ast.base import GBOMLObject
 from gboml.ast.expression_operators import Operator
 from gboml.ast.expressions import Expression
 from gboml.ast.loops import Loop
 
-
-class SOSType(Enum):
-    SOS1 = "SOS1"
-    SOS2 = "SOS2"
-
+if typing.TYPE_CHECKING:
+    from gboml.ast.rvalue import RValueWithGen
 
 @dataclass
 class Constraint(GBOMLObject):
@@ -28,11 +24,10 @@ class StdConstraint(Constraint):
     loop: Optional[Loop] = None
     tags: set[str] = field(default_factory=set)
 
-
 @dataclass
-class SOSConstraint(Constraint):
-    type: SOSType
-    content: Array
+class FunctionConstraint(Constraint):
+    fname: str
+    operands: list["RValueWithGen"]
     loop: Optional[Loop] = None
     tags: set[str] = field(default_factory=set)
 
