@@ -14,7 +14,6 @@ class OverrideBehavior(Enum):
     fail = 1
     overwrite = 2
 
-
 @dataclass
 class Scope:
     parent: "Scope" = field(repr=False)
@@ -45,6 +44,23 @@ class Scope:
 
     def __getitem__(self, item):
         return self.content[item]
+
+
+# singleton
+class EmptyScope(Scope):
+    _instance = None
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(EmptyScope, cls).__new__(cls)
+            cls._instance.parent = None
+            cls._instance.name = ""
+            cls._instance.path = []
+            cls._instance.content = {}
+        return cls._instance
+
+    def __post_init__(self):
+        pass  # Override to do nothing
 
 
 @dataclass
@@ -148,13 +164,11 @@ class HasLoopInScope(Scope, Generic[U]):
                         break
                     scope = scope.ast.loop.scope
             elif item == self.ast.varid:
-                return {}
+                return EmptyScope()
         elif item in self.varids:
-            return {}
+            return EmptyScope()
         
         return self.parent[item]
-
-        # return {} if isinstance(self.ast, Loop) and item == self.ast.varid or item in self.varids else self.parent[item]
     
 
 @dataclass
@@ -239,7 +253,7 @@ class ScopedFunctionDefinition(NamedAstScope[NodeDefinition]):
             raise RuntimeError(f"Identifier {intersection} is already used")
 
     def __getitem__(self, item):
-        return {} if item in self.ast.args else self.parent[item]
+        return EmptyScope() if item in self.ast.args else self.parent[item]
 
 @dataclass
 class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
