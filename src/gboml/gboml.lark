@@ -71,11 +71,10 @@ VTYPE: "binary" | "continuous" | "integer"
 _LARROW.1: "<-"
 
 // CONSTRAINTS
-?constraint: constraint_sos | constraint_std
+?constraint: constraint_std | constraint_func
 constraint_std: [ID ":"] expression CTR_OPERATOR expression [loop] tags ";"
 CTR_OPERATOR: "<=" | ">=" | "=="
-constraint_sos: [ID ":"] SOS_TYPE array [loop] tags ";"
-SOS_TYPE.1: "SOS1" | "SOS2"
+constraint_func: [ID ":"] ID "(" separated_maybe_empty_list{generated_rvalue, ","} ")" [loop] tags ";"
 
 // OBJECTIVES
 objective: OBJ_TYPE [ID] ":" expression [loop] tags ";"
@@ -94,7 +93,8 @@ implicit_loop: "where" bool_expression
 ?bool_expression_and: _separated_list{_maybe_not, "and"}
 _maybe_not: bool_expression_not | _maybe_bool_parenthesis
 bool_expression_not: "not" _maybe_bool_parenthesis
-_maybe_bool_parenthesis: "(" bool_expression ")" | bool_expression_comparison
+_maybe_bool_parenthesis: "(" bool_expression ")" | _bool_expression_leaf
+_bool_expression_leaf: bool_expression_comparison | expression
 bool_expression_comparison: expression (COMPARISON_OPERATOR | CTR_OPERATOR) expression
 COMPARISON_OPERATOR:  "<" | ">" | "!="
 
@@ -146,7 +146,7 @@ var_or_param_leaf: (ID | TAG) olist{index}
 ?index_id: "[" ID "]"
 
 //rvalue: anything that can be assigned to a parameter
-?rvalue: import | array_or_dict | expression | range | STRING
+?rvalue: import | array_or_dict | bool_expression | range | STRING
 import: "import" STRING
 ?generated_rvalue: rvalue loop?
 ?iterable: array | range | function | var_or_param

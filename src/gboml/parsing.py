@@ -6,7 +6,7 @@ from gboml.ast import *
 from typing import Optional, Tuple, Iterable
 from collections import namedtuple
 
-from gboml.tools.tree_modifier import modify, visit
+from gboml.tools.tree_modifier import visit
 
 
 def _op_transform(op): return lambda *x, meta: ExpressionOp(op, list(x), meta=meta)
@@ -89,7 +89,7 @@ class GBOMLParser:
                 "var_or_param_leaf": VarOrParamLeaf,
                 "var_or_param": VarOrParam,
                 "constraint_std": StdConstraint,
-                "constraint_sos": SOSConstraint,
+                "constraint_func": FunctionConstraint,
                 "objective": Objective,
                 "base_loop": BaseLoop,
                 "like_loop": LikeLoop,
@@ -139,7 +139,6 @@ class GBOMLParser:
             def ID(self, token): return token.value
             def TAG(self, token): return token.value
             def SCOPE(self, token): return VarScope(token.value)
-            def SOS_TYPE(self, token): return SOSType(token.value)
             def CTR_OPERATOR(self, token): return Operator(token.value)
             def OBJ_TYPE(self, token): return ObjType(token.value)
             def COMPARISON_OPERATOR(self, token): return Operator(token.value)
