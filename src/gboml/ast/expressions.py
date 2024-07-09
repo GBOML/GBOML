@@ -8,7 +8,7 @@ from gboml.ast.base import GBOMLObject
 class ExpressionObj(GBOMLObject):
     def __eq__(self, obj):
         from gboml.ast.expression_operators import Operator, BoolExpressionComparison
-        from gboml.ast.rvalue import Expression
+        from gboml.ast.values import Expression
         # first: check type
         if not isinstance(obj, Expression):
             return False

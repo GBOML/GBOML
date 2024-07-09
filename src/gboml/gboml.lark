@@ -32,7 +32,7 @@ tags: TAG*
 TAG: /@[a-zA-Z\-_]+/
 
 // Extends
-extends: "extends" var_or_param ["from" STRING]
+extends: "extends" _path ["from" STRING]
 
 // NODES
 ?node: node_definition | node_import
@@ -48,7 +48,7 @@ _constraint_block_c: constraint | ctr_activate | ctr_deactivate
 objectives_block: (_block_repeat_or_pass{"#OBJECTIVES",_objective_block_c})?
 _objective_block_c: objective | obj_activate | obj_deactivate
 
-node_import: "#NODE" ID "=" "import" var_or_param "from" STRING node_redefs
+node_import: "#NODE" ID "=" "import" _path "from" STRING node_redefs
 node_redefs: ("with" redefinition*) | ";"
 ?redefinition: variable_scope_change | definition
 variable_scope_change: ID SCOPE ";"
@@ -60,11 +60,11 @@ hyperedge_definition: _block_shortcut{_hyperedge_header, _hyperedge_content}
 _hyperedge_header: "#HYPEREDGE" ID olist{index_id} [extends] [loop] tags
 _hyperedge_content: parameters_block constraints_block
 
-hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hyperedge_redefs
+hyperedge_import: "#HYPEREDGE" ID "=" "import" _path "from" STRING hyperedge_redefs
 hyperedge_redefs: "with" definition* | ";"
 
 // VARIABLES
-variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_LARROW separated_list{var_or_param, ","}] ["in" "[" [expression] ":" [expression] "]"] tags ";"
+variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_LARROW separated_list{_path, ","}] ["in" "[" [expression] ":" [expression] "]"] tags ";"
 variable_name: ID olist{index}
 SCOPE: "internal" | "external"
 VTYPE: "binary" | "continuous" | "integer"
@@ -81,7 +81,7 @@ OBJ_TYPE: "min" | "max"
 ?loop: multi_loop | implicit_loop
 ?multi_loop: (base_loop | like_loop)+
 base_loop: "for" ID "in" expression ["where" expression]
-like_loop: "for" ID "like" var_or_param ["where" expression] //var_or_param must point to an indexing param
+like_loop: "for" ID "like" _path ["where" expression] //_path must point to an indexing param
 implicit_loop: "where" expression
 
 // DEFINITIONS
@@ -121,10 +121,12 @@ _other_expression: subtraction
 ?exponent: _separated_list{_maybe_unary_minus, "**"}
 _maybe_unary_minus: _maybe_call | unary_minus
 unary_minus: "-" _maybe_call
-_maybe_call: function_call | _parenthesis
+_maybe_call: function_call | dot_call | array_call | _parenthesis
 function_call: _maybe_call "(" separated_maybe_empty_list{generated_expression, ","} ")"
+dot_call: _maybe_call "." ID
+array_call: _maybe_call "[" expression "]"
 _parenthesis: "(" expression ")" | _leaf_value
-_leaf_value: var_or_param | INT | FLOAT | range | array_or_dict | STRING | import
+_leaf_value: path_root | INT | FLOAT | range | array_or_dict | STRING | import | TAG
 
 // ACTIVATE/DEACTIVATE
 _activate.1: "activate" separated_list{_activation_id, ","} ["if" expression] ";"
@@ -135,13 +137,11 @@ ctr_deactivate: _deactivate
 obj_activate: _activate
 obj_deactivate: _deactivate
 
+// PATH - always points to a variable/parameter/node name
+_path: path_root | dot_call | array_call
+path_root: ID
 
-// FUNCTIONS
-function: ID "(" separated_maybe_empty_list{generated_expression, ","} ")"
-
-// VAR OR PARAM LINK
-var_or_param: separated_list{var_or_param_leaf, "."}
-var_or_param_leaf: (ID | TAG) olist{index}
+// INDEXES
 ?index: "[" expression "]"
 ?index_id: "[" ID "]"
 

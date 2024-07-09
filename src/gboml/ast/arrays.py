@@ -5,7 +5,7 @@ from gboml.ast.base import GBOMLObject
 
 
 if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import Expression, PossiblyGeneratedExpression
+    from gboml.ast.values import Expression, PossiblyGeneratedExpression
     from gboml.ast.loops import Loop
 
 

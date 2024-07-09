@@ -5,7 +5,6 @@ from gboml.ast.importable import Extends
 from gboml.ast.loops import Loop
 from gboml.ast.base import NamedGBOMLObject
 from gboml.ast.constraints import Constraint, CtrActivation
-from gboml.ast.path import VarOrParam
 from gboml.ast.variables import Definition
 
 

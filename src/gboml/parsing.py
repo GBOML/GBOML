@@ -6,7 +6,6 @@ from gboml.ast import *
 from typing import Optional, Tuple, Iterable
 from collections import namedtuple
 
-from gboml.ast import GeneratedExpression
 from gboml.tools.tree_modifier import visit
 
 
@@ -87,8 +86,7 @@ class GBOMLParser:
             # obj(*children, meta=meta)
             #
             to_obj = {
-                "var_or_param_leaf": VarOrParamLeaf,
-                "var_or_param": VarOrParam,
+                "path_root": PathRoot,
                 "objective": Objective,
                 "base_loop": BaseLoop,
                 "like_loop": LikeLoop,
@@ -101,6 +99,8 @@ class GBOMLParser:
                 "modulo": _op_transform(Operator.modulo),
                 "unary_minus": _op_transform(Operator.unary_minus),
                 "function_call": ExpressionFunctionCall,
+                "dot_call": ExpressionDotCall,
+                "array_call": ExpressionArrayCall,
                 "bool_expression_and": _bool_op_transform(Operator.b_and),
                 "bool_expression_or": _bool_op_transform(Operator.b_or),
                 "bool_expression_not": _bool_op_transform(Operator.b_not),
@@ -196,13 +196,13 @@ class GBOMLParser:
                                          variable_block, constraint_block,
                                          objectives_block, activations, tags, meta=meta)
 
-            def node_import(self, meta: Meta, name: str, imported_name: VarOrParam, imported_from: str, redef: list[ScopeChange | Definition]):
+            def node_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[ScopeChange | Definition]):
                 return NodeDefinition(name, Extends(imported_name, imported_from, meta=meta),
                                       parameters=[x for x in redef if isinstance(x, Definition)],
                                       variables=[x for x in redef if isinstance(x, ScopeChange)],
                                       meta=meta)
 
-            def hyperedge_import(self, meta: Meta, name: str, imported_name: VarOrParam, imported_from: str, redef: list[Definition]):
+            def hyperedge_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[Definition]):
                 return HyperEdgeDefinition(name, Extends(imported_name, imported_from, meta=meta),
                                            parameters=redef, meta=meta)
 
@@ -210,7 +210,7 @@ class GBOMLParser:
                 return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
 
             def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[Expression])],
-                                    imports_from: Optional[list[VarOrParam]],
+                                    imports_from: Optional[list[Path]],
                                     bound_lower: Optional[Expression], bound_upper: Optional[Expression], tags: set[str]):
                 if imports_from is not None and len(imports_from) != len(names):
                     raise Exception("Invalid variable import, numbers of variables on the left and on the right-side of "

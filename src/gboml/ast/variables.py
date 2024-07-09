@@ -2,12 +2,10 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional
 
-from gboml.ast.functions import Function
 from gboml.ast.arrays import Array, Range
 from gboml.ast.base import GBOMLObject, NamedGBOMLObject
-from gboml.ast.path import VarOrParam
-from gboml.ast.rvalue import Expression
-
+from gboml.ast.values import Expression
+from gboml.ast.path import Path
 
 class VarScope(Enum):
     internal = "internal"
@@ -49,7 +47,7 @@ class FunctionDefinition(Definition):
 
 @dataclass
 class IndexingParameterDefinition(Definition):
-    value: Function | Array | Range | VarOrParam
+    value: Array | Range | Path
 
 @dataclass
 class VariableDefinition(NamedGBOMLObject):
@@ -59,7 +57,7 @@ class VariableDefinition(NamedGBOMLObject):
     type: VarType
     bound_lower: Optional[Expression]
     bound_upper: Optional[Expression]
-    import_from: Optional[VarOrParam] = None
+    import_from: Optional[Path] = None
     tags: set[str] = field(default_factory=set)
 
 
