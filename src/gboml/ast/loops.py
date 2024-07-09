@@ -4,10 +4,10 @@ from typing import Optional
 
 from gboml.ast.arrays import Range
 from gboml.ast.base import GBOMLObject
-from gboml.ast.path import VarOrParam, VarOrParamLeaf
+from gboml.ast.path import Path, PathRoot
 
 if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import Expression
+    from gboml.ast.values import Expression
 
 
 @dataclass
@@ -25,14 +25,14 @@ class BaseLoop(Loop):
 @dataclass
 class LikeLoop(Loop):
     varid: str
-    on: VarOrParam
+    on: "Path"
     condition: Optional["Expression"]
 
 
 @dataclass
 class ImplicitLoop(BaseLoop):
     varid: str = field(default="t", init=False)
-    on: "Expression" = field(default_factory=lambda: Range(0, VarOrParam([VarOrParamLeaf("T")])), init=False)
+    on: "Expression" = field(default_factory=lambda: Range(0, PathRoot("T")), init=False)
     condition: "Expression"
 
 

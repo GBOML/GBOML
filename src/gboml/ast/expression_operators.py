@@ -5,7 +5,7 @@ from enum import Enum
 from gboml.ast.expressions import ExpressionObj, BoolExpressionObj
 
 if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import Expression, PossiblyGeneratedExpression
+    from gboml.ast.values import Expression, PossiblyGeneratedExpression
 
 
 class Operator(Enum):
@@ -60,7 +60,20 @@ class ExpressionUseGenScope(ExpressionObj):
     """
     child: "Expression"
 
+
 @dataclass
 class ExpressionFunctionCall(ExpressionObj):
     lhs: "Expression"
     operands: list["PossiblyGeneratedExpression"]
+
+
+@dataclass
+class ExpressionDotCall(ExpressionObj):
+    lhs: "Expression"
+    rhs: str
+
+
+@dataclass
+class ExpressionArrayCall(ExpressionObj):
+    lhs: "Expression"
+    rhs: "Expression"

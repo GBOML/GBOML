@@ -8,7 +8,7 @@ from gboml.ast.expression_operators import Operator
 from gboml.ast.loops import Loop
 
 if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import PossiblyGeneratedExpression, Expression
+    from gboml.ast.values import PossiblyGeneratedExpression, Expression
 
 @dataclass
 class Constraint(GBOMLObject):
