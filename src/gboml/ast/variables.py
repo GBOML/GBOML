@@ -47,7 +47,7 @@ class FunctionDefinition(Definition):
 
 @dataclass
 class IndexingParameterDefinition(Definition):
-    value: Array | Range | Path
+    value: Expression
 
 @dataclass
 class VariableDefinition(NamedGBOMLObject):
