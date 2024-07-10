@@ -60,8 +60,8 @@
         0 <= 2;
         a == b;
         named: a == b for i in [0:2] where ((i % 2) == 0) and i > 0 or (i < 0 or i != 0 and not i == i and i <= 0 and i >= 0);
-        SOS1 {a, b};
-        SOS2 {a, b};
+        SOS1(a, b);
+        SOS2(a, b);
         sum(a*2 for a in [0:2]) == 2;
         sum(a*2 for a in {0, 1, 2}) == 2;
         sum(a*2 for a in myfunc(2)) == 2;

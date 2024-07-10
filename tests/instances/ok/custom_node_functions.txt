@@ -1,0 +1,14 @@
+#TIMEHORIZON T = 1;
+
+#NODE Parent
+    #PARAMETERS
+        a(i,j) <- 2 * i + j;
+    #NODE Children
+        #VARIABLES
+            internal : x;
+        #CONSTRAINTS
+            parent.a(z+3,2) >= x for z in [0:2];
+        #OBJECTIVES
+            max : x;
+    #VARIABLES
+        pass;

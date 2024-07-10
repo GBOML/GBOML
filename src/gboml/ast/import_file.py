@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from gboml.ast import GBOMLObject
+from gboml.ast.base import GBOMLObject
 
 
 @dataclass

@@ -1,18 +1,11 @@
-import typing
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
-from gboml.ast.base import GBOMLObject
 from gboml.ast.expressions import ExpressionObj
-if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import RValue
-
+from gboml.ast.expression_operators import ExpressionArrayCall, ExpressionDotCall
 
 @dataclass
-class VarOrParamLeaf(GBOMLObject):
+class PathRoot(ExpressionObj):
     name: str
-    indices: list["RValue"] = field(default_factory=list)
 
 
-@dataclass
-class VarOrParam(ExpressionObj):
-    path: list[VarOrParamLeaf]
+Path = ExpressionArrayCall | ExpressionDotCall | PathRoot

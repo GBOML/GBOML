@@ -1,23 +1,23 @@
 __all__ = [
-    "Meta", "GBOMLObject", "VarScope", "VarType", "SOSType", "ObjType",
-    "Operator", "ExpressionObj", "Expression", "BoolExpression", "VarOrParamLeaf",
-    "VarOrParam", "Array", "Loop", "BaseLoop", "LikeLoop", "Function", "BoolExpressionOp",
+    "Meta", "GBOMLObject", "VarScope", "VarType", "ObjType",
+    "Operator", "ExpressionObj", "Expression", "Array", "Loop", "BaseLoop", "LikeLoop", "BoolExpressionOp",
     "BoolExpressionComparison", "ScopeChange", "ImportFile", "Definition", "Constraint",
-    "StdConstraint", "SOSConstraint", "Objective", "VariableDefinition", "Node",
-    "HyperEdge", "NodeDefinition", "HyperEdgeDefinition",
-    "ExpressionOp", "GBOMLGraph", "ImplicitLoop", "RValue", "RValueWithGen", "GeneratedRValue",
+    "StdConstraint", "FunctionConstraint", "Objective", "VariableDefinition", "Node",
+    "HyperEdge", "NodeDefinition", "HyperEdgeDefinition", "ExpressionFunctionCall",
+    "ExpressionOp", "GBOMLGraph", "ImplicitLoop",
     "Range", "MultiLoop", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
     "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject",
-    "ExpressionUseGenScope", "AnyGBOMLObject", "IndexingParameterDefinition"
+    "ExpressionUseGenScope", "AnyGBOMLObject", "IndexingParameterDefinition", "PossiblyGeneratedExpression",
+    "ExpressionDotCall", "ExpressionArrayCall", "GeneratedExpression", "PathRoot", "Path"
 ]
 
+from gboml.ast.activation import *
 from gboml.ast.arrays import *
 from gboml.ast.base import *
 from gboml.ast.constraints import *
 from gboml.ast.expression_operators import *
 from gboml.ast.expressions import *
-from gboml.ast.functions import *
 from gboml.ast.graph import *
 from gboml.ast.hyperedges import *
 from gboml.ast.import_file import *
@@ -25,6 +25,5 @@ from gboml.ast.loops import *
 from gboml.ast.nodes import *
 from gboml.ast.objectives import *
 from gboml.ast.path import *
-from gboml.ast.rvalue import *
+from gboml.ast.values import *
 from gboml.ast.variables import *
-from gboml.ast.activation import *

@@ -1,0 +1,13 @@
+#TIMEHORIZON T = 1;
+
+#NODE H
+    #PARAMETERS
+        a = 2;
+        b = (a == 2);
+        c = {b, a == 3};
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        CUSTOMFUNC(a == 2);
+    #OBJECTIVES
+        max : x;

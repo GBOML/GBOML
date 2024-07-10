@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from typing import Optional
 
 from gboml.ast.base import GBOMLObject
-from gboml.ast.variables import VarOrParam
+from gboml.ast.path import Path
 
 
 @dataclass
 class Extends(GBOMLObject):
-    name: VarOrParam
+    name: "Path"
     filename: Optional[str]

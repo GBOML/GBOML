@@ -2,22 +2,22 @@ import typing
 from dataclasses import dataclass
 
 from gboml.ast.base import GBOMLObject
-from gboml.ast.expressions import Expression
+
 
 if typing.TYPE_CHECKING:
-    from gboml.ast.rvalue import RValueWithGen, RValue
+    from gboml.ast.values import Expression, PossiblyGeneratedExpression
     from gboml.ast.loops import Loop
 
 
 @dataclass
 class Array(GBOMLObject):
-    content: list["RValueWithGen"]
+    content: list["PossiblyGeneratedExpression"]
 
 
 @dataclass
 class DictEntry(GBOMLObject):
-    key: "RValue"
-    value: "RValue"
+    key: "Expression"
+    value: "Expression"
     loop: typing.Optional["Loop"] = None
 
 
@@ -28,6 +28,6 @@ class Dictionary(GBOMLObject):
 
 @dataclass
 class Range(GBOMLObject):
-    start: Expression
-    end: Expression
-    step: typing.Optional[Expression] = None
+    start: "Expression"
+    end: "Expression"
+    step: typing.Optional["Expression"] = None

@@ -32,7 +32,7 @@ tags: TAG*
 TAG: /@[a-zA-Z\-_]+/
 
 // Extends
-extends: "extends" var_or_param ["from" STRING]
+extends: "extends" _path ["from" STRING]
 
 // NODES
 ?node: node_definition | node_import
@@ -48,7 +48,7 @@ _constraint_block_c: constraint | ctr_activate | ctr_deactivate
 objectives_block: (_block_repeat_or_pass{"#OBJECTIVES",_objective_block_c})?
 _objective_block_c: objective | obj_activate | obj_deactivate
 
-node_import: "#NODE" ID "=" "import" var_or_param "from" STRING node_redefs
+node_import: "#NODE" ID "=" "import" _path "from" STRING node_redefs
 node_redefs: ("with" redefinition*) | ";"
 ?redefinition: variable_scope_change | definition
 variable_scope_change: ID SCOPE ";"
@@ -60,22 +60,18 @@ hyperedge_definition: _block_shortcut{_hyperedge_header, _hyperedge_content}
 _hyperedge_header: "#HYPEREDGE" ID olist{index_id} [extends] [loop] tags
 _hyperedge_content: parameters_block constraints_block
 
-hyperedge_import: "#HYPEREDGE" ID "=" "import" var_or_param "from" STRING hyperedge_redefs
+hyperedge_import: "#HYPEREDGE" ID "=" "import" _path "from" STRING hyperedge_redefs
 hyperedge_redefs: "with" definition* | ";"
 
 // VARIABLES
-variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_LARROW separated_list{var_or_param, ","}] ["in" "[" [expression] ":" [expression] "]"] tags ";"
+variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_LARROW separated_list{_path, ","}] ["in" "[" [expression] ":" [expression] "]"] tags ";"
 variable_name: ID olist{index}
 SCOPE: "internal" | "external"
 VTYPE: "binary" | "continuous" | "integer"
 _LARROW.1: "<-"
 
 // CONSTRAINTS
-?constraint: constraint_sos | constraint_std
-constraint_std: [ID ":"] expression CTR_OPERATOR expression [loop] tags ";"
-CTR_OPERATOR: "<=" | ">=" | "=="
-constraint_sos: [ID ":"] SOS_TYPE array [loop] tags ";"
-SOS_TYPE.1: "SOS1" | "SOS2"
+constraint: [ID ":"] expression [loop] tags ";"
 
 // OBJECTIVES
 objective: OBJ_TYPE [ID] ":" expression [loop] tags ";"
@@ -84,69 +80,73 @@ OBJ_TYPE: "min" | "max"
 // LOOPS
 ?loop: multi_loop | implicit_loop
 ?multi_loop: (base_loop | like_loop)+
-base_loop: "for" ID "in" iterable ["where" bool_expression]
-like_loop: "for" ID "like" var_or_param ["where" bool_expression] //var_or_param must point to an indexing param
-implicit_loop: "where" bool_expression
-
-// BOOLEAN EXPRESSIONS
-?bool_expression: bool_expression_or
-?bool_expression_or: _separated_list{bool_expression_and, "or"}
-?bool_expression_and: _separated_list{_maybe_not, "and"}
-_maybe_not: bool_expression_not | _maybe_bool_parenthesis
-bool_expression_not: "not" _maybe_bool_parenthesis
-_maybe_bool_parenthesis: "(" bool_expression ")" | bool_expression_comparison
-bool_expression_comparison: expression (COMPARISON_OPERATOR | CTR_OPERATOR) expression
-COMPARISON_OPERATOR:  "<" | ">" | "!="
+base_loop: "for" ID "in" expression ["where" expression]
+like_loop: "for" ID "like" _path ["where" expression] //_path must point to an indexing param
+implicit_loop: "where" expression
 
 // DEFINITIONS
 ?definition: definition_std_param | definition_indexing_param
-definition_indexing_param: ID "in" iterable ";"
-definition_std_param: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE rvalue tags ";"
+definition_indexing_param: ID "in" expression ";"
+definition_std_param: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE expression tags ";"
 DEF_TYPE: "=" | "<-"
 
 // ARRAYS
 array_or_dict: "{" separated_maybe_empty_list{_array_or_dict_entry, ","} "}"
-array: "{" separated_maybe_empty_list{generated_rvalue, ","} "}"
+array: "{" separated_maybe_empty_list{generated_expression, ","} "}"
 dict: "{" separated_maybe_empty_list{dict_entry, ","} "}"
-_array_or_dict_entry: generated_rvalue | dict_entry
-dict_entry: rvalue ":" rvalue [loop]
+_array_or_dict_entry: generated_expression | dict_entry
+dict_entry: expression ":" expression [loop]
 
 // RANGE
 range: "[" expression ":" expression [":" expression] "]"
 
 // EXPRESSIONS
-?expression: subtraction
+?expression: bool_expression
+
+?bool_expression: bool_expression_or
+?bool_expression_or: _separated_list{bool_expression_and, "or"}
+?bool_expression_and: _separated_list{_maybe_not, "and"}
+_maybe_not: bool_expression_not | _bool_expression_leaf
+bool_expression_not: "not" _bool_expression_leaf
+_bool_expression_leaf: bool_expression_comparison | _other_expression
+bool_expression_comparison: _other_expression COMPARISON_OPERATOR _other_expression
+COMPARISON_OPERATOR:  "<" | ">" | "!=" | "<=" | ">=" | "=="
+
+_other_expression: subtraction
 ?subtraction: _separated_list{sum, "-"}
 ?sum: _separated_list{division, "+"}
 ?division: _separated_list{product, "/"}
 ?product: _separated_list{modulo, "*"}
 ?modulo: _separated_list{exponent, "%"}
 ?exponent: _separated_list{_maybe_unary_minus, "**"}
-_maybe_unary_minus: value | unary_minus
-unary_minus: "-" value
-?value: function | var_or_param | INT | FLOAT | ("(" expression ")")
+_maybe_unary_minus: _maybe_call | unary_minus
+unary_minus: "-" _maybe_call
+_maybe_call: function_call | dot_call | array_call | _parenthesis
+function_call: _maybe_call "(" separated_maybe_empty_list{generated_expression, ","} ")"
+dot_call: _maybe_call "." ID
+array_call: _maybe_call "[" expression "]"
+_parenthesis: "(" expression ")" | _leaf_value
+_leaf_value: path_root | INT | FLOAT | range | array_or_dict | STRING | import | TAG
 
 // ACTIVATE/DEACTIVATE
-_activate.1: "activate" separated_list{_activation_id, ","} ["if" bool_expression] ";"
-_deactivate.1: "deactivate" separated_list{_activation_id, ","} ["if" bool_expression] ";"
+_activate.1: "activate" separated_list{_activation_id, ","} ["if" expression] ";"
+_deactivate.1: "deactivate" separated_list{_activation_id, ","} ["if" expression] ";"
 _activation_id: ID | TAG
 ctr_activate: _activate
 ctr_deactivate: _deactivate
 obj_activate: _activate
 obj_deactivate: _deactivate
 
+// PATH - always points to a variable/parameter/node name
+_path: path_root | dot_call | array_call
+path_root: ID
 
-// FUNCTIONS
-function: ID "(" separated_list{generated_rvalue, ","} ")"
-
-// VAR OR PARAM LINK
-var_or_param: separated_list{var_or_param_leaf, "."}
-var_or_param_leaf: (ID | TAG) olist{index}
-?index: "[" rvalue "]"
+// INDEXES
+?index: "[" expression "]"
 ?index_id: "[" ID "]"
 
-//rvalue: anything that can be assigned to a parameter
-?rvalue: import | array_or_dict | expression | range | STRING
+// IMPORT (old way to import csvs)
 import: "import" STRING
-?generated_rvalue: rvalue loop?
-?iterable: array | range | function | var_or_param
+
+// GENERATED EXPRESSIONS
+?generated_expression: expression loop?

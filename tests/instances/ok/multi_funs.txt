@@ -1,0 +1,11 @@
+#TIMEHORIZON T = 1;
+
+#NODE H
+    #PARAMETERS
+        c = CUSTOMFUNC(2)(2)[2][2](2)(2).a.a(2)[2].a[2](2);
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x == c;
+    #OBJECTIVES
+        max : x;
