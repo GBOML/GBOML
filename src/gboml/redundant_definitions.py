@@ -44,7 +44,7 @@ import dataclasses
 import typing
 
 from gboml.ast import *
-from gboml.tools.tree_modifier import modify
+from gboml.tools.tree_modifier import modify, modify_hier
 
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
@@ -69,12 +69,14 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
         if old_name in pdef.args:  # ignore if shadowed
             return pdef
 
-    def change_var(v: VarOrParam):
-        if v.path[0].name == old_name:
-            return dataclasses.replace(v, path=[dataclasses.replace(v.path[0], name=new_name)] + v.path[1:])
-        return v
+    def change_var(p: PathRoot, hier: list[Path]):
+        if len(hier) >= 2 and isinstance(hier[-2], ExpressionDotCall) and hier[-2].lhs is not p:
+            return
+        if p.name == old_name:
+            return dataclasses.replace(p, name=new_name)
+        return p
 
-    return modify(pdef, {VarOrParam: change_var})
+    return modify_hier(pdef, {*Path.__args__}, {PathRoot: change_var})
 
 
 def _merge_definitions(parameters: list[Definition]) -> list[Definition] | None:
@@ -128,10 +130,10 @@ def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> 
     return None
 
 
-if __name__ == '__main__':
-    print(remove_redundant_definitions(NodeDefinition(name="lol", parameters=[
-        ConstantDefinition("a", 1, tags={"@t", "@t2"}),
-        ConstantDefinition("a", ExpressionOp(Operator.plus, [1, VarOrParam([VarOrParamLeaf("a")])]), tags={"@t2", "@t3"}),
-        ConstantDefinition("b", 1, tags={"@a"}),
-        ConstantDefinition("b", 2),
-    ])))
+# if __name__ == '__main__':
+    # print(remove_redundant_definitions(NodeDefinition(name="lol", parameters=[
+        # ConstantDefinition("a", 1, tags={"@t", "@t2"}),
+        # ConstantDefinition("a", ExpressionOp(Operator.plus, [1, VarOrParam([VarOrParamLeaf("a")])]), tags={"@t2", "@t3"}),
+        # ConstantDefinition("b", 1, tags={"@a"}),
+        # ConstantDefinition("b", 2),
+    # ])))
