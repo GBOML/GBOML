@@ -1,19 +1,18 @@
-import typing
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Generic, Optional, TypeVar, TYPE_CHECKING
 
 from gboml.ast.arrays import Range
 from gboml.ast.base import GBOMLObject
 from gboml.ast.path import Path, PathRoot
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from gboml.ast.values import Expression
 
 
-T = typing.TypeVar("T")
+T = TypeVar("T")
 
 @dataclass
-class Loop(GBOMLObject, typing.Generic[T]):
+class Loop(GBOMLObject, Generic[T]):
     pass
 
 
@@ -30,7 +29,6 @@ class BaseLoop(Loop):
     on: "Expression"
     condition: Optional["Expression"]
     child: Loop[T] | T
-    loop: Optional[Loop] = field(default=None)  # for nested loops  # TODO, change type
 
 
 @dataclass
@@ -38,6 +36,7 @@ class LikeLoop(Loop):
     varid: str
     on: "Path"
     condition: Optional["Expression"]
+    child: Loop[T] | T
 
 
 @dataclass
@@ -45,3 +44,4 @@ class ImplicitLoop(BaseLoop):
     varid: str = field(default="t", init=False)
     on: "Expression" = field(default_factory=lambda: Range(0, PathRoot("T")), init=False)
     condition: "Expression"
+    child: Loop[T] | T
