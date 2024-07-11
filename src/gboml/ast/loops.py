@@ -10,16 +10,26 @@ if typing.TYPE_CHECKING:
     from gboml.ast.values import Expression
 
 
+T = typing.TypeVar("T")
+
 @dataclass
-class Loop(GBOMLObject):
+class Loop(GBOMLObject, typing.Generic[T]):
     pass
 
 
 @dataclass
 class BaseLoop(Loop):
+    """
+     The expression
+
+     expr for a in b
+
+     Creates an object with varid=a, on=b, child=expr
+    """
     varid: str
     on: "Expression"
     condition: Optional["Expression"]
+    child: Loop[T] | T
     loop: Optional[Loop] = field(default=None)  # for nested loops  # TODO, change type
 
 
