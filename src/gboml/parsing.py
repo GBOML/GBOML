@@ -1,7 +1,7 @@
 import pathlib
 from itertools import repeat
 
-from lark import Lark, Tree, Token, Transformer, v_args
+from lark import Lark, Tree, tree, Token, Transformer, v_args
 from gboml.ast import *
 from typing import Optional, Tuple, Iterable
 from collections import namedtuple
@@ -11,12 +11,12 @@ from gboml.tools.tree_modifier import visit
 
 def _op_transform(op): return lambda *x, meta: ExpressionOp(op, list(x), meta=meta)
 def _bool_op_transform(op): return lambda *x, meta: BoolExpressionOp(op, list(x), meta=meta)
-def gen_meta(lark_token: Token) -> Meta: return Meta(line=lark_token.line, column=lark_token.column, filename=None)
+def gen_meta(meta: tree.Meta) -> Meta: return None if meta.empty else Meta(line=meta.line, column=meta.column, filename=None)
 
 
-def _vargs(f, data, children, _meta):
+def _vargs(f, _, children, meta):
     """ Wrapper for methods in GBOMLLarkTransformer """
-    return f(gen_meta(data), *children)
+    return f(gen_meta(meta), *children)
 
 
 default_lark_def = open((pathlib.Path(__file__).parent / "gboml.lark").resolve()).read()
@@ -25,7 +25,7 @@ default_lark_def = open((pathlib.Path(__file__).parent / "gboml.lark").resolve()
 class GBOMLParser:
     def __init__(self, lark_def=default_lark_def):
         self.lark_def = lark_def
-        self.parser = Lark(self.lark_def, start="start", parser="lalr")
+        self.parser = Lark(self.lark_def, start="start", parser="lalr", propagate_positions=True)
 
 
     def parse_file(self, filename: str) -> GBOMLGraph:
@@ -121,13 +121,13 @@ class GBOMLParser:
                 "variable_name": lambda *x, meta: x
             }
 
-            def __default__(self, data, children, _):
+            def __default__(self, data, children, meta):
                 if data in self.as_list:
                     return list(children)
                 if data in self.as_sets:
                     return set(children)
                 if data in self.to_obj:
-                    return self.to_obj[data](*children, meta=gen_meta(data))
+                    return self.to_obj[data](*children, meta=gen_meta(meta))
                 raise RuntimeError(f"Unknown rule {data}")
 
             #
