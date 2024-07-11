@@ -20,7 +20,7 @@ def _extend_multiloop(mloop: MultiLoop) -> BaseLoop:
     return prevloop
 
 
-# FunctionDefinition(name='f', args=['b'], value=ExpressionOp(operator=<Operator.exponent: '**'>, operands=[VarOrParam(path=[VarOrParamLeaf(name='global', indices=[]), VarOrParamLeaf(name='pi', indices=[])]), VarOrParam(path=[VarOrParamLeaf(name='b', indices=[VarOrParam(path=[VarOrParamLeaf(name='b', indices=[])])]), VarOrParamLeaf(name='x', indices=[])])]), tags=set()), ConstantDefinition(name='dict', value=Dictionary(content=[DictEntry(key=ExpressionOp(operator=<Operator.minus: '-'>, operands=[ExpressionOp(operator=<Operator.times: '*'>, operands=[Function(name='f', operands=[VarOrParam(path=[VarOrParamLeaf(name='param', indices=[])])]), VarOrParam(path=[VarOrParamLeaf(name='w', indices=[])])]), 3]), value=VarOrParam(path=[VarOrParamLeaf(name='P', indices=[])]), loop=BaseLoop(varid='w', on=Range(start=1, end=3, step=2), condition=None, loop=None)), DictEntry(key='je', value=VarOrParam(path=[VarOrParamLeaf(name='B', indices=[])]), loop=None)]), tags=set()), ConstantDefinition(name='hello', value=Range(start=0, end=2, step=None), tags=set())], nodes=[NodeDefinition(name='P', import_from=None, parameters=[], nodes=[], hyperedges=[], variables=[], constraints=[], objectives=[], activations=[], tags=set()), NodeGenerator(name='GEN', indices=['i', 'j'], loop=BaseLoop(varid='i', on=Range(start=0, end=3, step=None), condition=BoolExpressionComparison(lhs=VarOrParam(path=[VarOrParamLeaf(name='i', indices=[])]), operator=<Operator.equal: '=='>, rhs=3), loop=BaseLoop(varid='j', on=Range(start=3, end=6, step=None), condition=None, loop=None)), import_from=None, parameters=[ConstantDefinition(name='x', value=ExpressionOp(operator=<Operator.times: '*'>, operands=[VarOrParam(path=[VarOrParamLeaf(name='i', indices=[])]), VarOrParam(path=[VarOrParamLeaf(name='j', indices=[])])]), tags=set())], nodes=[], hyperedges=[], variables=[], constraints=[], objectives=[], activations=[], tags=set()), NodeDefinition(name='B', import_from=None, parameters=[ConstantDefinition(name='param', value=2, tags=set())], nodes=[NodeDefinition(name='C', import_from=None, parameters=[ConstantDefinition(name='param', value=3, tags=set())], nodes=[NodeDefinition(name='D', import_from=None, parameters=[ConstantDefinition(name='param', value=4, tags=set())], nodes=[], hyperedges=[], variables=[VariableDefinition(name='x', indices=[VarOrParam(path=[VarOrParamLeaf(name='T', indices=[])])], scope=<VarScope.external: 'external'>, type=<VarType.continuous: 'continuous'>, bound_lower=None, bound_upper=None, import_from=None, tags=set())], constraints=[StdConstraint(name=None, lhs=VarOrParam(path=[VarOrParamLeaf(name='x', indices=[VarOrParam(path=[VarOrParamLeaf(name='t', indices=[])])])]), op=<Operator.greater_or_equal: '>='>, rhs=VarOrParam(path=[VarOrParamLeaf(name='A', indices=[]), VarOrParamLeaf(name='param', indices=[])]), loop=None, tags=set())], objectives=[], activations=[], tags=set()), NodeDefinition(name='E', import_from=None, parameters=[ConstantDefinition(name='param', value=5.5, tags=set())], nodes=[], hyperedges=[], variables=[VariableDefinition(name='y', indices=[VarOrParam(path=[VarOrParamLeaf(name='T', indices=[])])], scope=<VarScope.external: 'external'>, type=<VarType.integer: 'integer'>, bound_lower=None, bound_upper=None, import_from
+# a[b[c[d[e]]].x[i]].a[z]
 
 tree = GBOMLParser().parse("""
 #TIMEHORIZON T = 2*2;
@@ -40,6 +40,10 @@ tree = GBOMLParser().parse("""
         a <- a + 1;
         a <- a + 1;
         f(a) <- global.pi ** a;
+        n(aa,b,cc) <- aa+b+cc;
+        q = [1:1];
+        u in q;
+        o = n(u, q, 2, i for i in [2:0]);
         
         dict = {f(param) * w - 3: P for w in [1:3:2], "je": B};
         f(b) <- global.pi ** b[b].x;
@@ -93,7 +97,7 @@ tree = GBOMLParser().parse("""
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + sum(l for l in hello where l < 2) + len(hello) + f(global.pi) + subnodes[param];
+        min : x[t-5] + sum(l for l in hello where l < 2) + len(hello) + f(global.pi) + subnodes[param].a.a + (param > 1).x + (B * 2).param;
 
 """)
 

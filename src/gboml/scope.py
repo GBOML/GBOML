@@ -20,6 +20,7 @@ class Scope:
     name: str
     path: list[str] = field(init=False)
     content: dict[str, "Scope"] = field(init=False)
+    canBeCalledWithoutPrefix: bool = field(default=False, kw_only=True, repr=False)
 
     def __post_init__(self):
         self.path = self.parent.path + [self.name]
@@ -43,24 +44,33 @@ class Scope:
         return [y for x in l for y in [self._add_to_scope(x, wrapper, whenPresent)] if y is not None]
 
     def __getitem__(self, item):
-        return self.content[item]
+        try:
+            return self.content[item]
+        except KeyError as err:
+            content = self.content if isinstance(self, GlobalScope) else self.content['global'].parent.content
+            scope = content[item]
+            if not scope.canBeCalledWithoutPrefix:
+                raise err
+            return scope
 
 
 # singleton
 class EmptyScope(Scope):
-    _instance = None
+    _instances = {True: None, False: None}
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super(EmptyScope, cls).__new__(cls)
-            cls._instance.parent = None
-            cls._instance.name = ""
-            cls._instance.path = []
-            cls._instance.content = {}
-        return cls._instance
+    def __new__(cls, canBeCalledWithoutPrefix=False):
+        if cls._instances[canBeCalledWithoutPrefix] is None:
+            instance = super(EmptyScope, cls).__new__(cls)
+            instance.parent = None
+            instance.name = ""
+            instance.path = []
+            instance.content = {}
+            instance.canBeCalledWithoutPrefix = canBeCalledWithoutPrefix
+            cls._instances[canBeCalledWithoutPrefix] = instance
+        return cls._instances[canBeCalledWithoutPrefix]
 
-    def __post_init__(self):
-        pass  # Override to do nothing
+    def __init__(self, canBeCalledWithoutPrefix=False):
+        pass  # Override to do nothing (and no need for constructor args)
 
 
 @dataclass
@@ -120,7 +130,7 @@ class ChildNodeScope(Scope):
 class HasLoopInScope(Scope, Generic[U]):
     name: str = field(init=False, default=None)
     ast: U
-    astTypes: ClassVar[set[type[GBOMLObject]]] = {NodeGenerator, HyperEdgeGenerator, GeneratedRValue, DictEntry, StdConstraint, SOSConstraint, Objective, Loop}
+    astTypes: ClassVar[set[type[GBOMLObject]]] = {NodeGenerator, HyperEdgeGenerator, GeneratedExpression, DictEntry, StdConstraint, FunctionConstraint, Objective, Loop}
     varids: list[str] = field(init=False)
 
     def __post_init__(self):
@@ -159,7 +169,7 @@ class HasLoopInScope(Scope, Generic[U]):
                 scope = self.ast.loop.scope
                 while isinstance(scope.ast, Loop):
                     if item == scope.ast.varid:
-                        raise KeyError("{item} is not accessible")
+                        raise KeyError(f"{item} is not accessible")
                     if scope.ast.loop is None:
                         break
                     scope = scope.ast.loop.scope
@@ -237,29 +247,32 @@ HyperEdgeScope = DefHyperEdgeScope | UnresolvedHyperEdgeGeneratorScope
 
 @dataclass
 class ScopedDefinition(NamedAstScope[NodeDefinition]):
+    # TODO
+    # if the ast value is a reference to another ast var, manage to store pointer from that another ast var
+    # note: coud be unknown
+    # defType: type = field(init=False)
+    
     def __post_init__(self):
-        super(ScopedDefinition, self).__post_init__()
         self.content = self.parent.content
+        super(ScopedDefinition, self).__post_init__()
 
 @dataclass
-class ScopedFunctionDefinition(NamedAstScope[NodeDefinition]):
-    def __post_init__(self):
-        super(ScopedFunctionDefinition, self).__post_init__()
-        self.content = self.parent.content
-        
+class ScopedFunctionDefinition(ScopedDefinition):
     # needed post_post_init because we need parent's scope fully filled in to check if intersects
     def _finalize_init(self):
-        if intersection := self.parent.content.keys() & self.ast.args:
-            raise RuntimeError(f"Identifier {intersection} is already used")
+        for arg in self.ast.args:
+            try:
+                self.parent[arg]
+                raise RuntimeError(f"Identifier {arg} is already used")
+            except KeyError:
+                pass
 
     def __getitem__(self, item):
         return EmptyScope() if item in self.ast.args else self.parent[item]
 
 @dataclass
-class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
-    def __post_init__(self):
-        super(ScopedVariableDefinition, self).__post_init__()
-        self.content = self.parent.content
+class ScopedVariableDefinition(ScopedDefinition):
+    pass
 
 
 def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope:
@@ -291,6 +304,8 @@ class GlobalScope(Scope):
 
         self.content = {}
         self._add_all_to_scope(self.ast.global_defs)
+        if self.ast.time_horizon is not None:
+            self.content |= dict.fromkeys(('t', 'T', 'len', 'sum'), EmptyScope(canBeCalledWithoutPrefix=True))
         for globdef in self.ast.global_defs:
             visit_hier(globdef, HasLoopInScope.astTypes, dict.fromkeys(HasLoopInScope.astTypes, processLoopScope))
         self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
