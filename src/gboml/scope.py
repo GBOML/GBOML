@@ -34,7 +34,7 @@ class Scope:
             else:
                 pass
 
-        if ast.name in ['T', 't']:
+        if ast.name == 'parent':
             raise KeyError(f"Identifier {ast.name} cannot be redifined (reserved keyword)")
 
         self.content[ast.name] = wrapper(create_scope(ast, self))
@@ -44,6 +44,8 @@ class Scope:
         return [y for x in l for y in [self._add_to_scope(x, wrapper, whenPresent)] if y is not None]
 
     def __getitem__(self, item):
+        if item == 'parent':
+            return ParentNodeScope(self.parent)
         try:
             return self.content[item]
         except KeyError as err:

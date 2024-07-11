@@ -90,10 +90,10 @@ tree = GBOMLParser().parse("""
             #VARIABLES
                 internal : x[T] <- D.x[T];
             #CONSTRAINTS
-                x[t] <= B.param+A.param+param;
+                x[t] <= B.param+A.param+param+B.A.param+parent.param+parent.parent.param;
         #VARIABLES
             internal : x[T] <- C.x[T];
-            internal : baba;
+            internal : baba <- A.param;
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
