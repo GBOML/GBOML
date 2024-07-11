@@ -78,10 +78,10 @@ objective: OBJ_TYPE [ID] ":" expression [loop] tags ";"
 OBJ_TYPE: "min" | "max"
 
 // LOOPS
-?loop: multi_loop | implicit_loop
-?multi_loop: (base_loop | like_loop)+
-base_loop: "for" ID "in" expression ["where" expression]
-like_loop: "for" ID "like" _path ["where" expression] //_path must point to an indexing param
+?loop: _true_loop | implicit_loop
+_true_loop: base_loop | like_loop
+base_loop: "for" ID "in" expression ["where" expression] [_true_loop]
+like_loop: "for" ID "like" _path ["where" expression] [_true_loop] //_path must point to an indexing param
 implicit_loop: "where" expression
 
 // DEFINITIONS

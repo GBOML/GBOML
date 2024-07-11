@@ -80,8 +80,6 @@ def semantic_check(globalScope: GlobalScope):
 
 # TODO likeloop
 # TODO reverse AST during parsing for loops and element that contains these loops
-# TODO apply the Rule
-# TODO VariableDefinition
 
 
 # TODO

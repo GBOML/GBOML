@@ -222,9 +222,6 @@ class GBOMLParser:
             def variables_block(self, _: Meta, *defs: Tuple[Iterable[VariableDefinition]]):
                 return [vd for iterable in defs for vd in iterable]
 
-            def multi_loop(self, meta: Meta, *loops: Tuple[Loop]):
-                return MultiLoop(list(loops), meta=meta)
-
             def array_or_dict(self, meta: Meta, entries: list[PossiblyGeneratedExpression | DictEntry]):
                 if all(isinstance(x, DictEntry) for x in entries):
                     return Dictionary(entries, meta=meta)

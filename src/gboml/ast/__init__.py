@@ -5,7 +5,7 @@ __all__ = [
     "StdConstraint", "FunctionConstraint", "Objective", "VariableDefinition", "Node",
     "HyperEdge", "NodeDefinition", "HyperEdgeDefinition", "ExpressionFunctionCall",
     "ExpressionOp", "GBOMLGraph", "ImplicitLoop",
-    "Range", "MultiLoop", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator",
+    "Range", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
     "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject",
     "ExpressionUseGenScope", "AnyGBOMLObject", "IndexingParameterDefinition", "PossiblyGeneratedExpression",

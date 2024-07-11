@@ -5,29 +5,18 @@ from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.resolve_imports import resolve_imports
 from gboml.semantic import semantic_check
 from gboml.scope import GlobalScope
-from gboml.ast import BaseLoop, MultiLoop
+# from gboml.ast import BaseLoop, MultiLoop
 from gboml.tools.tree_modifier import modify
 import dataclasses
 import os
 from pathlib import Path
-
-# TODO works really well, but then MultiLoop isn't useful anymore. Could remove at the AST creation ?
-def _extend_multiloop(mloop: MultiLoop) -> BaseLoop:
-    prevloop = mloop.sub[-1]
-    for subloop in reversed(mloop.sub[:-1]):
-        subloop = dataclasses.replace(subloop, loop=prevloop)
-        prevloop = subloop
-    return prevloop
-
-
-# a[b[c[d[e]]].x[i]].a[z]
 
 tree = GBOMLParser().parse("""
 #TIMEHORIZON T = 2*2;
 #GLOBAL
     a = 75;
     pi = 314;
-    m = {a for i2 in [0:10] where i2 + a < 6 for i in [1:2] where i2 % i == 0};
+    m = {a for i2 in [0:10] where i2 + pi < 6 for i in [1:2] where i2 % i == 0};
     pi = 456;
 
 #NODE A
@@ -109,7 +98,6 @@ for i in reversed(range(29)):
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
 # tree = resolve_imports(tree, Path('../tests/instances/ok/'), parser)
 tree = remove_redundant_definitions(tree)
-tree = modify(tree, {MultiLoop: _extend_multiloop})
 print(tree)
 
 # print(tree.meta)

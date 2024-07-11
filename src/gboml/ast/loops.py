@@ -35,8 +35,3 @@ class ImplicitLoop(BaseLoop):
     varid: str = field(default="t", init=False)
     on: "Expression" = field(default_factory=lambda: Range(0, PathRoot("T")), init=False)
     condition: "Expression"
-
-
-@dataclass
-class MultiLoop(Loop):
-    sub: list[BaseLoop]
