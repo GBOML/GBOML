@@ -105,6 +105,8 @@ class ParentNodeScope(Scope):
         out = super(ParentNodeScope, self).__getitem__(item)
         if not isinstance(out, ScopedDefinition):
             raise KeyError(f"{item} is not accessible")
+        if item == 'baba':
+            print(type(out), out.content.keys())
         return out
 
 
@@ -245,19 +247,20 @@ class UnresolvedHyperEdgeGeneratorScope(NamedAstScope[NodeGenerator], Unresolvab
 
 HyperEdgeScope = DefHyperEdgeScope | UnresolvedHyperEdgeGeneratorScope
 
-@dataclass
-class ScopedDefinition(NamedAstScope[NodeDefinition]):
-    # TODO
-    # if the ast value is a reference to another ast var, manage to store pointer from that another ast var
-    # note: coud be unknown
-    # defType: type = field(init=False)
-    
-    def __post_init__(self):
-        self.content = self.parent.content
-        super(ScopedDefinition, self).__post_init__()
+
 
 @dataclass
-class ScopedFunctionDefinition(ScopedDefinition):
+class DefinitionScope(NamedAstScope[NodeDefinition]):
+    def __post_init__(self):
+        self.content = self.parent.content
+        super(DefinitionScope, self).__post_init__()
+
+@dataclass
+class ScopedDefinition(DefinitionScope):
+    pass
+
+@dataclass
+class ScopedFunctionDefinition(DefinitionScope):
     # needed post_post_init because we need parent's scope fully filled in to check if intersects
     def _finalize_init(self):
         for arg in self.ast.args:
@@ -271,7 +274,7 @@ class ScopedFunctionDefinition(ScopedDefinition):
         return EmptyScope() if item in self.ast.args else self.parent[item]
 
 @dataclass
-class ScopedVariableDefinition(ScopedDefinition):
+class ScopedVariableDefinition(DefinitionScope):
     pass
 
 
