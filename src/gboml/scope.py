@@ -134,7 +134,6 @@ class ChildNodeScope(Scope):
 class HasLoopInScope(Scope, Generic[U]):
     name: str = field(init=False, default=None)
     ast: U
-    astTypes: ClassVar[set[type[GBOMLObject]]] = {NodeGenerator, HyperEdgeGenerator, GeneratedExpression, DictEntry, StdConstraint, FunctionConstraint, Objective, Loop}
     varids: list[str] = field(init=False)
 
     def __post_init__(self):
@@ -205,7 +204,7 @@ class DefNodeScope(NamedAstScope[NodeDefinition]):
         self.nodes = {x.parent.name: x.parent for x in node_scopes}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, list(self.nodes.values())) for h in self.ast.hyperedges}
 
-        visit_hier(self.ast, {NodeDefinition} | HasLoopInScope.astTypes, dict.fromkeys(HasLoopInScope.astTypes, lambda astObj,hier: HasLoopInScope(hier[-2].scope, astObj)))
+        visit_hier(self.ast, {NodeDefinition} | GeneratedObjects, dict.fromkeys(GeneratedObjects, lambda astObj,hier: HasLoopInScope(hier[-2].scope, astObj)))
 
 
 @dataclass
@@ -234,7 +233,7 @@ class DefHyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
             parents.append(parents[-1].parent)
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
-        visit_hier(self.ast, {HyperEdgeDefinition} | HasLoopInScope.astTypes, dict.fromkeys(HasLoopInScope.astTypes, lambda astObj,hier: HasLoopInScope(hier[-2].scope, astObj)))
+        visit_hier(self.ast, {HyperEdgeDefinition} | GeneratedObjects, dict.fromkeys(GeneratedObjects, lambda astObj,hier: HasLoopInScope(hier[-2].scope, astObj)))
 
 
 @dataclass
@@ -312,7 +311,7 @@ class GlobalScope(Scope):
         if self.ast.time_horizon is not None:
             self.content |= dict.fromkeys(('t', 'T', 'len', 'sum'), EmptyScope(canBeCalledWithoutPrefix=True))
         for globdef in self.ast.global_defs:
-            visit_hier(globdef, HasLoopInScope.astTypes, dict.fromkeys(HasLoopInScope.astTypes, processLoopScope))
+            visit_hier(globdef, GeneratedObjects, dict.fromkeys(GeneratedObjects, processLoopScope))
         self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, self.nodes.values()) for h in self.ast.hyperedges}
-        visit(self.ast, dict.fromkeys({FunctionDefinition} | HasLoopInScope.astTypes, lambda astObj: astObj.scope._finalize_init()))
+        visit(self.ast, dict.fromkeys({FunctionDefinition} | GeneratedObjects, lambda astObj: astObj.scope._finalize_init()))

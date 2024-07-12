@@ -3,7 +3,7 @@ from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier
 
 def _get_scope_from_hier(hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VariableDefinition|FunctionDefinition|ExpressionOp|Loop|Path]) -> Scope:
-    return next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*HasLoopInScope.astTypes, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
+    return next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*GeneratedObjects, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
 
 def _check_nodeGen_index(element: NodeGenerator, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VariableDefinition|FunctionDefinition|ExpressionOp|Loop|Path] = []) -> None:
     scope = _get_scope_from_hier(hier)
@@ -84,9 +84,6 @@ def semantic_check(globalScope: GlobalScope):
 
 # TODO
 # scope checking; then Directed Acyclic Graph for deps of variables; then topological sort; then know which one of the nodes of the DAG does not do anything with iterable and mark their types
-
-# TODO
-# allow the parent node to be the keyword "parent" (!!!! reserved keyword)
 
 
 # function decorator ↓ (or separate additionnal argument to all functions)

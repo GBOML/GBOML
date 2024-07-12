@@ -1,10 +1,10 @@
 __all__ = [
     "Meta", "GBOMLObject", "VarScope", "VarType", "ObjType",
-    "Operator", "ExpressionObj", "Expression", "Array", "Loop", "BaseLoop", "LikeLoop", "BoolExpressionOp",
-    "BoolExpressionComparison", "ScopeChange", "ImportFile", "Definition", "Constraint",
-    "StdConstraint", "FunctionConstraint", "Objective", "VariableDefinition", "Node",
-    "HyperEdge", "NodeDefinition", "HyperEdgeDefinition", "ExpressionFunctionCall",
-    "ExpressionOp", "GBOMLGraph", "ImplicitLoop",
+    "Operator", "ExpressionObj", "Expression", "Array", "Loop", "BaseLoop", "LikeLoop",
+    "GeneratedObjects", "ImplicitLoop", "BoolExpressionOp", "BoolExpressionComparison",
+    "ScopeChange", "ImportFile", "Definition", "Constraint", "StdConstraint", "FunctionConstraint",
+    "Objective", "VariableDefinition", "Node", "HyperEdge", "NodeDefinition", "HyperEdgeDefinition",
+    "ExpressionFunctionCall", "ExpressionOp", "GBOMLGraph",
     "Range", "DictEntry", "Dictionary", "NodeGenerator", "HyperEdgeGenerator",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
     "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject",
@@ -27,3 +27,6 @@ from gboml.ast.objectives import *
 from gboml.ast.path import *
 from gboml.ast.values import *
 from gboml.ast.variables import *
+
+GeneratedObjectsType = NodeGenerator | HyperEdgeGenerator | GeneratedExpression | DictEntry | StdConstraint | FunctionConstraint | Objective | Loop
+GeneratedObjects = set(GeneratedObjectsType.__args__)
