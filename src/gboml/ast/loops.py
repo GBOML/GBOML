@@ -12,8 +12,9 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 
 @dataclass
-class Loop(GBOMLObject, Generic[T]):
-    pass
+class Loop(GBOMLObject):
+    child: GBOMLObject
+    # child: Loop[T] | T
 
 
 @dataclass
@@ -28,7 +29,6 @@ class BaseLoop(Loop):
     varid: str
     on: "Expression"
     condition: Optional["Expression"]
-    child: Loop[T] | T
 
 
 @dataclass
@@ -36,7 +36,6 @@ class LikeLoop(Loop):
     varid: str
     on: "Path"
     condition: Optional["Expression"]
-    child: Loop[T] | T
 
 
 @dataclass
@@ -44,4 +43,3 @@ class ImplicitLoop(BaseLoop):
     varid: str = field(default="t", init=False)
     on: "Expression" = field(default_factory=lambda: Range(0, PathRoot("T")), init=False)
     condition: "Expression"
-    child: Loop[T] | T

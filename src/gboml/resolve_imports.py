@@ -14,7 +14,7 @@ from gboml.tools.tree_modifier import modify
 # Singleton used in _load_file to detect cyclic imports
 WORKING = object()
 
-inheritable_ast = NodeDefinition | NodeGenerator | HyperEdgeDefinition | HyperEdgeGenerator
+inheritable_ast = NodeDefinition | HyperEdgeDefinition
 
 def _load_file(fpath: Path, parser: GBOMLParser, file_cache: dict[Path, GBOMLGraph]):
     """ Loads a file and resolves its imports. file_cache is used as a cache for already-seen files. """

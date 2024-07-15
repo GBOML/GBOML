@@ -13,7 +13,6 @@ Expression = BoolExpressionObj | ExpressionObj | LeafValue
 @dataclass
 class GeneratedExpression(GBOMLObject):
     value: Expression
-    loop: Loop
 
 
 PossiblyGeneratedExpression = Expression | GeneratedExpression

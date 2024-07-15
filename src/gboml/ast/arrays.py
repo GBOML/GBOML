@@ -18,7 +18,6 @@ class Array(GBOMLObject):
 class DictEntry(GBOMLObject):
     key: "Expression"
     value: "Expression"
-    loop: typing.Optional["Loop"] = None
 
 
 @dataclass

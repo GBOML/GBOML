@@ -20,14 +20,12 @@ class StdConstraint(Constraint):
     lhs: "Expression"
     op: Operator
     rhs: "Expression"
-    loop: Optional[Loop] = None
     tags: set[str] = field(default_factory=set)
 
 @dataclass
 class FunctionConstraint(Constraint):
     lhs: "Expression"
     operands: list["PossiblyGeneratedExpression"]
-    loop: Optional[Loop] = None
     tags: set[str] = field(default_factory=set)
 
 

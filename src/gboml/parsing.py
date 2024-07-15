@@ -11,6 +11,20 @@ from gboml.tools.tree_modifier import visit
 
 def _op_transform(op): return lambda *x, meta: ExpressionOp(op, list(x), meta=meta)
 def _bool_op_transform(op): return lambda *x, meta: BoolExpressionOp(op, list(x), meta=meta)
+def _insert_genobj_below_loops(loop: Loop | None, generated_obj: GeneratedObjectsType) -> GeneratedObjectsType:  # TODO: better typing since either returns generated_obj or Loop
+    if loop is None:
+        return generated_obj
+    childloop = loop
+    while childloop.child is not None:
+        childloop = childloop.child
+    childloop.child = generated_obj
+    return loop
+
+def _isinstance_obj_below_loops(obj: GBOMLObject, type: type) -> bool:
+    while isinstance(obj, Loop):
+        obj = obj.child
+    return isinstance(obj, type)
+
 def gen_meta(meta: tree.Meta) -> Meta: return None if meta.empty else Meta(line=meta.line, column=meta.column, filename=None)
 
 
@@ -87,10 +101,6 @@ class GBOMLParser:
             #
             to_obj = {
                 "path_root": PathRoot,
-                "objective": Objective,
-                "base_loop": BaseLoop,
-                "like_loop": LikeLoop,
-                "implicit_loop": ImplicitLoop,
                 "subtraction": _op_transform(Operator.minus),
                 "sum": _op_transform(Operator.plus),
                 "exponent": _op_transform(Operator.exponent),
@@ -107,9 +117,7 @@ class GBOMLParser:
                 "bool_expression_comparison": BoolExpressionComparison,
                 "import": ImportFile,
                 "variable_scope_change": ScopeChange,
-                "generated_expression": GeneratedExpression,
                 "range": Range,
-                "dict_entry": DictEntry,
                 "array": Array,
                 "dict": Dictionary,
                 "definition_indexing_param": IndexingParameterDefinition,
@@ -148,24 +156,20 @@ class GBOMLParser:
             NodesAndHyperEdges = namedtuple("NodesAndHyperEdges", ["nodes", "hyperedges"])
 
             def program_block(self, meta: Meta, *childrens: list[Node | HyperEdge]) -> NodesAndHyperEdges:
-                return self.NodesAndHyperEdges([x for x in childrens if isinstance(x, Node)], [x for x in childrens if isinstance(x, HyperEdge)])
+                return self.NodesAndHyperEdges([x for x in childrens if _isinstance_obj_below_loops(x, Node)], [x for x in childrens if _isinstance_obj_below_loops(x, HyperEdge)])
 
             def hyperedge_definition(self, meta: Meta, name: str, indices: list[str], extends: Optional[Extends],
                                      loop: Optional[Loop], tags: set[str], param_block: list[Definition] = None,
                                      constraint_block: list[Constraint | CtrActivation] = None):
                 constraint_block = constraint_block or []
-                activations = [x for x in constraint_block if isinstance(x, CtrActivation)]
-                constraint_block = [x for x in constraint_block if isinstance(x, Constraint)]
+                activations = [x for x in constraint_block if _isinstance_obj_below_loops(x, CtrActivation)]
+                constraint_block = [x for x in constraint_block if _isinstance_obj_below_loops(x, Constraint)]
                 param_block = param_block or []
 
-                if loop is None:
-                    return HyperEdgeDefinition(name, extends, param_block, constraint_block,
-                                               activations, tags, meta=meta)
-                else:
-                    if len(indices) == 0:
-                        raise Exception(f"Invalid name for node: {name}")
-                    return HyperEdgeGenerator(name, indices, loop, extends, param_block, constraint_block,
-                                              activations, tags, meta=meta)
+                if loop is not None and not indices:
+                    raise Exception(f"Generated hyperedge {name} needs brackets for declaration.")
+                hyperedge = HyperEdgeDefinition(name, indices, extends, param_block, constraint_block, activations, tags, meta=meta)
+                return _insert_genobj_below_loops(loop, hyperedge)
 
             def node_definition(self, meta: Meta, name: str, indices: list[str], extends: Optional[Extends],
                                 loop: Optional[Loop], tags: set[str],
@@ -179,27 +183,23 @@ class GBOMLParser:
                 param_block = param_block or []
                 subprogram_block = subprogram_block or self.NodesAndHyperEdges([], [])
 
-                activations: list[Activation] = [x for x in constraint_block if isinstance(x, CtrActivation)] + [x for x in objectives_block if isinstance(x, ObjActivation)]
-                constraint_block = [x for x in constraint_block if isinstance(x, Constraint)]
-                objectives_block = [x for x in objectives_block if isinstance(x, Objective)]
+                activations: list[Activation] = [x for x in constraint_block if _isinstance_obj_below_loops(x, CtrActivation)] + [x for x in objectives_block if _isinstance_obj_below_loops(x, ObjActivation)]
+                constraint_block = [x for x in constraint_block if _isinstance_obj_below_loops(x, Constraint)]
+                objectives_block = [x for x in objectives_block if _isinstance_obj_below_loops(x, Objective)]
 
-                if loop is None:
-                    return NodeDefinition(name, extends, param_block,
-                                          subprogram_block.nodes, subprogram_block.hyperedges,
-                                          variable_block, constraint_block,
-                                          objectives_block, activations, tags, meta=meta)
-                else:
-                    if len(indices) == 0:
-                        raise Exception(f"Invalid name for node: {name}")
-                    return NodeGenerator(name, indices, loop, extends, param_block,
-                                         subprogram_block.nodes, subprogram_block.hyperedges,
-                                         variable_block, constraint_block,
-                                         objectives_block, activations, tags, meta=meta)
+                if loop is not None and not indices:
+                    raise Exception(f"Generated node {name} needs brackets for declaration.")
+
+                node = NodeDefinition(name, indices, extends, param_block,
+                                        subprogram_block.nodes, subprogram_block.hyperedges,
+                                        variable_block, constraint_block,
+                                        objectives_block, activations, tags, meta=meta)
+                return _insert_genobj_below_loops(loop, node)
 
             def node_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[ScopeChange | Definition]):
                 return NodeDefinition(name, Extends(imported_name, imported_from, meta=meta),
-                                      parameters=[x for x in redef if isinstance(x, Definition)],
-                                      variables=[x for x in redef if isinstance(x, ScopeChange)],
+                                      parameters=[x for x in redef if _isinstance_obj_below_loops(x, Definition)],
+                                      variables=[x for x in redef if _isinstance_obj_below_loops(x, ScopeChange)],
                                       meta=meta)
 
             def hyperedge_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[Definition]):
@@ -223,9 +223,9 @@ class GBOMLParser:
                 return [vd for iterable in defs for vd in iterable]
 
             def array_or_dict(self, meta: Meta, entries: list[PossiblyGeneratedExpression | DictEntry]):
-                if all(isinstance(x, DictEntry) for x in entries):
+                if all(_isinstance_obj_below_loops(x, DictEntry) for x in entries):
                     return Dictionary(entries, meta=meta)
-                if all(not isinstance(x, DictEntry) for x in entries):
+                if all(not _isinstance_obj_below_loops(x, DictEntry) for x in entries):
                     return Array(entries, meta=meta)
                 raise Exception("An array cannot contain dictionary entries (and conversely)")
 
@@ -240,10 +240,28 @@ class GBOMLParser:
                     return ConstantDefinition(name, val, tags, meta=meta)
 
             def constraint(self, meta: Meta, name: Optional[str], expr: Expression, loop: Optional[Loop], tags: set[str]):
-                if isinstance(expr, BoolExpressionComparison):
+                if _isinstance_obj_below_loops(expr, BoolExpressionComparison):
                     if expr.operator not in [Operator.lesser_or_equal, Operator.greater_or_equal, Operator.equal]:
                         raise Exception("Comparisons in constraints can only be done using <=, >=, or =")
-                    return StdConstraint(name, expr.lhs, expr.operator, expr.rhs, loop, tags, meta=meta)
-                if isinstance(expr, ExpressionFunctionCall):
-                    return FunctionConstraint(name, expr.lhs, expr.operands, loop, tags, meta=meta)
+                    return _insert_genobj_below_loops(loop, StdConstraint(name, expr.lhs, expr.operator, expr.rhs, tags, meta=meta))
+                if _isinstance_obj_below_loops(expr, ExpressionFunctionCall):
+                    return _insert_genobj_below_loops(loop, FunctionConstraint(name, expr.lhs, expr.operands, tags, meta=meta))
                 raise Exception("Not a valid constraint; it should be either a comparison or a function call")
+
+            def base_loop(self, meta: Meta, varid: str, on: Expression, condition: Optional[Expression], childloop: Optional[Loop] = None):
+                return BaseLoop(childloop, varid, on, condition, meta=meta)
+
+            def like_loop(self, meta: Meta, varid: str, on: Path, condition: Optional[Expression], childloop: Optional[Loop] = None):
+                return LikeLoop(childloop, varid, on, condition, meta=meta)
+
+            def implicit_loop(self, meta: Meta, condition: Optional[Expression], childloop: Optional[Loop] = None):
+                return ImplicitLoop(childloop, condition, meta=meta)
+
+            def generated_expression(self, meta: Meta, value: Expression, loop: Loop):
+                return _insert_genobj_below_loops(loop, GeneratedExpression(value, meta=meta))
+
+            def objective(self, meta: Meta, type: ObjType, name: Optional[str], expression: Expression, loop: Optional[Loop], tags: set[str]):
+                return _insert_genobj_below_loops(loop, Objective(type, name, expression, tags))
+
+            def dict_entry(self, meta: Meta, key: Expression, value: Expression, loop: Optional[Loop]):
+                return _insert_genobj_below_loops(loop, DictEntry(key, value))

@@ -19,22 +19,7 @@ class Node(NamedGBOMLObject):
 @dataclass
 class NodeDefinition(Node):
     name: str
-    import_from: Optional[Extends | Node] = None
-    parameters: list[Definition] = field(default_factory=list)
-    nodes: list[Node] = field(default_factory=list)
-    hyperedges: list[HyperEdge] = field(default_factory=list)
-    variables: list[VariableDefinition | ScopeChange] = field(default_factory=list)
-    constraints: list[Constraint] = field(default_factory=list)
-    objectives: list[Objective] = field(default_factory=list)
-    activations: list[Activation] = field(default_factory=list)
-    tags: set[str] = field(default_factory=set)
-
-
-@dataclass
-class NodeGenerator(Node):
-    name: str
     indices: list[str]
-    loop: Loop
     import_from: Optional[Extends | Node] = None
     parameters: list[Definition] = field(default_factory=list)
     nodes: list[Node] = field(default_factory=list)
