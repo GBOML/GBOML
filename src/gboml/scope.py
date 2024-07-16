@@ -8,6 +8,10 @@ from gboml.tools.tree_modifier import visit, visit_hier
 T = TypeVar('T', bound=NamedGBOMLObject)
 U = TypeVar('U', bound=GBOMLObject)
 
+def _create_loopscope_from_attrs(scope: "Scope", element: GBOMLObject, attrs: tuple[str]):
+    for attr in attrs:
+        for sub_ast in getattr(element, attr):
+            visit_hier(sub_ast, {GBOMLObject, Loop}, {Loop: lambda loop,hier: LoopScope(next((hierItem.scope for hierItem in reversed(hier[:-1]) if hasattr(hierItem, 'scope')), scope), loop)})
 
 class OverrideBehavior(Enum):
     ignore = 0
@@ -26,6 +30,11 @@ class Scope:
         self.path = self.parent.path + [self.name]
 
     def _add_to_scope(self, ast, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> "Scope | None":
+        parent = self
+        while isinstance(ast, Loop):
+            parent = LoopScope(parent, ast)
+            ast = ast.child
+
         if ast.name in self.content:
             if whenPresent == OverrideBehavior.fail:
                 raise RuntimeError(f"Identifier {ast.name} is already used")
@@ -35,9 +44,9 @@ class Scope:
                 pass
 
         if ast.name == 'parent':
-            raise KeyError(f"Identifier {ast.name} cannot be redifined (reserved keyword)")
+            raise KeyError(f"Identifier {ast.name} cannot be redefined (reserved keyword)")
 
-        self.content[ast.name] = wrapper(create_scope(ast, self))
+        self.content[ast.name] = wrapper(create_scope(ast, parent))
         return self.content[ast.name]
 
     def _add_all_to_scope(self, l, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> list["Scope"]:
@@ -49,11 +58,28 @@ class Scope:
         try:
             return self.content[item]
         except KeyError as err:
-            content = self.content if isinstance(self, GlobalScope) else self.content['global'].parent.content
-            scope = content[item]
-            if not scope.canBeCalledWithoutPrefix:
+            if isinstance(self, GlobalScope):
                 raise err
-            return scope
+
+            try:
+                scope = self.parent[item]
+            except KeyError:
+                pass
+            else:
+                if isinstance(scope, EmptyScope):
+                    return scope
+                else:
+                    raise err
+
+            
+            try:  # note: both 'global' and item can raise KeyError
+                scope = self.content['global'].parent.content[item]
+            except KeyError:
+                pass
+            else:
+                if scope.canBeCalledWithoutPrefix:
+                    return scope
+            raise err
 
 
 # singleton
@@ -76,7 +102,7 @@ class EmptyScope(Scope):
 
 
 @dataclass
-class Unresolvable(Scope):
+class Unresolvable(Scope):  # TODO is this useful ?
     def __getitem__(self, item):
         raise RuntimeError("Not resolved yet")
 
@@ -105,10 +131,8 @@ class ParentNodeScope(Scope):
 
     def __getitem__(self, item):
         out = super(ParentNodeScope, self).__getitem__(item)
-        if not isinstance(out, ScopedDefinition):
+        if not isinstance(out, ScopedDefinition | EmptyScope):
             raise KeyError(f"{item} is not accessible")
-        if item == 'baba':
-            print(type(out), out.content.keys())
         return out
 
 
@@ -131,7 +155,7 @@ class ChildNodeScope(Scope):
 
 
 @dataclass
-class HasLoopInScope(Scope, Generic[U]):
+class LoopScope(Scope, Generic[U]):
     name: str = field(init=False, default=None)
     ast: U
     varids: list[str] = field(init=False)
@@ -140,57 +164,26 @@ class HasLoopInScope(Scope, Generic[U]):
         self.ast.scope = self
         self.path = self.parent.path
         self.content = self.parent.content
-        self.varids = []
 
     # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
     def _finalize_init(self):
-        # only parent loop (of nested loops) should check for already defined variables
-        if isinstance(self.ast, Loop) and not isinstance(self.parent.ast, Loop):
-            varids = [self.ast.varid]
-            i = self.ast
-            while (i := i.loop) is not None:
-                varids.append(i.varid)
-
-            seen = set()
-            duplicates = [varid for varid in varids if varid in seen or seen.add(varid)]
-            if duplicates:
-                raise RuntimeError(f"Identifier {duplicates} is already used")
-            else:
-                for varid in self.varids:
-                    try:
-                        self.parent[varid]
-                        raise RuntimeError(f"Identifier {self.ast.loop.varid} is already used")
-                    except KeyError:
-                        pass
-            
-            self.varids = varids
-            self.parent.varids = varids
+        try:
+            self.parent[self.ast.varid]
+            raise RuntimeError(f"Identifier {self.ast.varid} is already used")
+        except KeyError:
+            pass
 
     def __getitem__(self, item):
-        if isinstance(self.ast, Loop):
-            if self.ast.loop is not None:
-                scope = self.ast.loop.scope
-                while isinstance(scope.ast, Loop):
-                    if item == scope.ast.varid:
-                        raise KeyError(f"{item} is not accessible")
-                    if scope.ast.loop is None:
-                        break
-                    scope = scope.ast.loop.scope
-            elif item == self.ast.varid:
-                return EmptyScope()
-        elif item in self.varids:
-            return EmptyScope()
-        
-        return self.parent[item]
-    
+        return EmptyScope() if item == self.ast.varid else self.parent[item]
+
 
 @dataclass
-class DefNodeScope(NamedAstScope[NodeDefinition]):
+class NodeScope(NamedAstScope[NodeDefinition]):
     nodes: dict[str, "NodeScope"] = field(init=False, repr=False)
     hyperedges: dict[str, "HyperEdgeScope"] = field(init=False, repr=False)
 
     def __post_init__(self):
-        super(DefNodeScope, self).__post_init__()
+        super(NodeScope, self).__post_init__()
         self.content = {}
         self._add_all_to_scope(self.ast.parameters)
         node_scopes = self._add_all_to_scope(self.ast.nodes, ChildNodeScope)
@@ -204,26 +197,15 @@ class DefNodeScope(NamedAstScope[NodeDefinition]):
         self.nodes = {x.parent.name: x.parent for x in node_scopes}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, list(self.nodes.values())) for h in self.ast.hyperedges}
 
-        visit_hier(self.ast, {NodeDefinition} | GeneratedObjects, dict.fromkeys(GeneratedObjects, lambda astObj,hier: HasLoopInScope(hier[-2].scope, astObj)))
+        _create_loopscope_from_attrs(self, self.ast, ('constraints', 'objectives', 'parameters'))
 
 
 @dataclass
-class UnresolvedNodeGeneratorScope(NamedAstScope[NodeGenerator], Unresolvable):
-    def __post_init__(self):
-        super(UnresolvedNodeGeneratorScope, self).__post_init__()
-        # no resolved yet, nothing is accessible
-        self.content = {}
-
-
-NodeScope = DefNodeScope | UnresolvedNodeGeneratorScope
-
-
-@dataclass
-class DefHyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
+class HyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
     _parent_nodes: list[NodeScope]
 
     def __post_init__(self):
-        super(DefHyperEdgeScope, self).__post_init__()
+        super(HyperEdgeScope, self).__post_init__()
         self.content = {}
         self._add_all_to_scope(self.ast.parameters)
         self._add_all_to_scope(self._parent_nodes)
@@ -233,21 +215,7 @@ class DefHyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
             parents.append(parents[-1].parent)
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
-        visit_hier(self.ast, {HyperEdgeDefinition} | GeneratedObjects, dict.fromkeys(GeneratedObjects, lambda astObj,hier: HasLoopInScope(hier[-2].scope, astObj)))
-
-
-@dataclass
-class UnresolvedHyperEdgeGeneratorScope(NamedAstScope[NodeGenerator], Unresolvable):
-    _parent_nodes: list[NodeScope]
-
-    def __post_init__(self):
-        super(UnresolvedHyperEdgeGeneratorScope, self).__post_init__()
-        # no resolved yet, nothing is accessible
-        self.content = {}
-
-
-HyperEdgeScope = DefHyperEdgeScope | UnresolvedHyperEdgeGeneratorScope
-
+        _create_loopscope_from_attrs(self, self.ast, ('constraints', 'parameters'))
 
 
 @dataclass
@@ -281,8 +249,7 @@ class ScopedVariableDefinition(DefinitionScope):
 
 def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope:
     match ast_or_scope:
-        case NodeDefinition(): return DefNodeScope(parent, ast_or_scope)
-        case NodeGenerator(): return UnresolvedNodeGeneratorScope(parent, ast_or_scope)
+        case NodeDefinition(): return NodeScope(parent, ast_or_scope)
         case FunctionDefinition(): return ScopedFunctionDefinition(parent, ast_or_scope)
         case Definition(): return ScopedDefinition(parent, ast_or_scope)
         case VariableDefinition(): return ScopedVariableDefinition(parent, ast_or_scope)
@@ -291,7 +258,7 @@ def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope
 
 def create_hyperedge_scope(ast: HyperEdge, parent: Scope, nodes_in_parent: list[NodeScope]) -> Scope:
     match ast:
-        case HyperEdgeDefinition(): return DefHyperEdgeScope(parent, ast, nodes_in_parent)
+        case HyperEdgeDefinition(): return HyperEdgeScope(parent, ast, nodes_in_parent)
         case HyperEdgeGenerator(): return UnresolvedHyperEdgeGeneratorScope(parent, ast, nodes_in_parent)
 
 @dataclass
@@ -304,14 +271,14 @@ class GlobalScope(Scope):
     hyperedges: dict[str, HyperEdgeScope] = field(init=False, repr=False)
 
     def __post_init__(self):
-        processLoopScope = lambda astObj,hier: HasLoopInScope(hier[-2].scope if len(hier) >= 2 else self, astObj)
+        # processLoopScope = lambda astObj,hier: LoopScope(hier[-2].scope if len(hier) >= 2 else self, astObj)
 
         self.content = {}
         self._add_all_to_scope(self.ast.global_defs)
-        if self.ast.time_horizon is not None:
-            self.content |= dict.fromkeys(('t', 'T', 'len', 'sum'), EmptyScope(canBeCalledWithoutPrefix=True))
-        for globdef in self.ast.global_defs:
-            visit_hier(globdef, GeneratedObjects, dict.fromkeys(GeneratedObjects, processLoopScope))
+        self.content |= dict.fromkeys(('len', 'sum') if self.ast.time_horizon is None else ('t', 'T', 'len', 'sum'), EmptyScope(canBeCalledWithoutPrefix=True))
+        _create_loopscope_from_attrs(self, self.ast, ('global_defs',))
+        # for globdef in self.ast.global_defs:
+            # visit_hier(globdef, {Loop}, dict.fromkeys(GeneratedObjects, processLoopScope))
         self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
         self.hyperedges = {h.name: create_hyperedge_scope(h, self, self.nodes.values()) for h in self.ast.hyperedges}
-        visit(self.ast, dict.fromkeys({FunctionDefinition} | GeneratedObjects, lambda astObj: astObj.scope._finalize_init()))
+        visit(self.ast, dict.fromkeys({FunctionDefinition, Loop}, lambda astObj: astObj.scope._finalize_init()))

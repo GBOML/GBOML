@@ -13,7 +13,7 @@ T = TypeVar("T")
 
 @dataclass
 class Loop(GBOMLObject):
-    child: GBOMLObject
+    child: "GeneratedObjectsType"
     # child: Loop[T] | T
 
 

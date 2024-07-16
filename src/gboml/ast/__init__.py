@@ -28,5 +28,5 @@ from gboml.ast.path import *
 from gboml.ast.values import *
 from gboml.ast.variables import *
 
-GeneratedObjectsType = GeneratedExpression | DictEntry | Loop
+GeneratedObjectsType = Loop | NodeDefinition | HyperEdgeDefinition | GeneratedExpression | DictEntry | StdConstraint | FunctionConstraint | Objective
 GeneratedObjects = set(GeneratedObjectsType.__args__)

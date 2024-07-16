@@ -224,7 +224,8 @@ def modify_hier(element: T,
         return x
 
     def pop(x):
-        hierarchy.pop()
+        if hierarchy:
+            hierarchy.pop()
         return x
 
     def push_and_f(f):

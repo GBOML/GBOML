@@ -2,18 +2,20 @@ from gboml.ast import *
 from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier
 
-def _get_scope_from_hier(hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VariableDefinition|FunctionDefinition|ExpressionOp|Loop|Path]) -> Scope:
-    return next(hierItem.scope for hierItem in reversed(hier) if isinstance(hierItem, (*GeneratedObjects, NodeDefinition, HyperEdgeDefinition, FunctionDefinition)))
+TYPES = NodeDefinition|HyperEdgeDefinition|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VariableDefinition|FunctionDefinition|ExpressionOp|Loop|Path
 
-def _check_nodeGen_index(element: NodeGenerator, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VariableDefinition|FunctionDefinition|ExpressionOp|Loop|Path] = []) -> None:
-    scope = _get_scope_from_hier(hier)
-    for index in element.indices:
-        try:
-            scope[index]
-        except KeyError:
-            raise KeyError(f"SEMANTIC ERROR: {index} (from {element.name}) can not be used in this scope {element.meta}!")
+def _get_scope_from_hier(hier: list[TYPES]) -> Scope:
+    return next(hierItem.scope for hierItem in reversed(hier) if hasattr(hierItem, 'scope'))
 
-def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VariableDefinition|FunctionDefinition|ExpressionOp|Loop|Path] = []) -> None:
+# def _check_nodeGen_index(element: NodeGenerator, hier: list[TYPES] = []) -> None:  # TODO
+    # scope = _get_scope_from_hier(hier)
+    # for index in element.indices:
+        # try:
+            # scope[index]
+        # except KeyError:
+            # raise KeyError(f"SEMANTIC ERROR: {index} (from {element.name}) can not be used in this scope {element.meta}!")
+
+def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[TYPES] = []) -> None:
     scope = _get_scope_from_hier(hier)
     try:
         scope = scope[element.name]
@@ -28,11 +30,10 @@ def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[NodeDefiniti
         raise KeyError(f"SEMANTIC ERROR: {element.name}(): expected {declaredArgsLen} arguments but got {len(element.operands)} at {element.meta}!")
 
 
-def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | PathRoot, hier: list[NodeDefinition|NodeGenerator|HyperEdgeDefinition|HyperEdgeGenerator|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VariableDefinition|FunctionDefinition|ExpressionOp|Loop|Path] = [], scope: Scope = None) -> None:
-    # dotcalls are handled by the parent
+def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | PathRoot, hier: list[TYPES] = [], scope: Scope = None) -> None:
     parentExprCall = next((hierItem for hierItem in reversed(hier[:-1]) if isinstance(hierItem, ExpressionArrayCall | ExpressionDotCall)), None)
     if isinstance(parentExprCall, ExpressionDotCall):
-        return
+        return  # dotcalls are handled by the parent
     if scope is None:
         scope = _get_scope_from_hier(hier)
 
@@ -61,7 +62,7 @@ def passyay():
             else:
                 raise KeyError(f"SEMANTIC ERROR: {leaf.name} (from {list(map(lambda e: e.name, element.path))}) can not be used in this scope {leaf.meta}!")
 
-        if isinstance(origScope, HasLoopInScope | ScopedFunctionDefinition) and isinstance(scope, EmptyScope):
+        if isinstance(origScope, LoopScope | ScopedFunctionDefinition) and isinstance(scope, EmptyScope):
             break
         isBeingIteratedOn = leaf is element.path[-1] and isinstance(origScope.ast, Loop) and element is origScope.ast.on
         isUsedAsArray = bool(leaf.indices) or isBeingIteratedOn
@@ -75,7 +76,7 @@ def passyay():
 
 def semantic_check(globalScope: GlobalScope):
     # check if variables are in scope
-    visit_hier(globalScope.ast, {NodeDefinition,NodeGenerator,HyperEdgeDefinition,HyperEdgeGenerator,StdConstraint,FunctionConstraint,Objective,DictEntry,GeneratedExpression,VariableDefinition,FunctionDefinition,ExpressionOp,Loop,*Path.__args__}, {ExpressionDotCall: _check_var_in_scope, PathRoot: _check_var_in_scope, ExpressionFunctionCall: _check_var_in_scope})
+    visit_hier(globalScope.ast, {*TYPES.__args__, *Path.__args__, ExpressionFunctionCall}, dict.fromkeys((ExpressionDotCall, PathRoot, ExpressionFunctionCall), _check_var_in_scope))
 
 
 # TODO likeloop

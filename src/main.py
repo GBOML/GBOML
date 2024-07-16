@@ -5,7 +5,6 @@ from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.resolve_imports import resolve_imports
 from gboml.semantic import semantic_check
 from gboml.scope import GlobalScope
-# from gboml.ast import BaseLoop, MultiLoop
 from gboml.tools.tree_modifier import modify
 import dataclasses
 import os
@@ -16,7 +15,7 @@ tree = GBOMLParser().parse("""
 #GLOBAL
     a = 75;
     pi = 314;
-    m = {a for i2 in [0:10] where i2 + pi < 6 for i in [1:2] where i2 % i == 0};
+    m = {a for i2 in [0:10] where i2 + pi < 6 for i in [1:2] where i2 % i == 0};  // will use pi = 456
     pi = 456;
 
 #NODE A
@@ -28,7 +27,7 @@ tree = GBOMLParser().parse("""
         a <- a + 1;
         a <- a + 1;
         a <- a + 1;
-        f(a) <- global.pi ** a;
+        f(a) <- global.pi ** iDontExistAndItsFineBecauseFunctionIsRedefinedAfter;
         n(aa,b,cc) <- aa+b+cc;
         q = [1:1];
         u in q;
@@ -79,9 +78,9 @@ tree = GBOMLParser().parse("""
             #VARIABLES
                 internal : x[T] <- D.x[T];
             #CONSTRAINTS
-                x[t] <= B.param+A.param+param+B.A.param+parent.param+parent.parent.param;
+                x[t] <= B.param+A.param+param+B.A.param+parent.param+parent.parent.param where t % 2 == 1;
         #VARIABLES
-            internal : x[T] <- C.x[T];
+            internal : x[T] <- C.x[T] in [1:3];
             internal : baba <- A.param;
     #VARIABLES
         internal : x[T] <- B.x[T];

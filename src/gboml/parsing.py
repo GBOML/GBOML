@@ -11,7 +11,7 @@ from gboml.tools.tree_modifier import visit
 
 def _op_transform(op): return lambda *x, meta: ExpressionOp(op, list(x), meta=meta)
 def _bool_op_transform(op): return lambda *x, meta: BoolExpressionOp(op, list(x), meta=meta)
-def _insert_genobj_below_loops(loop: Loop | None, generated_obj: GeneratedObjectsType) -> GeneratedObjectsType:  # TODO: better typing since either returns generated_obj or Loop
+def _insert_genobj_below_loops(loop: Loop | None, generated_obj: GeneratedObjectsType) -> GeneratedObjectsType:
     if loop is None:
         return generated_obj
     childloop = loop
