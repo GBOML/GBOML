@@ -42,9 +42,13 @@ redefined. This includes:
 """
 import dataclasses
 import typing
+import warnings
 
 from gboml.ast import *
 from gboml.tools.tree_modifier import modify, modify_hier
+
+def _warn_redefinition(old_def: Definition | VariableDefinition, new_def: Definition | VariableDefinition) -> None:
+    warnings.warn(f"Removed definition '{old_def.name}' ({old_def.meta}) since it is redefined later ({new_def.meta})", SyntaxWarning, stacklevel=2)
 
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
@@ -97,6 +101,7 @@ def _merge_definitions(parameters: list[Definition]) -> list[Definition] | None:
                 new_p = dataclasses.replace(new_p, tags=old_tags | new_p.tags)
 
             if throw_old:
+                _warn_redefinition(params[p.name][-1], p)
                 params[p.name] = [new_p]
             else:
                 params[p.name][-1] = dataclasses.replace(params[p.name][-1], name=new_name, tags=set())
@@ -118,6 +123,7 @@ def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> 
                 if v.name not in vars:
                     vars[v.name] = v
                 else:
+                    _warn_redefinition(vars[v.name], v)
                     vars[v.name] = dataclasses.replace(v, tags=vars[v.name].tags | v.tags) if vars[v.name].tags != v.tags else v
                     need_update = True
             case ScopeChange():
@@ -128,12 +134,3 @@ def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> 
     if need_update:
         return list(vars.values())
     return None
-
-
-# if __name__ == '__main__':
-    # print(remove_redundant_definitions(NodeDefinition(name="lol", parameters=[
-        # ConstantDefinition("a", 1, tags={"@t", "@t2"}),
-        # ConstantDefinition("a", ExpressionOp(Operator.plus, [1, VarOrParam([VarOrParamLeaf("a")])]), tags={"@t2", "@t3"}),
-        # ConstantDefinition("b", 1, tags={"@a"}),
-        # ConstantDefinition("b", 2),
-    # ])))
