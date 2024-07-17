@@ -2,10 +2,19 @@ from gboml.ast import *
 from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier
 
-TYPES = NodeDefinition|HyperEdgeDefinition|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VariableDefinition|FunctionDefinition|ExpressionOp|Loop|Path
+from graphlib import TopologicalSorter, CycleError
+
+TYPES = NodeDefinition|HyperEdgeDefinition|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|Definition|VariableDefinition|ExpressionOp|Loop|Path
 
 def _get_scope_from_hier(hier: list[TYPES]) -> Scope:
     return next(hierItem.scope for hierItem in reversed(hier) if hasattr(hierItem, 'scope'))
+def _get_parent_definition(hier: list[TYPES]) -> Definition | VariableDefinition | None:
+    return next((hierItem for hierItem in reversed(hier) if isinstance(hierItem, Definition | VariableDefinition)), None)
+def _add_dep(definition: Definition | VariableDefinition, dep: DefinitionScope) -> None:
+    if hasattr(definition, 'deps'):
+        definition.deps.add(dep)
+    else:
+        definition.deps = {dep}
 
 # def _check_nodeGen_index(element: NodeGenerator, hier: list[TYPES] = []) -> None:  # TODO
     # scope = _get_scope_from_hier(hier)
@@ -31,18 +40,23 @@ def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[TYPES] = [])
 
 
 def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | PathRoot, hier: list[TYPES] = [], scope: Scope = None) -> None:
+    """ Checks if element is accessible in the current scope (if not, an error is raised), and adds element to its Definition|VariableDefinition parent's dependencies """
     parentExprCall = next((hierItem for hierItem in reversed(hier[:-1]) if isinstance(hierItem, ExpressionArrayCall | ExpressionDotCall)), None)
     if isinstance(parentExprCall, ExpressionDotCall):
         return  # dotcalls are handled by the parent
-    if scope is None:
-        scope = _get_scope_from_hier(hier)
-
     if not isinstance(leftElement := element if isinstance(element, PathRoot) else element.lhs, PathRoot):
         return
 
+    if scope is None:
+        scope = _get_scope_from_hier(hier)
+
     scopeAfterDot = scope[leftElement.name]
     if isinstance(element, ExpressionDotCall):
-        scopeAfterDot[element.rhs]
+        scopeAfterDot = scopeAfterDot[element.rhs]
+    
+    if scopeAfterDot and isinstance(parent_def := _get_parent_definition(hier), Definition | VariableDefinition):
+        _add_dep(parent_def, scopeAfterDot)
+    
 
 
 
@@ -74,17 +88,34 @@ def passyay():
     # visit all Path indices at once
     visit(element, {ExpressionArrayCall: lambda var: None if var is element else _check_var_in_scope(var, scope = origScope)})
 
+
+def _topo_sort(globalScope: GlobalScope) -> map[DefinitionScope]:
+    """ Performs the topological sort for Definition|VariableDefinition elements (if there's a circular dependency, an error is raised), and return the sorted elements in a map """
+    ts = TopologicalSorter()
+    add_node = lambda definition: ts.add(definition.scope, *getattr(definition, 'deps', {}))
+    visit(globalScope.ast, {Definition: add_node, VariableDefinition: add_node})
+    try:
+        return ts.static_order()
+    except CycleError as err:  # default error too long to print
+        raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.path_to_str(), dep.ast.meta), err.args[1]))) from None
+
+
 def semantic_check(globalScope: GlobalScope):
-    # check if variables are in scope
+    # check if variables are in scope, and store deps
     visit_hier(globalScope.ast, {*TYPES.__args__, *Path.__args__, ExpressionFunctionCall}, dict.fromkeys((ExpressionDotCall, PathRoot, ExpressionFunctionCall), _check_var_in_scope))
+    
+    _topo_sort(globalScope)    
+    
 
 
 # TODO likeloop
-# TODO reverse AST during parsing for loops and element that contains these loops
 
 
 # TODO
-# scope checking; then Directed Acyclic Graph for deps of variables; then topological sort; then know which one of the nodes of the DAG does not do anything with iterable and mark their types
+# know which one of the nodes of the DAG does not do anything with iterable and mark their types
+
+# TODO
+# raise warning when overriding variable in redundant_definitions.py
 
 
 # function decorator ↓ (or separate additionnal argument to all functions)

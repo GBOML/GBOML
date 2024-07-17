@@ -25,7 +25,7 @@ def _isinstance_obj_below_loops(obj: GBOMLObject, type: type) -> bool:
         obj = obj.child
     return isinstance(obj, type)
 
-def gen_meta(meta: tree.Meta) -> Meta: return None if meta.empty else Meta(line=meta.line, column=meta.column, filename=None)
+def gen_meta(meta: tree.Meta) -> Meta: return Meta(None, None, None) if meta.empty else Meta(line=meta.line, column=meta.column, filename=None)
 
 
 def _vargs(f, _, children, meta):

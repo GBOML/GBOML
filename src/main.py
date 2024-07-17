@@ -16,7 +16,7 @@ tree = GBOMLParser().parse("""
     a = 75;
     pi = 314;
     m = {a for i2 in [0:10] where i2 + pi < 6 for i in [1:2] where i2 % i == 0};  // will use pi = 456
-    pi = 456;
+    pi = 456 + A.f(a);
 
 #NODE A
     #PARAMETERS
@@ -37,9 +37,13 @@ tree = GBOMLParser().parse("""
         f(b) <- global.pi ** b[b].x;
         hello = [0:2];
     #NODE P
-        pass;
+        #PARAMETERS
+            parentnodes = {A};
+        #VARIABLES
+            pass;
+    
 
-    #NODE GEN[i][j] for i in [0:3] where i == 3 for j in [3:6]
+    #NODE GEN[bsasassaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa][j] for i in [0:3] where i == 3 for j in [3:6]
         #PARAMETERS
             x = i * j;
         #VARIABLES
@@ -80,7 +84,7 @@ tree = GBOMLParser().parse("""
             #CONSTRAINTS
                 x[t] <= B.param+A.param+param+B.A.param+parent.param+parent.parent.param where t % 2 == 1;
         #VARIABLES
-            internal : x[T] <- C.x[T] in [1:3];
+            internal : x[T] <- C.x[T] in [1:3];  // TODO
             internal : baba <- A.param;
     #VARIABLES
         internal : x[T] <- B.x[T];

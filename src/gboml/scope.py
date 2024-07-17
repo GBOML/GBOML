@@ -18,13 +18,12 @@ class OverrideBehavior(Enum):
     fail = 1
     overwrite = 2
 
-@dataclass
+@dataclass()
 class Scope:
     parent: "Scope" = field(repr=False)
     name: str
     path: list[str] = field(init=False)
     content: dict[str, "Scope"] = field(init=False)
-    canBeCalledWithoutPrefix: bool = field(default=False, kw_only=True, repr=False)
 
     def __post_init__(self):
         self.path = self.parent.path + [self.name]
@@ -57,7 +56,7 @@ class Scope:
             return ParentNodeScope(self.parent)
         try:
             return self.content[item]
-        except KeyError as err:
+        except KeyError as err:  # TODO ask if should delete "as err" or not, can simply use "raise" (instead of "raise err")
             if isinstance(self, GlobalScope):
                 raise err
 
@@ -71,15 +70,20 @@ class Scope:
                 else:
                     raise err
 
-            
             try:  # note: both 'global' and item can raise KeyError
                 scope = self.content['global'].parent.content[item]
             except KeyError:
                 pass
             else:
-                if scope.canBeCalledWithoutPrefix:
+                if getattr(scope, 'canBeCalledWithoutPrefix', False):
                     return scope
             raise err
+
+    def __hash__(self):
+        return hash(self.path_to_str())
+
+    def path_to_str(self):
+        return '.'.join(self.path)
 
 
 # singleton
@@ -100,14 +104,17 @@ class EmptyScope(Scope):
     def __init__(self, canBeCalledWithoutPrefix=False):
         pass  # Override to do nothing (and no need for constructor args)
 
+    def __bool__(self):
+        return False
 
-@dataclass
+
+@dataclass(eq=False)
 class Unresolvable(Scope):  # TODO is this useful ?
     def __getitem__(self, item):
         raise RuntimeError("Not resolved yet")
 
 
-@dataclass
+@dataclass(eq=False)
 class NamedAstScope(Scope, Generic[T]):
     name: str = field(init=False)
     ast: T
@@ -118,7 +125,7 @@ class NamedAstScope(Scope, Generic[T]):
         super(NamedAstScope, self).__post_init__()
 
 
-@dataclass
+@dataclass(eq=False)
 class ParentNodeScope(Scope):
     """ A child can only access the parameters of its parents """
     parent: "NodeScope" = field(repr=False)
@@ -136,7 +143,7 @@ class ParentNodeScope(Scope):
         return out
 
 
-@dataclass
+@dataclass(eq=False)
 class ChildNodeScope(Scope):
     """ A parent can only access the vars of this child (not directly, but at least in child hyperedges) """
     parent: "NodeScope" = field(repr=False)
@@ -154,7 +161,7 @@ class ChildNodeScope(Scope):
         return out
 
 
-@dataclass
+@dataclass(eq=False)
 class LoopScope(Scope, Generic[U]):
     name: str = field(init=False, default=None)
     ast: U
@@ -177,7 +184,7 @@ class LoopScope(Scope, Generic[U]):
         return EmptyScope() if item == self.ast.varid else self.parent[item]
 
 
-@dataclass
+@dataclass(eq=False)
 class NodeScope(NamedAstScope[NodeDefinition]):
     nodes: dict[str, "NodeScope"] = field(init=False, repr=False)
     hyperedges: dict[str, "HyperEdgeScope"] = field(init=False, repr=False)
@@ -200,7 +207,7 @@ class NodeScope(NamedAstScope[NodeDefinition]):
         _create_loopscope_from_attrs(self, self.ast, ('constraints', 'objectives', 'parameters'))
 
 
-@dataclass
+@dataclass(eq=False)
 class HyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
     _parent_nodes: list[NodeScope]
 
@@ -218,17 +225,17 @@ class HyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
         _create_loopscope_from_attrs(self, self.ast, ('constraints', 'parameters'))
 
 
-@dataclass
-class DefinitionScope(NamedAstScope[NodeDefinition]):
+@dataclass(eq=False)
+class DefinitionScope(NamedAstScope[Definition]):
     def __post_init__(self):
         self.content = self.parent.content
         super(DefinitionScope, self).__post_init__()
 
-@dataclass
+@dataclass(eq=False)
 class ScopedDefinition(DefinitionScope):
     pass
 
-@dataclass
+@dataclass(eq=False)
 class ScopedFunctionDefinition(DefinitionScope):
     # needed post_post_init because we need parent's scope fully filled in to check if intersects
     def _finalize_init(self):
@@ -242,7 +249,7 @@ class ScopedFunctionDefinition(DefinitionScope):
     def __getitem__(self, item):
         return EmptyScope() if item in self.ast.args else self.parent[item]
 
-@dataclass
+@dataclass(eq=False)
 class ScopedVariableDefinition(DefinitionScope):
     pass
 
@@ -261,10 +268,10 @@ def create_hyperedge_scope(ast: HyperEdge, parent: Scope, nodes_in_parent: list[
         case HyperEdgeDefinition(): return HyperEdgeScope(parent, ast, nodes_in_parent)
         case HyperEdgeGenerator(): return UnresolvedHyperEdgeGeneratorScope(parent, ast, nodes_in_parent)
 
-@dataclass
+@dataclass(eq=False)
 class GlobalScope(Scope):
     name: str = field(init=False, default="global")
-    path: list[str] = field(init=False, default_factory=lambda: [])
+    path: list[str] = field(init=False, default_factory=list)
     parent: Scope = field(init=False, default=None)
     ast: GBOMLGraph = field(repr=False)
     nodes: dict[str, NodeScope] = field(init=False, repr=False)
