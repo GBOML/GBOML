@@ -74,8 +74,6 @@ def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLP
         if ast.import_from is None:
             return ast
 
-        # TODO forbid if imported path is a parent or child node/hyperedge compared to where it is imported from
-
         path_i: Path = ast.import_from.name
         imported_node: GBOMLGraph | Node | HyperEdge = tree if ast.import_from.filename is None else _load_file(current_dir / ast.import_from.filename, parser, file_cache)
         stack: list[ExpressionArrayCall | ExpressionDotCall] = []
@@ -100,10 +98,11 @@ def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLP
                 imported_node = _find_leaf_with_name(imported_node.nodes if isinstance(ast, Node) else imported_node.hyperedges, path_i.rhs)
         if isinstance(imported_node, Loop):
             RuntimeError(f"{ast.import_from.name.meta} Too few indices. Declared here {ast.import_from.filename}:{imported_node.meta}")
+        ast_path_str = '.'.join(hierItem.name for hierItem in hier)
         if imported_node not in hier[:-1]:
             node_cache.clear()
-        if path_str in node_cache:
-            raise RuntimeError(f"Circular import on {path_str}! Path: {'.'.join(hierItem.name for hierItem in hier)}")
+        if path_str in node_cache or ast_path_str.startswith(path_str) or path_str.startswith(ast_path_str):  # circular imports, or trying to extend child/parent node
+            raise RuntimeError(f"Circular import on {path_str}! Path: {ast_path_str}")
         node_cache.add(path_str)
 
         new_node = dataclasses.replace(imported_node, name=ast.name, indices=[], parameters=imported_node.parameters + ast.parameters + constant_defs, constraints=imported_node.constraints + ast.constraints, activations=imported_node.activations + ast.activations)
