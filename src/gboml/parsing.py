@@ -242,7 +242,8 @@ class GBOMLParser:
             def constraint(self, meta: Meta, name: Optional[str], expr: Expression, loop: Optional[Loop], tags: set[str]):
                 if _isinstance_obj_below_loops(expr, BoolExpressionComparison):
                     if expr.operator not in [Operator.lesser_or_equal, Operator.greater_or_equal, Operator.equal]:
-                        raise Exception("Comparisons in constraints can only be done using <=, >=, or =")
+                        print(expr.operator)
+                        raise Exception("Comparisons in constraints can only be done using <=, >=, or ==")
                     return _insert_genobj_below_loops(loop, StdConstraint(name, expr.lhs, expr.operator, expr.rhs, tags, meta=meta))
                 if _isinstance_obj_below_loops(expr, ExpressionFunctionCall):
                     return _insert_genobj_below_loops(loop, FunctionConstraint(name, expr.lhs, expr.operands, tags, meta=meta))

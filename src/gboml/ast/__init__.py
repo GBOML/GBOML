@@ -8,7 +8,7 @@ __all__ = [
     "Range", "DictEntry", "Dictionary",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
     "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject",
-    "ExpressionUseGenScope", "AnyGBOMLObject", "IndexingParameterDefinition", "PossiblyGeneratedExpression",
+    "AnyGBOMLObject", "IndexingParameterDefinition", "PossiblyGeneratedExpression",
     "ExpressionDotCall", "ExpressionArrayCall", "GeneratedExpression", "PathRoot", "Path"
 ]
 
@@ -28,5 +28,6 @@ from gboml.ast.path import *
 from gboml.ast.values import *
 from gboml.ast.variables import *
 
+# TODO mark these attributes as Loop in classes using them
 GeneratedObjectsType = Loop | NodeDefinition | HyperEdgeDefinition | GeneratedExpression | DictEntry | StdConstraint | FunctionConstraint | Objective
 GeneratedObjects = set(GeneratedObjectsType.__args__)

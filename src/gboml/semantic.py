@@ -89,13 +89,13 @@ def passyay():
     visit(element, {ExpressionArrayCall: lambda var: None if var is element else _check_var_in_scope(var, scope = origScope)})
 
 
-def _topo_sort(globalScope: GlobalScope) -> map[DefinitionScope]:
+def _topo_sort(globalScope: GlobalScope) -> list[DefinitionScope]:
     """ Performs the topological sort for Definition|VariableDefinition elements (if there's a circular dependency, an error is raised), and return the sorted elements in a map """
     ts = TopologicalSorter()
     add_node = lambda definition: ts.add(definition.scope, *getattr(definition, 'deps', {}))
     visit(globalScope.ast, {Definition: add_node, VariableDefinition: add_node})
     try:
-        return ts.static_order()
+        return list(ts.static_order())
     except CycleError as err:  # default error too long to print
         raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.path_to_str(), dep.ast.meta), err.args[1]))) from None
 
@@ -109,14 +109,20 @@ def semantic_check(globalScope: GlobalScope):
 
 
 # TODO likeloop
+# TODO see what is ScopeChange (used in redundant_def)
 
 
 # TODO
 # know which one of the nodes of the DAG does not do anything with iterable and mark their types
 
 # TODO
-# raise warning when overriding variable in redundant_definitions.py
+# don't allow redefining T nor t. If TIMEHORIZON is None => make it 1
+# all T = TIMEHORIZON
+# all t = implicit loop
 
+# TODO during scope checking, add ImplicitLoops for Paths referencing a IndexingParameterDefinition
+
+# TODO in parsing, use dataclass.replace
 
 # function decorator ↓ (or separate additionnal argument to all functions)
 # TODO define function to raise error; TODO do not stop at first error

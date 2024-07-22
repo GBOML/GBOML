@@ -3,20 +3,20 @@ This step aims at resolving imports and extension of other GBOML models.
 At the end of this step, no "Extends" or "import" cls may remain in the resulting graph
 """
 import dataclasses
-from pathlib import Path
+import pathlib
 from typing import Optional
 
 from gboml.ast import *
 from gboml.parsing import GBOMLParser
 from gboml.redundant_definitions import remove_redundant_definitions
-from gboml.tools.tree_modifier import modify
+from gboml.tools.tree_modifier import modify_hier, visit
 
 # Singleton used in _load_file to detect cyclic imports
 WORKING = object()
 
 inheritable_ast = NodeDefinition | HyperEdgeDefinition
 
-def _load_file(fpath: Path, parser: GBOMLParser, file_cache: dict[Path, GBOMLGraph]):
+def _load_file(fpath: pathlib.Path, parser: GBOMLParser, file_cache: dict[pathlib.Path, GBOMLGraph]):
     """ Loads a file and resolves its imports. file_cache is used as a cache for already-seen files. """
     fpath = fpath.absolute()
     if fpath not in file_cache:
@@ -34,41 +34,23 @@ def _update_import_from(child: inheritable_ast, parent: inheritable_ast, parent_
         parameters=parent_indices + parent.parameters
     )
 
-def _check_indices(child: inheritable_ast,
-                   parent: inheritable_ast):
-    """ Checks that no indices are overriden """
-    child_indices = set()
-    if isinstance(child, NodeGenerator) or isinstance(child, HyperEdgeGenerator):
-        child_indices = set(child.indices)
-    child_parameters = {definition.name for definition in child.parameters}
 
-    if not child_indices.isdisjoint(child_parameters):
-        raise RuntimeError(f"The following indices are redefined: " + str(child_indices.intersection(child_parameters)))
+def _find_leaf_with_name(l, name):
+    """ Finds and returns the leaf in list `l` (can be under a Loop) that has name `name`"""
+    def get_leaf_name(leaf):
+        while isinstance(leaf, Loop):
+            leaf = leaf.child
+        return leaf.name
 
-    while parent is not None:
-        if isinstance(parent, NodeGenerator) or isinstance(parent, HyperEdgeGenerator):
-            parent_indices = set(parent.indices)
-            if not parent_indices.isdisjoint(child_indices):
-                raise RuntimeError(f"{child.name} cannot share indices {parent_indices.intersection(child_indices)} with its parent {parent.name}. Change the name of the indice(s).")
-            if not parent_indices.isdisjoint(child_parameters):
-                raise RuntimeError(f"{child.name} cannot override indices {parent_indices.intersection(child_parameters)} of its parent {parent.name}.")
-        parent_parameters = {definition.name for definition in parent.parameters}
-        if not parent_parameters.isdisjoint(child_indices):
-            raise RuntimeError(f"{child.name}'s indices {parent_parameters.intersection(child_indices)} override parameters of its parent {parent.name}.")
-        parent = parent.import_from
-
-
-
-def _find_elem_with_name(l, name):
-    """ Finds and returns the element in list `l` that has name `name`"""
-    valid_nodes = [x for x in l if x.name == name]
-    if len(valid_nodes) == 0:
-        raise RuntimeError(f"Node/hyperedge with name '{name}' not found")
-    if len(valid_nodes) == 2:
+    valid_nodes = [x for x in l if get_leaf_name(x) == name]
+    if not valid_nodes:
+        raise RuntimeError(f"Node/hyperedge with name '{name}' not found. Remember to use the full path from the root of the file.")
+    if len(valid_nodes) >= 2:
         raise RuntimeError(f"Multiple nodes/hyperedges have the same name '{name}'")
     return valid_nodes[0]
 
-def resolve_imports(tree: GBOMLObject, current_dir: Path, parser: GBOMLParser, file_cache: Optional[dict[Path, GBOMLGraph]] = None) -> GBOMLObject:
+
+def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLParser, file_cache: Optional[dict[pathlib.Path, GBOMLGraph]] = None) -> GBOMLObject:
     """
     Resolves imports, transforming all `Extends` entries to Nodes/HyperEdges.
 
@@ -86,43 +68,53 @@ def resolve_imports(tree: GBOMLObject, current_dir: Path, parser: GBOMLParser, f
     if file_cache is None:
         file_cache = {}
 
-    def update(ast: inheritable_ast) -> inheritable_ast:
+    node_cache: set[str] = set()  # paths stored as A.B.C
+
+    def update(ast: inheritable_ast, hier: list[Node | HyperEdge]) -> inheritable_ast:
         if ast.import_from is None:
             return ast
 
-        imported_file = _load_file(current_dir / ast.import_from.filename, parser, file_cache)
+        # TODO forbid if imported path is a parent or child node/hyperedge compared to where it is imported from
 
-        # for now, we only resolve "directly-named" nodes in other files.
-        # in the future we may resolve nodes referenced inside arrays or parameters, but for now we don't.
+        path_i: Path = ast.import_from.name
+        imported_node: GBOMLGraph | Node | HyperEdge = tree if ast.import_from.filename is None else _load_file(current_dir / ast.import_from.filename, parser, file_cache)
+        stack: list[ExpressionArrayCall | ExpressionDotCall] = []
+        constant_defs: ConstantDefinition = []  # used for declaring as params indices (e.g. "import A.B[2*sqrt(64)]" and "A.B[i] for i in [0:99]" => "i = 2*sqrt(64)")
+        while not isinstance(path_i, PathRoot):
+            stack.append(path_i)
+            path_i = path_i.lhs
+            if not isinstance(path_i, Path):
+                raise RuntimeError(f"{ast.import_from.name.meta} Invalid import node expression. Should only contain attributes (A.B) and/or indices (A[0]).")
+        path_str = path_i.name
+        imported_node = _find_leaf_with_name(imported_node.nodes, path_str)
+        while stack:
+            if isinstance(path_i := stack.pop(), ExpressionArrayCall):
+                if not isinstance(imported_node, Loop):
+                    RuntimeError(f"{ast.import_from.name.meta} Too much indices. Declared here {ast.import_from.filename}:{imported_node.meta}")
+                constant_defs.append(ConstantDefinition(imported_node.varid, path_i.rhs, set(), meta=Meta(None, None, None)))
+                imported_node = imported_node.child
+            else:
+                if isinstance(imported_node, Loop):
+                    RuntimeError(f"{ast.import_from.name.meta} Too few indices. Declared here {ast.import_from.filename}:{imported_node.meta}")
+                path_str += '.' + path_i.rhs
+                imported_node = _find_leaf_with_name(imported_node.nodes if isinstance(ast, Node) else imported_node.hyperedges, path_i.rhs)
+        if isinstance(imported_node, Loop):
+            RuntimeError(f"{ast.import_from.name.meta} Too few indices. Declared here {ast.import_from.filename}:{imported_node.meta}")
+        if imported_node not in hier[:-1]:
+            node_cache.clear()
+        if path_str in node_cache:
+            raise RuntimeError(f"Circular import on {path_str}! Path: {'.'.join(hierItem.name for hierItem in hier)}")
+        node_cache.add(path_str)
 
-        # follow nodes up to the last part of the path
-        cur_ast: GBOMLGraph | Node | HyperEdge = imported_file
-        for idx, leaf in enumerate(ast.import_from.name.path[0:-1]):
-            cur_ast = _find_elem_with_name(cur_ast.nodes, leaf.name)
-            if leaf.indices:
-                if not isinstance(cur_ast, NodeGenerator | HyperEdgeGenerator):
-                    raise RuntimeError("This element is not a Node/Hyperedge generator.")
-                if len(leaf.indices) != len(cur_ast.indices):
-                    raise RuntimeError("Invalid number of indices.")
+        new_node = dataclasses.replace(imported_node, name=ast.name, indices=[], parameters=imported_node.parameters + ast.parameters + constant_defs, constraints=imported_node.constraints + ast.constraints, activations=imported_node.activations + ast.activations)
+        if isinstance(ast, Node):
+            new_node.nodes = new_node.nodes + ast.nodes
+            new_node.hyperedges = new_node.hyperedges + ast.hyperedges
+            new_node.variables = new_node.variables + ast.variables
+            new_node.objectives = new_node.objectives + ast.objectives
+        
+        if new_node.import_from is not None:
+            update(new_node, hier + [imported_node])
+        return new_node
 
-        # last element of the path
-        parent = _find_elem_with_name(cur_ast.nodes if isinstance(ast, Node) else cur_ast.hyperedges,
-                                      ast.import_from.name.path[-1].name)
-
-        # pay attention to indices
-        parent_indices = []
-        if ast.import_from.name.path[-1].indices:
-            last_indices = ast.import_from.name.path[-1].indices
-
-            if not isinstance(parent, NodeGenerator | HyperEdgeGenerator):
-                raise RuntimeError("This element is not a Node/Hyperedge generator.")
-            if len(last_indices) != len(parent.indices):
-                raise RuntimeError("Invalid number of indices.")
-            for a, b in zip(parent.indices, last_indices):
-                parent_indices.append(ExpressionDefinition(a, ExpressionUseGenScope(b)))
-
-        _check_indices(ast, parent)
-
-        return _update_import_from(ast, parent, parent_indices)
-
-    return modify(tree, {Node: update, HyperEdge: update})
+    return modify_hier(tree, {Node, HyperEdge}, {Node: update, HyperEdge: update})

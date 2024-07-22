@@ -10,7 +10,8 @@ import dataclasses
 import os
 from pathlib import Path
 
-tree = GBOMLParser().parse("""
+parser = GBOMLParser()
+tree = parser.parse("""
 #TIMEHORIZON T = 2*2;
 #GLOBAL
     a = 75;
@@ -41,11 +42,34 @@ tree = GBOMLParser().parse("""
             parentnodes = {A};
         #VARIABLES
             pass;
+        #CONSTRAINTS
+            named_constraint: x == 2;
+
+    #NODE P1 extends A.P
+        #VARIABLES
+            pass;
+        #CONSTRAINTS
+            deactivate named_constraint;
+
+    #NODE P2 extends A.P
+        #PARAMETERS
+            parentnodes = {A, A};
+            new_param = 12.35;
+        #VARIABLES
+            pass;
+
     
+    #NODE import = import test from "import_testing.gboml";
 
     #NODE GEN[bsasassaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa][j] for i in [0:3] where i == 3 for j in [3:6]
         #PARAMETERS
             x = i * j;
+        #VARIABLES
+            pass;
+
+    #NODE gen extends A.GEN[1][6]
+        #PARAMETERS
+            param = x;
         #VARIABLES
             pass;
 
@@ -86,10 +110,11 @@ tree = GBOMLParser().parse("""
         #VARIABLES
             internal : x[T] <- C.x[T] in [1:3];  // TODO
             internal : baba <- A.param;
+            internal : baba[T];
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + sum(l for l in hello where l < 2) + len(hello) + f(global.pi) + subnodes[param].a.a + (param > 1).x + (B * 2).param;
+        min : x[t-5] + sum(l for l in hello where l < 2) + len(hello) + f(global.pi) + subnodes[param].a.a + (param > 1).x + (B * 2).param + f(x).a;
 
 """)
 
@@ -97,9 +122,8 @@ for i in reversed(range(29)):
     if i == 25:
         continue  # no test25.txt
     print(f"------------------------------- {i} -------------------------------------")
-# parser = GBOMLParser()
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
-# tree = resolve_imports(tree, Path('../tests/instances/ok/'), parser)
+tree = resolve_imports(tree, Path('.'), parser)
 tree = remove_redundant_definitions(tree)
 print(tree)
 
