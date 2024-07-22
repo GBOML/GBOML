@@ -30,7 +30,7 @@ tree = parser.parse("""
         a <- a + 1;
         f(a) <- global.pi ** iDontExistAndItsFineBecauseFunctionIsRedefinedAfter;
         n(aa,b,cc) <- aa+b+cc;
-        q = [1:1];
+        q = [3:6];
         u in q;
         o = n(u, q, 2, i for i in [2:0]);
         
@@ -64,7 +64,7 @@ tree = parser.parse("""
         param = 9;
         var external;
 
-    #NODE GEN[i][j] for i in [0:3] where i == 3 for j in [3:6]
+    #NODE GEN[i][j] for i in [0:3] where i == 3 for j like u
         #PARAMETERS
             x = i * j;
         #VARIABLES

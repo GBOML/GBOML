@@ -103,11 +103,7 @@ def semantic_check(globalScope: GlobalScope):
     # check if variables are in scope, and store deps
     visit_hier(globalScope.ast, {*TYPES.__args__, *Path.__args__, ExpressionFunctionCall}, dict.fromkeys((ExpressionDotCall, PathRoot, ExpressionFunctionCall), _check_var_in_scope) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_hyperedge_node_index))
     
-    _topo_sort(globalScope)    
-    
-
-
-# TODO likeloop
+    _topo_sort(globalScope)
 
 
 # TODO
