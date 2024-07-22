@@ -4,6 +4,7 @@ At the end of this step, no "Extends" or "import" cls may remain in the resultin
 """
 import dataclasses
 import pathlib
+import os
 from typing import Optional
 
 from gboml.ast import *
@@ -15,6 +16,14 @@ from gboml.tools.tree_modifier import modify_hier, visit
 WORKING = object()
 
 inheritable_ast = NodeDefinition | HyperEdgeDefinition
+
+def _is_node_path_valid(a: str, b: str) -> bool:
+    """ Returns True if a is in the path of b or vice versa; paths must be in the form A.B.C """
+    prefix = os.path.commonprefix((a, b))
+    a_suffix = a[len(prefix):]
+    b_suffix = b[len(prefix):]
+    return not a_suffix and b_suffix[0] == '.' or not b_suffix and a_suffix[0] == '.'
+    
 
 def _load_file(fpath: pathlib.Path, parser: GBOMLParser, file_cache: dict[pathlib.Path, GBOMLGraph]):
     """ Loads a file and resolves its imports. file_cache is used as a cache for already-seen files. """
@@ -99,9 +108,11 @@ def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLP
         if isinstance(imported_node, Loop):
             RuntimeError(f"{ast.import_from.name.meta} Too few indices. Declared here {ast.import_from.filename}:{imported_node.meta}")
         ast_path_str = '.'.join(hierItem.name for hierItem in hier)
+        if _is_node_path_valid(ast_path_str, path_str):
+            raise RuntimeError(f"Trying to import a child or a parent node {path_str} {imported_node.meta} (from {ast_path_str} {ast.meta}).")
         if imported_node not in hier[:-1]:
             node_cache.clear()
-        if path_str in node_cache or ast_path_str.startswith(path_str) or path_str.startswith(ast_path_str):  # circular imports, or trying to extend child/parent node
+        if path_str in node_cache:
             raise RuntimeError(f"Circular import on {path_str}! Path: {ast_path_str}")
         node_cache.add(path_str)
 
