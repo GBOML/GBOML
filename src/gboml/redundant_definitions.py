@@ -47,7 +47,7 @@ import warnings
 from gboml.ast import *
 from gboml.tools.tree_modifier import modify, modify_hier
 
-def _warn_redefinition(old_def: Definition | VariableDefinition, new_def: Definition | VariableDefinition) -> None:
+def _warn_redefinition(old_def: VarOrParamDefinition, new_def: VarOrParamDefinition) -> None:
     warnings.warn(f"Removed definition '{old_def.name}' ({old_def.meta}) since it is redefined later ({new_def.meta})", SyntaxWarning, stacklevel=2)
 
 

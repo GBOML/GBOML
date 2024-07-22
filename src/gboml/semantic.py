@@ -4,17 +4,17 @@ from gboml.tools.tree_modifier import visit, visit_hier
 
 from graphlib import TopologicalSorter, CycleError
 
-TYPES = NodeDefinition|HyperEdgeDefinition|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|Definition|VariableDefinition|ExpressionOp|Loop|Path
+TYPES = NodeDefinition|HyperEdgeDefinition|StdConstraint|FunctionConstraint|Objective|DictEntry|GeneratedExpression|VarOrParamDefinition|ExpressionOp|Loop|Path
 
 def _get_scope_from_hier(hier: list[TYPES]) -> Scope:
     return next(hierItem.scope for hierItem in reversed(hier) if hasattr(hierItem, 'scope'))
-def _get_parent_definition(hier: list[TYPES]) -> Definition | VariableDefinition | None:
-    return next((hierItem for hierItem in reversed(hier) if isinstance(hierItem, Definition | VariableDefinition)), None)
-def _add_dep(definition: Definition | VariableDefinition, dep: DefinitionScope) -> None:
-    if hasattr(definition, 'deps'):
-        definition.deps.add(dep)
+def _get_parent_varorparam_def(hier: list[TYPES]) -> VarOrParamDefinition | None:
+    return next((hierItem for hierItem in reversed(hier) if isinstance(hierItem, VarOrParamDefinition)), None)
+def _add_dep(varorparam_def: VarOrParamDefinition, dep: DefinitionScope) -> None:
+    if hasattr(varorparam_def, 'deps'):
+        varorparam_def.deps.add(dep)
     else:
-        definition.deps = {dep}
+        varorparam_def.deps = {dep}
 
 
 def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[TYPES] = []) -> None:
@@ -33,7 +33,7 @@ def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[TYPES] = [])
 
 
 def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | PathRoot, hier: list[TYPES]) -> None:
-    """ Checks if element is accessible in the current scope (if not, an error is raised), and adds element to its Definition|VariableDefinition parent's dependencies """
+    """ Checks if element is accessible in the current scope (if not, an error is raised), and adds element to its VarOrParamDefinition parent's dependencies """
     parentExprCall = next((hierItem for hierItem in reversed(hier[:-1]) if isinstance(hierItem, ExpressionArrayCall | ExpressionDotCall)), None)
     if isinstance(parentExprCall, ExpressionDotCall):
         return  # dotcalls are handled by the parent
@@ -45,7 +45,7 @@ def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | Pa
     if isinstance(element, ExpressionDotCall):
         scopeAfterDot = scopeAfterDot[element.rhs]
     
-    if scopeAfterDot and isinstance(parent_def := _get_parent_definition(hier), Definition | VariableDefinition):
+    if scopeAfterDot and isinstance(parent_def := _get_parent_varorparam_def(hier), VarOrParamDefinition):
         _add_dep(parent_def, scopeAfterDot)
 
 
@@ -89,7 +89,7 @@ def passyay():
 
 
 def _topo_sort(globalScope: GlobalScope) -> list[DefinitionScope]:
-    """ Performs the topological sort for Definition|VariableDefinition elements (if there's a circular dependency, an error is raised), and return the sorted elements in a map """
+    """ Performs the topological sort for VarOrParamDefinition elements (if there's a circular dependency, an error is raised), and return the sorted elements in a map """
     ts = TopologicalSorter()
     add_node = lambda definition: ts.add(definition.scope, *getattr(definition, 'deps', {}))
     visit(globalScope.ast, {Definition: add_node, VariableDefinition: add_node})
@@ -108,7 +108,6 @@ def semantic_check(globalScope: GlobalScope):
 
 
 # TODO likeloop
-# TODO see what is ScopeChange (used in redundant_def)
 
 
 # TODO
