@@ -59,7 +59,6 @@ tree = parser.parse("""
             new_param = 12.35;
         #VARIABLES
             pass;
-
     
     #NODE import = import test from "import_testing.gboml";
 
@@ -110,9 +109,9 @@ tree = parser.parse("""
             #CONSTRAINTS
                 x[t] <= B.param+A.param+param+B.A.param+parent.param+parent.parent.param where t % 2 == 1;
         #VARIABLES
-            internal : x[T] <- C.x[T] in [1:3];  // TODO
+            internal integer : x[T] <- C.x[T];
             internal : baba <- A.param;
-            internal : baba[T];
+            internal binary : baba[T] in [:3];
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
@@ -125,6 +124,7 @@ for i in reversed(range(29)):
         continue  # no test25.txt
     print(f"------------------------------- {i} -------------------------------------")
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
+print(tree)
 tree = resolve_imports(tree, Path('.'), parser)
 tree = remove_redundant_definitions(tree)
 print(tree)

@@ -30,6 +30,8 @@ def gen_meta(meta: tree.Meta) -> Meta: return MetaNone if meta.empty else Meta(l
 
 def _vargs(f, _, children, meta):
     """ Wrapper for methods in GBOMLLarkTransformer """
+    if _ == 'variable_definition':
+        print(len(children), list(map(type, children)))
     return f(gen_meta(meta), *children)
 
 
@@ -203,13 +205,12 @@ class GBOMLParser:
                                       meta=meta)
 
             def hyperedge_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[Definition]):
-                return HyperEdgeDefinition(name, [], Extends(imported_name, imported_from, meta=meta),
-                                           parameters=redef, meta=meta)
+                return HyperEdgeDefinition(name, [], Extends(imported_name, imported_from, meta=meta), parameters=redef, meta=meta)
 
             def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):
                 return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)
 
-            def variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[Expression])],
+            def _variable_definition(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[Expression])],
                                     imports_from: Optional[list[Path]],
                                     bound_lower: Optional[Expression], bound_upper: Optional[Expression], tags: set[str]):
                 if imports_from is not None and len(imports_from) != len(names):
@@ -218,6 +219,17 @@ class GBOMLParser:
                 for name, import_from in zip(names, imports_from or repeat(None, len(names))):
                     yield VariableDefinition(name[0], name[1], scope, type or VarType.continuous,
                                              bound_lower, bound_upper, import_from, tags, meta=meta)
+
+            def variable_definition_std(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[Expression])], tags: set[str]):
+                yield from self._variable_definition(meta, scope, type, names, None, None, None, tags)
+
+            def variable_definition_arrow(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[Expression])],
+                                    imports_from: Optional[list[Path]], tags: set[str]):
+                yield from self._variable_definition(meta, scope, type, names, imports_from, None, None, tags)
+
+            def variable_definition_limit(self, meta: Meta, scope: VarScope, type: Optional[VarType], names: list[(str, list[Expression])],
+                                    bound_lower: Optional[Expression], bound_upper: Optional[Expression], tags: set[str]):
+                yield from self._variable_definition(meta, scope, type, names, None, bound_lower, bound_upper, tags)
 
             def variables_block(self, _: Meta, *defs: Tuple[Iterable[VariableDefinition]]):
                 return [vd for iterable in defs for vd in iterable]
