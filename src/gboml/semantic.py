@@ -16,13 +16,6 @@ def _add_dep(definition: Definition | VariableDefinition, dep: DefinitionScope) 
     else:
         definition.deps = {dep}
 
-# def _check_nodeGen_index(element: NodeGenerator, hier: list[TYPES] = []) -> None:  # TODO
-    # scope = _get_scope_from_hier(hier)
-    # for index in element.indices:
-        # try:
-            # scope[index]
-        # except KeyError:
-            # raise KeyError(f"SEMANTIC ERROR: {index} (from {element.name}) can not be used in this scope {element.meta}!")
 
 def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[TYPES] = []) -> None:
     scope = _get_scope_from_hier(hier)
@@ -39,7 +32,7 @@ def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[TYPES] = [])
         raise KeyError(f"SEMANTIC ERROR: {element.name}(): expected {declaredArgsLen} arguments but got {len(element.operands)} at {element.meta}!")
 
 
-def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | PathRoot, hier: list[TYPES] = [], scope: Scope = None) -> None:
+def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | PathRoot, hier: list[TYPES]) -> None:
     """ Checks if element is accessible in the current scope (if not, an error is raised), and adds element to its Definition|VariableDefinition parent's dependencies """
     parentExprCall = next((hierItem for hierItem in reversed(hier[:-1]) if isinstance(hierItem, ExpressionArrayCall | ExpressionDotCall)), None)
     if isinstance(parentExprCall, ExpressionDotCall):
@@ -47,18 +40,24 @@ def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | Pa
     if not isinstance(leftElement := element if isinstance(element, PathRoot) else element.lhs, PathRoot):
         return
 
-    if scope is None:
-        scope = _get_scope_from_hier(hier)
-
+    scope = _get_scope_from_hier(hier)
     scopeAfterDot = scope[leftElement.name]
     if isinstance(element, ExpressionDotCall):
         scopeAfterDot = scopeAfterDot[element.rhs]
     
     if scopeAfterDot and isinstance(parent_def := _get_parent_definition(hier), Definition | VariableDefinition):
         _add_dep(parent_def, scopeAfterDot)
-    
 
 
+def _check_hyperedge_node_index(element: NodeDefinition | HyperEdgeDefinition, hier: list[TYPES]) -> None:
+    if not element.indices:
+        return
+    scope = _get_scope_from_hier(hier)
+    for index in element.indices:
+        try:
+            scope[index]
+        except KeyError:
+            raise KeyError(f"SEMANTIC ERROR: {index} (from {element.name}) can not be used in this scope {element.meta}!")
 
 
 def passyay():
@@ -102,7 +101,7 @@ def _topo_sort(globalScope: GlobalScope) -> list[DefinitionScope]:
 
 def semantic_check(globalScope: GlobalScope):
     # check if variables are in scope, and store deps
-    visit_hier(globalScope.ast, {*TYPES.__args__, *Path.__args__, ExpressionFunctionCall}, dict.fromkeys((ExpressionDotCall, PathRoot, ExpressionFunctionCall), _check_var_in_scope))
+    visit_hier(globalScope.ast, {*TYPES.__args__, *Path.__args__, ExpressionFunctionCall}, dict.fromkeys((ExpressionDotCall, PathRoot, ExpressionFunctionCall), _check_var_in_scope) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_hyperedge_node_index))
     
     _topo_sort(globalScope)    
     

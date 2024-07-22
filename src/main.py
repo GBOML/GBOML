@@ -64,7 +64,7 @@ tree = parser.parse("""
         param = 9;
         var external;
 
-    #NODE GEN[bsasassaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa][j] for i in [0:3] where i == 3 for j in [3:6]
+    #NODE GEN[i][j] for i in [0:3] where i == 3 for j in [3:6]
         #PARAMETERS
             x = i * j;
         #VARIABLES
