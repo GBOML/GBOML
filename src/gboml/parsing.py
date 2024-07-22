@@ -197,7 +197,7 @@ class GBOMLParser:
                 return _insert_genobj_below_loops(loop, node)
 
             def node_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[ScopeChange | Definition]):
-                return NodeDefinition(name, Extends(imported_name, imported_from, meta=meta),
+                return NodeDefinition(name, [], Extends(imported_name, imported_from, meta=meta),
                                       parameters=[x for x in redef if _isinstance_obj_below_loops(x, Definition)],
                                       variables=[x for x in redef if _isinstance_obj_below_loops(x, ScopeChange)],
                                       meta=meta)

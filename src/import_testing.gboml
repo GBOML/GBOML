@@ -1,0 +1,5 @@
+#NODE test
+	#PARAMETERS
+		param = 0;
+	#VARIABLES
+		internal : var;
