@@ -60,7 +60,9 @@ tree = parser.parse("""
         #VARIABLES
             pass;
     
-    #NODE import = import test from "import_testing.gboml";
+    #NODE import = import test[3] from "import_testing.gboml" with
+        param = 9;
+        var external;
 
     #NODE GEN[bsasassaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa][j] for i in [0:3] where i == 3 for j in [3:6]
         #PARAMETERS
@@ -124,7 +126,6 @@ for i in reversed(range(29)):
         continue  # no test25.txt
     print(f"------------------------------- {i} -------------------------------------")
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
-print(tree)
 tree = resolve_imports(tree, Path('.'), parser)
 tree = remove_redundant_definitions(tree)
 print(tree)

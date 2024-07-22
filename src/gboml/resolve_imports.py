@@ -116,8 +116,18 @@ def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLP
             raise RuntimeError(f"Circular import on {path_str}! Path: {ast_path_str}")
         node_cache.add(path_str)
 
+        if isinstance(ast.import_from, Import):
+            imported_node_param_names = [p.name for p in imported_node.parameters]
+            for param in ast.parameters:
+                if param.name not in imported_node_param_names:
+                    raise RuntimeError(f"Cannot add parameter definition {param.name} {param.meta} while importing. Use `extends'.")
+
         new_node = dataclasses.replace(imported_node, name=ast.name, indices=[], parameters=imported_node.parameters + ast.parameters + constant_defs, constraints=imported_node.constraints + ast.constraints, activations=imported_node.activations + ast.activations)
         if isinstance(ast, Node):
+            imported_node_var_names = [v.name for v in imported_node.variables]
+            for var in ast.variables:
+                if var.name not in imported_node_var_names:
+                    raise RuntimeError(f"Impossible scope change: variable {var.name} {var.meta} does not exist in imported node.")
             new_node.nodes = new_node.nodes + ast.nodes
             new_node.hyperedges = new_node.hyperedges + ast.hyperedges
             new_node.variables = new_node.variables + ast.variables

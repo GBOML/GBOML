@@ -64,22 +64,13 @@ hyperedge_import: "#HYPEREDGE" ID "=" "import" _path "from" STRING hyperedge_red
 hyperedge_redefs: "with" definition* | ";"
 
 // VARIABLES
-// variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_LARROW separated_list{_path, ","}] ["in" "[" [expression] ":" [expression] "]"] tags ";"
-// variable_name: ID olist{index}
-// SCOPE: "internal" | "external"
-// VTYPE: "binary" | "continuous" | "integer"
-// _LARROW.1: "<-"
-
-// VARIABLES
 variable_definition_std: SCOPE [VTYPE] ":" separated_list{variable_name,","} tags ";"
 variable_definition_arrow: SCOPE [VTYPE] ":" separated_list{variable_name,","} "<-" separated_list{_path, ","} tags ";"
 variable_definition_limit: SCOPE [VTYPE] ":" separated_list{variable_name,","} "in" "[" [expression] ":" [expression] "]" tags ";"
 ?variable_definition: variable_definition_arrow | variable_definition_limit | variable_definition_std
-//variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_variable_larrow | _variable_limit] tags ";"
 SCOPE: "internal" | "external"
 VTYPE: "binary" | "continuous" | "integer"
 variable_name: ID olist{index}
-_LARROW.1: "<-"
 
 // CONSTRAINTS
 constraint: [ID ":"] expression [loop] tags ";"

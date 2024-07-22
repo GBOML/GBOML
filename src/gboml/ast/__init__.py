@@ -5,9 +5,9 @@ __all__ = [
     "ScopeChange", "ImportFile", "Definition", "Constraint", "StdConstraint", "FunctionConstraint",
     "Objective", "VariableDefinition", "Node", "HyperEdge", "NodeDefinition", "HyperEdgeDefinition",
     "ExpressionFunctionCall", "ExpressionOp", "GBOMLGraph",
-    "Range", "DictEntry", "Dictionary", "MetaNone",
+    "Range", "DictEntry", "Dictionary", "MetaNone", "NamedGBOMLObject",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
-    "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject",
+    "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "Import",
     "AnyGBOMLObject", "IndexingParameterDefinition", "PossiblyGeneratedExpression",
     "ExpressionDotCall", "ExpressionArrayCall", "GeneratedExpression", "PathRoot", "Path"
 ]
@@ -21,6 +21,7 @@ from gboml.ast.expressions import *
 from gboml.ast.graph import *
 from gboml.ast.hyperedges import *
 from gboml.ast.import_file import *
+from gboml.ast.importable import *
 from gboml.ast.loops import *
 from gboml.ast.nodes import *
 from gboml.ast.objectives import *

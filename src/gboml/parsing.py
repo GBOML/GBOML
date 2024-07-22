@@ -199,13 +199,13 @@ class GBOMLParser:
                 return _insert_genobj_below_loops(loop, node)
 
             def node_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[ScopeChange | Definition]):
-                return NodeDefinition(name, [], Extends(imported_name, imported_from, meta=meta),
+                return NodeDefinition(name, [], Import(imported_name, imported_from, meta=meta),
                                       parameters=[x for x in redef if _isinstance_obj_below_loops(x, Definition)],
                                       variables=[x for x in redef if _isinstance_obj_below_loops(x, ScopeChange)],
                                       meta=meta)
 
             def hyperedge_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[Definition]):
-                return HyperEdgeDefinition(name, [], Extends(imported_name, imported_from, meta=meta), parameters=redef, meta=meta)
+                return HyperEdgeDefinition(name, [], Import(imported_name, imported_from, meta=meta), parameters=redef, meta=meta)
 
             def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):
                 return GBOMLGraph(time_horizon, global_defs, nodes_hyperedges.nodes, nodes_hyperedges.hyperedges, meta=meta)

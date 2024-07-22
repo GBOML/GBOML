@@ -9,3 +9,8 @@ from gboml.ast.path import Path
 class Extends(GBOMLObject):
     name: "Path"
     filename: Optional[str]
+
+@dataclass
+class Import(GBOMLObject):
+    name: "Path"
+    filename: Optional[str]

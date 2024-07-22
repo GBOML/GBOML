@@ -1,5 +1,5 @@
-#NODE test
+#NODE test[p] for p in [1:3]
 	#PARAMETERS
 		param = 0;
 	#VARIABLES
-		internal : var;
+		internal : var <- p;
