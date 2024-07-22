@@ -5,7 +5,7 @@ __all__ = [
     "ScopeChange", "ImportFile", "Definition", "Constraint", "StdConstraint", "FunctionConstraint",
     "Objective", "VariableDefinition", "Node", "HyperEdge", "NodeDefinition", "HyperEdgeDefinition",
     "ExpressionFunctionCall", "ExpressionOp", "GBOMLGraph",
-    "Range", "DictEntry", "Dictionary",
+    "Range", "DictEntry", "Dictionary", "MetaNone",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
     "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "NamedGBOMLObject",
     "AnyGBOMLObject", "IndexingParameterDefinition", "PossiblyGeneratedExpression",

@@ -25,7 +25,7 @@ def _isinstance_obj_below_loops(obj: GBOMLObject, type: type) -> bool:
         obj = obj.child
     return isinstance(obj, type)
 
-def gen_meta(meta: tree.Meta) -> Meta: return Meta(None, None, None) if meta.empty else Meta(line=meta.line, column=meta.column, filename=None)
+def gen_meta(meta: tree.Meta) -> Meta: return MetaNone if meta.empty else Meta(line=meta.line, column=meta.column, filename=None)
 
 
 def _vargs(f, _, children, meta):
@@ -203,7 +203,7 @@ class GBOMLParser:
                                       meta=meta)
 
             def hyperedge_import(self, meta: Meta, name: str, imported_name: Path, imported_from: str, redef: list[Definition]):
-                return HyperEdgeDefinition(name, Extends(imported_name, imported_from, meta=meta),
+                return HyperEdgeDefinition(name, [], Extends(imported_name, imported_from, meta=meta),
                                            parameters=redef, meta=meta)
 
             def start(self, meta: Meta, time_horizon: Optional[int], global_defs: list[Definition], nodes_hyperedges: NodesAndHyperEdges):

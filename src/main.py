@@ -17,7 +17,7 @@ tree = parser.parse("""
     a = 75;
     pi = 314;
     m = {a for i2 in [0:10] where i2 + pi < 6 for i in [1:2] where i2 % i == 0};  // will use pi = 456
-    pi = 456 + A.f(a);
+    pi = 456 + A.param;
 
 #NODE A
     #PARAMETERS
@@ -40,10 +40,12 @@ tree = parser.parse("""
     #NODE P
         #PARAMETERS
             parentnodes = {A};
+        #NODE BLABLA
+            pass;
         #VARIABLES
             pass;
         #CONSTRAINTS
-            named_constraint: x == 2;
+            named_constraint: global.pi == 2;
 
     #NODE P1 extends A.P
         #VARIABLES

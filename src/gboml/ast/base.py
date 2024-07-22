@@ -20,3 +20,4 @@ class NamedGBOMLObject(GBOMLObject):
 
 
 AnyGBOMLObject = typing.TypeVar('AnyGBOMLObject', bound=GBOMLObject)
+MetaNone = Meta(None, None, None)

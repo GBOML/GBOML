@@ -91,7 +91,7 @@ def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLP
             if isinstance(path_i := stack.pop(), ExpressionArrayCall):
                 if not isinstance(imported_node, Loop):
                     RuntimeError(f"{ast.import_from.name.meta} Too much indices. Declared here {ast.import_from.filename}:{imported_node.meta}")
-                constant_defs.append(ConstantDefinition(imported_node.varid, path_i.rhs, set(), meta=Meta(None, None, None)))
+                constant_defs.append(ConstantDefinition(imported_node.varid, path_i.rhs, set(), meta=MetaNone))
                 imported_node = imported_node.child
             else:
                 if isinstance(imported_node, Loop):
@@ -112,9 +112,7 @@ def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLP
             new_node.hyperedges = new_node.hyperedges + ast.hyperedges
             new_node.variables = new_node.variables + ast.variables
             new_node.objectives = new_node.objectives + ast.objectives
-        
-        if new_node.import_from is not None:
-            update(new_node, hier + [imported_node])
-        return new_node
+
+        return new_node if new_node.import_from is None else update(new_node, hier + [imported_node])
 
     return modify_hier(tree, {Node, HyperEdge}, {Node: update, HyperEdge: update})
