@@ -10,7 +10,7 @@ def _get_scope_from_hier(hier: list[TYPES]) -> Scope:
     return next(hierItem.scope for hierItem in reversed(hier) if hasattr(hierItem, 'scope'))
 def _get_parent_varorparam_def(hier: list[TYPES]) -> VarOrParamDefinition | None:
     return next((hierItem for hierItem in reversed(hier) if isinstance(hierItem, VarOrParamDefinition)), None)
-def _add_dep(varorparam_def: VarOrParamDefinition, dep: DefinitionScope) -> None:
+def _add_dep(varorparam_def: VarOrParamDefinition, dep: VarOrParamDefScope) -> None:
     if hasattr(varorparam_def, 'deps'):
         varorparam_def.deps.add(dep)
     else:
@@ -32,24 +32,30 @@ def _check_fct_in_scope(element: ExpressionFunctionCall, hier: list[TYPES] = [])
         raise KeyError(f"SEMANTIC ERROR: {element.name}(): expected {declaredArgsLen} arguments but got {len(element.operands)} at {element.meta}!")
 
 
-def _check_var_in_scope(element: ExpressionDotCall | ExpressionFunctionCall | PathRoot, hier: list[TYPES]) -> None:
-    """ Checks if element is accessible in the current scope (if not, an error is raised), and adds element to its VarOrParamDefinition parent's dependencies """
-    parentExprCall = next((hierItem for hierItem in reversed(hier[:-1]) if isinstance(hierItem, ExpressionArrayCall | ExpressionDotCall)), None)
-    if isinstance(parentExprCall, ExpressionDotCall):
+def _check_var_or_param_scoping(elem: ExpressionDotCall | ExpressionFunctionCall | PathRoot, hier: list[TYPES]) -> None:
+    """ Checks if elem is accessible in the current scope (if not, an error is raised), and adds elem to its VarOrParamDefinition parent's dependencies, and add implicit loops if needed """
+    parent_expr_call = next((hierItem for hierItem in reversed(hier[:-1]) if isinstance(hierItem, ExpressionArrayCall | ExpressionDotCall | ExpressionFunctionCall)), None)
+    if isinstance(parent_expr_call, ExpressionDotCall):
         return  # dotcalls are handled by the parent
-    if not isinstance(leftElement := element if isinstance(element, PathRoot) else element.lhs, PathRoot):
+    if not isinstance(left_elem := elem if isinstance(elem, PathRoot) else elem.lhs, PathRoot):
         return
 
     scope = _get_scope_from_hier(hier)
-    scopeAfterDot = scope[leftElement.name]
-    if isinstance(element, ExpressionDotCall):
-        scopeAfterDot = scopeAfterDot[element.rhs]
-    
-    if scopeAfterDot and isinstance(parent_def := _get_parent_varorparam_def(hier), VarOrParamDefinition):
-        _add_dep(parent_def, scopeAfterDot)
+    scope_after_dot = scope[left_elem.name]
+    if isinstance(elem, ExpressionDotCall):
+        scope_after_dot = scope_after_dot[elem.rhs]
+
+    # check function use/declaration; function to check is elem (or its direct parent if elem is not a function call and elem == parent's lhs)
+    fct_call = parent_expr_call if not isinstance(elem, ExpressionFunctionCall) and isinstance(hier[-2], ExpressionFunctionCall) and hier[-2].lhs is elem else elem
+    if scope_after_dot and isinstance(scope_after_dot, ScopedFunctionDefinition) != isinstance(fct_call, ExpressionFunctionCall):
+        raise RuntimeError(f"{list(map(type, hier))}{fct_call} {fct_call.meta}: used as {'function' if isinstance(fct_call, ExpressionFunctionCall) else 'non-fonction'} "
+                            f"but declared as {'function' if isinstance(scope_after_dot, ScopedFunctionDefinition) else 'non-fonction'} {type(scope_after_dot)} {scope_after_dot.ast.meta}!")
+
+    if scope_after_dot and isinstance(parent_def := _get_parent_varorparam_def(hier), VarOrParamDefinition):
+        _add_dep(parent_def, scope_after_dot)
 
 
-def _check_hyperedge_node_index(element: NodeDefinition | HyperEdgeDefinition, hier: list[TYPES]) -> None:
+def _check_node_or_hyperedge_index(element: NodeDefinition | HyperEdgeDefinition, hier: list[TYPES]) -> None:
     if not element.indices:
         return
     scope = _get_scope_from_hier(hier)
@@ -85,10 +91,10 @@ def passyay():
             break
 
     # visit all Path indices at once
-    visit(element, {ExpressionArrayCall: lambda var: None if var is element else _check_var_in_scope(var, scope = origScope)})
+    visit(element, {ExpressionArrayCall: lambda var: None if var is element else _check_var_or_param_scoping(var, scope = origScope)})
 
 
-def _topo_sort(globalScope: GlobalScope) -> list[DefinitionScope]:
+def _topo_sort(globalScope: GlobalScope) -> list[VarOrParamDefScope]:
     """ Performs the topological sort for VarOrParamDefinition elements (if there's a circular dependency, an error is raised), and return the sorted elements in a map """
     ts = TopologicalSorter()
     add_node = lambda definition: ts.add(definition.scope, *getattr(definition, 'deps', {}))
@@ -100,8 +106,8 @@ def _topo_sort(globalScope: GlobalScope) -> list[DefinitionScope]:
 
 
 def semantic_check(globalScope: GlobalScope):
-    # check if variables are in scope, and store deps
-    visit_hier(globalScope.ast, {*TYPES.__args__, *Path.__args__, ExpressionFunctionCall}, dict.fromkeys((ExpressionDotCall, PathRoot, ExpressionFunctionCall), _check_var_in_scope) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_hyperedge_node_index))
+    # check if variables are in scope, and store deps, and add implicit loops
+    visit_hier(globalScope.ast, {*TYPES.__args__, *Path.__args__, ExpressionFunctionCall}, dict.fromkeys((ExpressionDotCall, PathRoot, ExpressionFunctionCall), _check_var_or_param_scoping) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_index))
     
     _topo_sort(globalScope)
 
@@ -109,14 +115,7 @@ def semantic_check(globalScope: GlobalScope):
 # TODO
 # know which one of the nodes of the DAG does not do anything with iterable and mark their types
 
-# TODO
-# don't allow redefining T nor t. If TIMEHORIZON is None => make it 1
-# all T = TIMEHORIZON
-# all t = implicit loop
-
 # TODO during scope checking, add ImplicitLoops for Paths referencing a IndexingParameterDefinition
-
-# TODO in parsing, use dataclass.replace
 
 # function decorator ↓ (or separate additionnal argument to all functions)
 # TODO define function to raise error; TODO do not stop at first error

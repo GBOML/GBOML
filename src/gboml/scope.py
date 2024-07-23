@@ -138,7 +138,7 @@ class ParentNodeScope(Scope):
 
     def __getitem__(self, item):
         out = super(ParentNodeScope, self).__getitem__(item)
-        if not isinstance(out, ScopedDefinition | EmptyScope):
+        if not isinstance(out, ScopedDefinition | ScopedFunctionDefinition | EmptyScope):
             raise KeyError(f"{item} is not accessible")
         return out
 
@@ -226,17 +226,17 @@ class HyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
 
 
 @dataclass(eq=False)
-class DefinitionScope(NamedAstScope[Definition]):
+class VarOrParamDefScope(NamedAstScope[Definition]):
     def __post_init__(self):
         self.content = self.parent.content
-        super(DefinitionScope, self).__post_init__()
+        super(VarOrParamDefScope, self).__post_init__()
 
 @dataclass(eq=False)
-class ScopedDefinition(DefinitionScope):
+class ScopedDefinition(VarOrParamDefScope):
     pass
 
 @dataclass(eq=False)
-class ScopedFunctionDefinition(DefinitionScope):
+class ScopedFunctionDefinition(VarOrParamDefScope):
     # needed post_post_init because we need parent's scope fully filled in to check if intersects
     def _finalize_init(self):
         for arg in self.ast.args:
@@ -250,7 +250,7 @@ class ScopedFunctionDefinition(DefinitionScope):
         return EmptyScope() if item in self.ast.args else self.parent[item]
 
 @dataclass(eq=False)
-class ScopedVariableDefinition(DefinitionScope):
+class ScopedVariableDefinition(VarOrParamDefScope):
     pass
 
 
