@@ -5,12 +5,12 @@ from gboml.ast.base import GBOMLObject
 from gboml.ast.path import Path
 
 
-@dataclass
+@dataclass(frozen=True)
 class Extends(GBOMLObject):
     name: "Path"
     filename: Optional[str]
 
-@dataclass
+@dataclass(frozen=True)
 class Import(GBOMLObject):
     name: "Path"
     filename: Optional[str]

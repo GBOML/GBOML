@@ -9,23 +9,23 @@ if typing.TYPE_CHECKING:
     from gboml.ast.loops import Loop
 
 
-@dataclass
+@dataclass(frozen=True)
 class Array(GBOMLObject):
-    content: list["PossiblyGeneratedExpression"]
+    content: tuple["PossiblyGeneratedExpression"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class DictEntry(GBOMLObject):
     key: "Expression"
     value: "Expression"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Dictionary(GBOMLObject):
-    content: list[DictEntry]
+    content: tuple[DictEntry]
 
 
-@dataclass
+@dataclass(frozen=True)
 class Range(GBOMLObject):
     start: "Expression"
     end: "Expression"

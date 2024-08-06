@@ -53,14 +53,14 @@ def _warn_redefinition(old_def: VarOrParamDefinition, new_def: VarOrParamDefinit
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
     if isinstance(elem, GBOMLGraph):
-        elem = _merge_attributes(elem, {'global_defs': _merge_definitions, 'nodes': _merge_definitions, 'hyperedges': _merge_definitions})
+        elem = _merge_attributes(elem, dict.fromkeys(('global_defs', 'nodes', 'hyperedges'), _merge_definitions))
     return modify(elem, {
-        Node: lambda node: _merge_attributes(node, {'parameters': _merge_definitions, 'variables': _merge_node_variables}),
-        HyperEdge: lambda hedge: _merge_attributes(hedge, {'parameters': _merge_definitions})
+        NodeDefinition: lambda node: _merge_attributes(node, {'parameters': _merge_definitions, 'variables': _merge_node_variables}),
+        HyperEdgeDefinition: lambda hedge: _merge_attributes(hedge, {'parameters': _merge_definitions})
     })
 
 
-def _merge_attributes(elem: AnyGBOMLObject, attrs_to_mergemethods: dict[str, typing.Callable[[list[GBOMLObject]], list[GBOMLObject] | None]]) -> AnyGBOMLObject:
+def _merge_attributes(elem: AnyGBOMLObject, attrs_to_mergemethods: dict[str, typing.Callable[[tuple[GBOMLObject]], tuple[GBOMLObject] | None]]) -> AnyGBOMLObject:
     todo = {}
     for attr, merge_method in attrs_to_mergemethods.items():
         if (defs := merge_method(getattr(elem, attr))) is not None:
@@ -83,7 +83,7 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
     return modify_hier(pdef, {*Path.__args__}, {PathRoot: change_var})
 
 
-def _merge_definitions(parameters: list[Definition]) -> list[Definition] | None:
+def _merge_definitions(parameters: tuple[Definition]) -> tuple[Definition] | None:
     need_update = False
     params: dict[str, list[Definition]] = {}
     for p in parameters:
@@ -104,17 +104,17 @@ def _merge_definitions(parameters: list[Definition]) -> list[Definition] | None:
                 _warn_redefinition(params[p.name][-1], p)
                 params[p.name] = [new_p]
             else:
-                params[p.name][-1] = dataclasses.replace(params[p.name][-1], name=new_name, tags=set())
+                params[p.name][-1] = dataclasses.replace(params[p.name][-1], name=new_name, tags=frozenset())
                 params[p.name].append(new_p)
         else:
             params[p.name] = [p]
 
     if need_update:
-        return [y for x in params.values() for y in x]
+        return tuple(y for x in params.values() for y in x)
     return None
 
 
-def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> list[VariableDefinition] | None:
+def _merge_node_variables(variables: tuple[VariableDefinition | ScopeChange]) -> tuple[VariableDefinition] | None:
     need_update = False
     vars: dict[str, VariableDefinition] = {}
     for v in variables:
@@ -130,7 +130,7 @@ def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> 
                 if v.name not in vars:
                     raise RuntimeError(f"No variable named {v.name}")
                 need_update = True
-                vars[v.name].scope = v.scope
+                vars[v.name] = dataclasses.replace(vars[v.name], scope=v.scope)
     if need_update:
-        return list(vars.values())
+        return tuple(vars.values())
     return None

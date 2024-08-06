@@ -11,13 +11,13 @@ if TYPE_CHECKING:
 
 T = TypeVar("T")
 
-@dataclass
+@dataclass(frozen=True)
 class Loop(GBOMLObject):
-    child: "GeneratedObjectsType"
+    child: "GeneratedObjectsType | Loop" = field(compare=False)
     # child: Loop[T] | T
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseLoop(Loop):
     """
      The expression
@@ -31,15 +31,15 @@ class BaseLoop(Loop):
     condition: Optional["Expression"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class LikeLoop(Loop):
     varid: str
     on: "Path"
     condition: Optional["Expression"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ImplicitLoop(BaseLoop):
-    varid: str = field(default="t", init=False)
-    on: "Expression" = field(default_factory=lambda: Range(0, PathRoot("T")), init=False)
+    varid: str = field(default="t", kw_only=True)
+    on: "Expression" = field(default=Range(0, PathRoot("T")), kw_only=True)  # fine to *not* use default_factory as Range is immutable/frozen
     condition: "Expression"

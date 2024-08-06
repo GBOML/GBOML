@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from gboml.ast.expressions import ExpressionObj
 from gboml.ast.expression_operators import ExpressionArrayCall, ExpressionDotCall
 
-@dataclass
+@dataclass(frozen=True)
 class PathRoot(ExpressionObj):
     name: str
 

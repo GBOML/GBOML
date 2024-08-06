@@ -16,7 +16,7 @@ def _check_type(value, typ):
     if isinstance(typ, typing.ForwardRef):
         typ = eval(typ.__forward_arg__)
 
-    if isinstance(typ, types.GenericAlias) and typ.__origin__ in [list, set]:
+    if isinstance(typ, types.GenericAlias) and typ.__origin__ in (tuple, frozenset):
         subtyp = typing.get_args(typ)[0]
         if not isinstance(value, typ.__origin__):
             raise NotOfType(f"{value} is not an instance of {typ}")

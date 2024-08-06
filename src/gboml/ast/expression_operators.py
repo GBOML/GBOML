@@ -27,19 +27,19 @@ class Operator(Enum):
     b_not = "not"
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExpressionOp(ExpressionObj):
     operator: Operator
-    operands: list["Expression"]
+    operands: tuple["Expression"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class BoolExpressionOp(BoolExpressionObj):
     operator: Operator
-    operands: list["Expression"]
+    operands: tuple["Expression"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class BoolExpressionComparison(BoolExpressionObj):
     lhs: "Expression"
     operator: Operator
@@ -53,19 +53,19 @@ class BoolExpressionComparison(BoolExpressionObj):
         return False
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExpressionFunctionCall(ExpressionObj):
     lhs: "Expression"
-    operands: list["PossiblyGeneratedExpression"]
+    operands: tuple["PossiblyGeneratedExpression"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExpressionDotCall(ExpressionObj):
     lhs: "Expression"
     rhs: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExpressionArrayCall(ExpressionObj):
     lhs: "Expression"
     rhs: "Expression"

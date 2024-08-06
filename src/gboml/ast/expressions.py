@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from gboml.ast.base import GBOMLObject
 
 
-@dataclass
+@dataclass(frozen=True)
 class ExpressionObj(GBOMLObject):
     def __eq__(self, obj):
         from gboml.ast.expression_operators import Operator, BoolExpressionComparison
@@ -14,6 +14,6 @@ class ExpressionObj(GBOMLObject):
             return True
         return BoolExpressionComparison(self, Operator.equal, obj)
 
-@dataclass
+@dataclass(frozen=True)
 class BoolExpressionObj(GBOMLObject):
     pass

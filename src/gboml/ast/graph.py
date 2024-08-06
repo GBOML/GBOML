@@ -3,13 +3,14 @@ from typing import Optional
 
 from gboml.ast.variables import Definition
 from gboml.ast.base import GBOMLObject
-from gboml.ast.hyperedges import HyperEdge
-from gboml.ast.nodes import Node
+from gboml.ast.hyperedges import HyperEdgeDefinition
+from gboml.ast.nodes import NodeDefinition
 
 
-@dataclass
+@dataclass(frozen=True)
 class GBOMLGraph(GBOMLObject):
+    reserved_defs: tuple[Definition]
     time_horizon: Optional[int]
-    global_defs: list[Definition]
-    nodes: list[Node]
-    hyperedges: list[HyperEdge]
+    global_defs: tuple[Definition]
+    nodes: tuple[NodeDefinition]
+    hyperedges: tuple[HyperEdgeDefinition]

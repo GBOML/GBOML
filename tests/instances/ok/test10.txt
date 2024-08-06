@@ -8,5 +8,3 @@ T = 10;
 internal : x[T];
 #CONSTRAINTS
 x[t]/x[t]>=0;
-#OBJECTIVES
-min: x[t];

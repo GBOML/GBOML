@@ -10,25 +10,25 @@ from gboml.ast.loops import Loop
 if typing.TYPE_CHECKING:
     from gboml.ast.values import PossiblyGeneratedExpression, Expression
 
-@dataclass
+@dataclass(frozen=True)
 class Constraint(GBOMLObject):
     name: Optional[str]
 
 
-@dataclass
+@dataclass(frozen=True)
 class StdConstraint(Constraint):
     lhs: "Expression"
     op: Operator
     rhs: "Expression"
-    tags: set[str] = field(default_factory=set)
+    tags: frozenset[str] = field(default=frozenset())
 
-@dataclass
+@dataclass(frozen=True)
 class FunctionConstraint(Constraint):
-    lhs: "Expression"
-    operands: list["PossiblyGeneratedExpression"]
-    tags: set[str] = field(default_factory=set)
+    lhs: str
+    operands: tuple["PossiblyGeneratedExpression"]
+    tags: frozenset[str] = field(default=frozenset())
 
 
-@dataclass
+@dataclass(frozen=True)
 class CtrActivation(Activation):
     pass

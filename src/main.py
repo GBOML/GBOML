@@ -31,7 +31,8 @@ tree = parser.parse("""
         f(a) <- global.pi ** iDontExistAndItsFineBecauseFunctionIsRedefinedAfter;
         n(aa,b,cc) <- aa+b+cc;
         q = [3:6];
-        u in q;
+        v = [1:1];
+        u in v;
         o = n(u, q, 2, i for i in [2:0]);
         
         dict = {f(param) * w - 3: P for w in [1:3:2], "je": B};
@@ -64,9 +65,10 @@ tree = parser.parse("""
         param = 9;
         var external;
 
-    #NODE GEN[i][j] for i in [0:3] where i == 3 for j like u
+    #NODE GEN[azertyuiop][j] for azertyuiop in [0:3] where azertyuiop == 3 for j like u
         #PARAMETERS
-            x = i * j;
+            x = azertyuiop * j;
+            azertyuiop = 456;  // SHOULD NOT BE ALLOWED TODO
         #VARIABLES
             pass;
 
@@ -88,7 +90,7 @@ tree = parser.parse("""
                 #VARIABLES
                     external : x[T];
                 #CONSTRAINTS
-                    x[t] >= A.param;
+                    x[t] >= A.param where t % 365 == 0;
 
             #NODE E
                 #PARAMETERS
@@ -102,7 +104,7 @@ tree = parser.parse("""
 
             #HYPEREDGE H
                 #PARAMETERS
-                    param = A.param + A.n(C.param) + A.n(1)[1];
+                    param = A.param + A.n(C.param) + A.n(0)[1];
                 #CONSTRAINTS
                     E.y[t]+D.x[t] == param+9;
 
@@ -110,6 +112,7 @@ tree = parser.parse("""
                 internal : x[T] <- D.x[T];
             #CONSTRAINTS
                 x[t] <= B.param+A.param+param+B.A.param+parent.param+parent.parent.param where t % 2 == 1;
+                SOS1(global.m);
         #VARIABLES
             internal integer : x[T] <- C.x[T];
             internal : baba <- A.param;
@@ -128,10 +131,11 @@ for i in reversed(range(29)):
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
 tree = resolve_imports(tree, Path('.'), parser)
 tree = remove_redundant_definitions(tree)
-print(tree)
+# print(tree)
 
 # print(tree.meta)
 # print(tree.global_defs[0].meta)
 globalScope = GlobalScope(tree)
-semantic_check(globalScope)
+globalScope = semantic_check(globalScope)
+print(globalScope.ast)
 # parse_file("test/test1.txt")

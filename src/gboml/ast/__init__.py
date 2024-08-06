@@ -3,9 +3,9 @@ __all__ = [
     "Operator", "ExpressionObj", "Expression", "Array", "Loop", "BaseLoop", "LikeLoop",
     "GeneratedObjectsType", "GeneratedObjects", "ImplicitLoop", "BoolExpressionOp", "BoolExpressionComparison",
     "ScopeChange", "ImportFile", "Definition", "Constraint", "StdConstraint", "FunctionConstraint",
-    "Objective", "VariableDefinition", "Node", "HyperEdge", "NodeDefinition", "HyperEdgeDefinition",
+    "Objective", "VariableDefinition", "NodeDefinition", "HyperEdgeDefinition",
     "ExpressionFunctionCall", "ExpressionOp", "GBOMLGraph", "VarOrParamDefinition",
-    "Range", "DictEntry", "Dictionary", "MetaNone", "NamedGBOMLObject",
+    "Range", "DictEntry", "Dictionary", "NamedGBOMLObject", "Semantic",
     "DefinitionType", "FunctionDefinition", "ConstantDefinition", "ExpressionDefinition",
     "CtrActivation", "ObjActivation", "ActivationType", "Activation", "Extends", "Import",
     "AnyGBOMLObject", "IndexingParameterDefinition", "PossiblyGeneratedExpression",
@@ -30,7 +30,7 @@ from gboml.ast.values import *
 from gboml.ast.variables import *
 
 # TODO mark these attributes as Loop in classes using them
-GeneratedObjectsType = Loop | NodeDefinition | HyperEdgeDefinition | GeneratedExpression | DictEntry | StdConstraint | FunctionConstraint | Objective
-GeneratedObjects = set(GeneratedObjectsType.__args__)
+GeneratedObjectsType = NodeDefinition | HyperEdgeDefinition | GeneratedExpression | DictEntry | StdConstraint | Objective
+GeneratedObjects = frozenset(GeneratedObjectsType.__args__)
 
 VarOrParamDefinition = Definition | VariableDefinition
