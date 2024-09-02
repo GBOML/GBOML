@@ -3,7 +3,7 @@ from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier, modify_hier
 
 from graphlib import TopologicalSorter, CycleError
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 import dataclasses
 
 ObjectsWithScopeOrDefs = ObjectsWithScope|VarOrParamDefinition
@@ -15,23 +15,32 @@ def _get_scope_from_hier(hier: list[ObjectsWithScopeOrDefs]) -> Scope:
 def _get_parent_from_hier(hier: list[ObjectsWithScopeOrDefs], _type: type[ObjectsWithScopeOrDefs]) -> ObjectsWithScopeOrDefs|None:
     return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
 
-def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[ObjectsWithScopeOrDefs], dep: Scope) -> None:
-    if isinstance(dep, VarOrParamDefScope) and (parent_def := _get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
+def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[ObjectsWithScopeOrDefs], dep: Optional[Scope]) -> None:
+    if dep is not None and isinstance(dep, VarOrParamDefScope) and (parent_def := _get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
         if parent_def in deps:
             deps[parent_def].add(dep.ast)
         else:
             deps[parent_def] = {dep.ast}
 
 
-def _get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: Scope) -> Scope:
-    assert isinstance(path_root := getattr(elem, 'lhs', elem), PathRoot)  # either lhs or elem needs to be PathRoot
+def _get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: Scope) -> Optional[Scope]:
+    """ Returns the scope after looking for expression 'elem' or None if it is impossible to know (e.g. a().x); Raises an error if cannot find the scope. """
+
+    names = []
+    if not isinstance(child := elem, PathRoot):
+        if isinstance(child, ExpressionDotCall):
+            names.append(child.rhs)
+        while isinstance(child := child.lhs, ExpressionDotCall):
+            names.append(child.rhs)
+        if not isinstance(child, PathRoot):
+            return None  # cannot check existence
 
     try:
-        scope = scope[path_root.name]
-        if isinstance(elem, ExpressionDotCall):
+        scope = scope[child.name]  # at this time, child is sure to be PathRoot
+        while names:
             if isinstance(scope, VarOrParamDefScope):
                 raise KeyError
-            scope = scope[elem.rhs]
+            scope = scope[names.pop()]
     except KeyError:
         raise RuntimeError(f"{elem} {elem.meta}: cannot be used in this scope")
     return scope
@@ -76,7 +85,7 @@ def _add_implicit_loops(elem: GenobjsOrGenattrs|ExpressionObj, hier: list[Object
     return new_elem
 
 
-def _check_fct_use_and_def(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: Scope) -> None:
+def _check_fct_use_and_def(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: Optional[Scope]) -> None:
     """ Compare function usage and definition """  # TODO more generic to check also for array/indices
     if not scope:
         return
@@ -90,17 +99,13 @@ def _check_fct_use_and_def(elem: ExpressionDotCall|ExpressionFunctionCall|PathRo
 
 def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[ObjectsWithScopeOrDefs], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
     """ Checks if elem is accessible in the current scope (if not, an error is raised), adds elem to its VarOrParamDefinition parent's dependencies """
-    if not isinstance(getattr(elem, 'lhs', elem), PathRoot):
-        return  # if both elem and lhs are not PathRoot, cannot check anything
 
     _add_dep(deps, hier, _get_scope_after_expr(elem, _get_scope_from_hier(hier)))
 
 
 def _check_fct_scoping(elem: ExpressionFunctionCall, hier: list[ObjectsWithScopeOrDefs], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
-    if not isinstance(left_elem := elem.lhs, PathRoot) or isinstance(left_elem, ExpressionDotCall) and not isinstance(left_elem.lhs, PathRoot):
-        return  # only functions like f(), A.f() can be checked
 
-    _check_fct_use_and_def(elem, scope := _get_scope_after_expr(left_elem, _get_scope_from_hier(hier)))
+    _check_fct_use_and_def(elem, scope := _get_scope_after_expr(elem, _get_scope_from_hier(hier)))
     _add_dep(deps, hier, scope)
 
 
@@ -115,13 +120,13 @@ def _check_node_or_hyperedge_indices(elem: NodeDefinition|HyperEdgeDefinition, h
             raise KeyError(f"{elem} {elem.meta} index {index} can not be used in this scope")
 
 
-def _topo_sort(globalScope: GlobalScope, deps) -> list[VarOrParamDefScope]:
+def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
     """ Performs the topological sort for VarOrParamDefinition elements (if there's a circular dependency, an error is raised), and returns the sorted elements in a map """
     ts = TopologicalSorter()
     add_node = lambda definition: ts.add(definition, *deps.get(definition, frozenset()))
     visit(globalScope.ast, dict.fromkeys(VarOrParamDefinition.__args__, add_node))
     try:
-        return list(ts.static_order())
+        return tuple(ts.static_order())
     except CycleError as err:  # default error too long to print, so raise from None
         raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.path_to_str(), dep.ast.meta), err.args[1]))) from None
 
@@ -157,8 +162,6 @@ def semantic_check(globalScope: GlobalScope) -> GlobalScope:
 # TODO
 #NODE A[u] (with u in [:2] IndexParamDef parameter from parent node) is NOT valid; should it be?
 # where implicit loop in 'a = {f(u)}' inside function or inside array
-
-# TODO we should be able to semantic check A.B.C.D.E.x
 
 # function decorator ↓ (or separate additionnal argument to all functions)
 # TODO define function to raise error; TODO do not stop at first error

@@ -104,7 +104,7 @@ tree = parser.parse("""
 
             #HYPEREDGE H
                 #PARAMETERS
-                    param = A.param + A.n(C.param) + A.n(0)[1];
+                    param = A.param + A.n(C.param for i in [1:3]) + A.n(0,1,2)[1];
                 #CONSTRAINTS
                     E.y[t]+D.x[t] == param+9;
 
