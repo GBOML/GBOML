@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field, replace
 from enum import Enum
-from typing import Generic, TypeVar, Type, ClassVar
+from typing import Generic, TypeVar, Type, ClassVar, Optional
 
 from gboml.ast import *
 from gboml.tools.tree_modifier import visit, visit_hier
@@ -28,7 +28,7 @@ class Scope:
     def __post_init__(self):
         object.__setattr__(self, 'path', self.parent.path + (self.name,))  # needs to use __setattr__() to keep class frozen
 
-    def _add_to_scope(self, ast, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> "Scope | None":
+    def _add_to_scope(self, ast, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> Optional['Scope']:
         parent = self
         while isinstance(ast, Loop):
             parent = LoopScope(parent, ast)

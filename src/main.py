@@ -5,10 +5,18 @@ from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.resolve_imports import resolve_imports
 from gboml.semantic import semantic_check
 from gboml.scope import GlobalScope
-from gboml.tools.tree_modifier import modify
+from gboml.tools.tree_modifier import modify, visit_hier
+from gboml.ast import *
 import dataclasses
 import os
 from pathlib import Path
+
+def _check_varid_redefinition(tree: GBOMLGraph) -> None:
+    def check_hier(elem: VarOrParamDefinition, hier: list[Loop]) -> None:
+        if (loop := next((loop for loop in hier if loop.varid == elem.name), None)) is not None:
+            raise KeyError(f"{elem} {elem.meta} is overwriting {loop} {loop.meta}.")
+    
+    visit_hier(tree, {Loop}, dict.fromkeys(VarOrParamDefinition.__args__, check_hier))
 
 parser = GBOMLParser()
 tree = parser.parse("""
@@ -22,7 +30,8 @@ tree = parser.parse("""
 #NODE A
     #PARAMETERS
         param = T-1;
-        subnodes = {P} + {P};  // TODO should be forbidden
+        subnodes = {P} + {P};  // TODO should be forbidden, and next line should still be allowed
+        a7 = {1,2,3,4,5} + 1;  // apply +1 on all array elements
         z=4;
         a <- 1;
         a <- a + 1;
@@ -68,13 +77,6 @@ tree = parser.parse("""
     #NODE GEN[azertyuiop][j] for azertyuiop in [0:3] where azertyuiop == 3 for j like u
         #PARAMETERS
             x = azertyuiop * j;
-            azertyuiop = 456;  // SHOULD NOT BE ALLOWED TODO
-        #VARIABLES
-            pass;
-
-    #NODE gen extends A.GEN[1][6]
-        #PARAMETERS
-            param = x;
         #VARIABLES
             pass;
 
@@ -130,6 +132,7 @@ for i in reversed(range(29)):
     print(f"------------------------------- {i} -------------------------------------")
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
 tree = resolve_imports(tree, Path('.'), parser)
+_check_varid_redefinition(tree)  # needs to be done before remove_redundant_definitions()
 tree = remove_redundant_definitions(tree)
 # print(tree)
 

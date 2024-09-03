@@ -4,6 +4,7 @@ from typing import Generic, Optional, TypeVar, TYPE_CHECKING
 from gboml.ast.arrays import Range
 from gboml.ast.base import GBOMLObject
 from gboml.ast.path import Path, PathRoot
+from gboml.ast.expression_operators import ExpressionOp, Operator
 
 if TYPE_CHECKING:
     from gboml.ast.values import Expression
@@ -41,5 +42,5 @@ class LikeLoop(Loop):
 @dataclass(frozen=True)
 class ImplicitLoop(BaseLoop):
     varid: str = field(default="t", kw_only=True)
-    on: "Expression" = field(default=Range(0, PathRoot("T")), kw_only=True)  # fine to *not* use default_factory as Range is immutable/frozen
+    on: "Expression" = field(default=Range(0, ExpressionOp(Operator.minus, operands=(PathRoot(name='T'), 1))), kw_only=True)  # fine to *not* use default_factory as Range is immutable/frozen
     condition: "Expression"

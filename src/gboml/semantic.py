@@ -13,7 +13,7 @@ GenobjsOrGenattrs = GeneratedObjectsType|Array|FunctionConstraint|ExpressionFunc
 def _get_scope_from_hier(hier: list[HierTypes]) -> Scope:
     return next(hier_item.semantic.scope for hier_item in reversed(hier) if hier_item.semantic.scope is not None)
 
-def _get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> HierTypes|None:
+def _get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:
     return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
 
 def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[HierTypes], dep: Optional[Scope]) -> None:
@@ -141,7 +141,7 @@ def semantic_check(globalScope: GlobalScope) -> GlobalScope:
     deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]] = {}
     visit_hier(globalScope.ast, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
 
-    sorted_varorparam_defs = _topo_sort(globalScope, deps)  # TODO propagate scalar values in the order of the returned list, and store which variables are arrays, then do 2nd pass to check for array declaration vs use (like _check_fct_use_and_def)
+    sorted_varorparam_defs = _topo_sort(globalScope, deps)
     del deps
 
     # add implicit loops in GBOMLGraph (and while we're at it, convert LikeLoops to BaseLoops)

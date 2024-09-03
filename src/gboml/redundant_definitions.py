@@ -18,7 +18,7 @@ redefined. This includes:
       #PARAMETERS
          a <- 1
          a <- 2
-  is transformed to
+  is transformed to ect -91999 --mt-deflate -strip 9999x0w.png
       #PARAMETERS
          a <- 2
 - Variable overriding. Only the last definition of a variable is kept.
@@ -41,14 +41,14 @@ redefined. This includes:
          internal: a @tag5 @tag6
 """
 import dataclasses
-import typing
+from typing import Callable, Optional
 import warnings
 
 from gboml.ast import *
 from gboml.tools.tree_modifier import modify, modify_hier
 
 def _warn_redefinition(old_def: VarOrParamDefinition, new_def: VarOrParamDefinition) -> None:
-    warnings.warn(f"Removed definition '{old_def.name}' ({old_def.meta}) since it is redefined later ({new_def.meta})", SyntaxWarning, stacklevel=2)
+    warnings.warn(f"Removed definition '{old_def.name}' {old_def.meta} since it is redefined later {new_def.meta}", SyntaxWarning, stacklevel=2)
 
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
@@ -60,7 +60,7 @@ def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
     })
 
 
-def _merge_attributes(elem: AnyGBOMLObject, attrs_to_mergemethods: dict[str, typing.Callable[[tuple[GBOMLObject]], tuple[GBOMLObject] | None]]) -> AnyGBOMLObject:
+def _merge_attributes(elem: AnyGBOMLObject, attrs_to_mergemethods: dict[str, Callable[[tuple[GBOMLObject]], Optional[tuple[GBOMLObject]]]]) -> AnyGBOMLObject:
     todo = {}
     for attr, merge_method in attrs_to_mergemethods.items():
         if (defs := merge_method(getattr(elem, attr))) is not None:
@@ -83,7 +83,7 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
     return modify_hier(pdef, {*Path.__args__}, {PathRoot: change_var})
 
 
-def _merge_definitions(parameters: tuple[Definition]) -> tuple[Definition] | None:
+def _merge_definitions(parameters: tuple[Definition]) -> Optional[tuple[Definition]]:
     need_update = False
     params: dict[str, list[Definition]] = {}
     for p in parameters:
@@ -114,7 +114,7 @@ def _merge_definitions(parameters: tuple[Definition]) -> tuple[Definition] | Non
     return None
 
 
-def _merge_node_variables(variables: tuple[VariableDefinition | ScopeChange]) -> tuple[VariableDefinition] | None:
+def _merge_node_variables(variables: tuple[VariableDefinition | ScopeChange]) -> Optional[tuple[VariableDefinition]]:
     need_update = False
     vars: dict[str, VariableDefinition] = {}
     for v in variables:
