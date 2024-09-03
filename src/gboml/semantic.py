@@ -2,6 +2,7 @@ from gboml.ast import *
 from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier, modify_hier
 from gboml.reserved_definitions import GBOML_RESERVED_DEFINITIONS
+from gboml.redundant_definitions import remove_redundant_definitions
 
 from graphlib import TopologicalSorter, CycleError
 from typing import NamedTuple, Optional
@@ -15,6 +16,13 @@ def _get_scope_from_hier(hier: list[HierTypes]) -> Scope:
 
 def _get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:
     return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
+
+def _check_varid_redefinition(tree: GBOMLGraph) -> None:
+    def check_hier(elem: VarOrParamDefinition, hier: list[Loop]) -> None:
+        if (loop := next((loop for loop in hier if loop.varid == elem.name), None)) is not None:
+            raise KeyError(f"{elem} {elem.meta} is overwriting {loop} {loop.meta}.")
+    
+    visit_hier(tree, {Loop}, dict.fromkeys(VarOrParamDefinition.__args__, check_hier))
 
 def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[HierTypes], dep: Optional[Scope]) -> None:
     if dep is not None and isinstance(dep, VarOrParamDefScope) and (parent_def := _get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
@@ -136,21 +144,25 @@ def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
         raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.path_to_str(), dep.ast.meta), err.args[1]))) from None
 
 
-def semantic_check(globalScope: GlobalScope) -> GlobalScope:
+def semantic_check(tree: GBOMLGraph) -> tuple[GBOMLGraph, GlobalScope]:
+    _check_varid_redefinition(tree)  # needs to be done before remove_redundant_definitions()
+    tree = remove_redundant_definitions(tree)
+    global_scope = GlobalScope(tree)
+    
     # check if variables are in scope, and store deps
     deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]] = {}
-    visit_hier(globalScope.ast, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
+    visit_hier(global_scope.ast, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
 
-    sorted_varorparam_defs = _topo_sort(globalScope, deps)
+    sorted_varorparam_defs = _topo_sort(global_scope, deps)
     del deps
 
     # add implicit loops in GBOMLGraph (and while we're at it, convert LikeLoops to BaseLoops)
-    new_ast = modify_hier(globalScope.ast, set(HierTypes.__args__), {LikeLoop: _likeloop_to_baseloop})
+    new_ast = modify_hier(global_scope.ast, set(HierTypes.__args__), {LikeLoop: _likeloop_to_baseloop})
     implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]] = {}
     new_ast = modify_hier(new_ast, GeneratedObjects | {*HierTypes.__args__, ImplicitLoop, Array, FunctionConstraint, ExpressionFunctionCall},
                 by_before=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _mark_implicit_loops(elem, hier, implicit_loops)),
                 by_after=dict.fromkeys(GenobjsOrGenattrs.__args__ + (ExpressionObj,), lambda elem,hier: _add_implicit_loops(elem, hier, implicit_loops)))
-    return dataclasses.replace(globalScope, ast=new_ast)
+    return new_ast, dataclasses.replace(global_scope, ast=new_ast)
 
 # TODO list
 #

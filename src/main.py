@@ -1,22 +1,12 @@
 #!/usr/bin/env python3
 
 from gboml.parsing import GBOMLParser
-from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.resolve_imports import resolve_imports
 from gboml.semantic import semantic_check
-from gboml.scope import GlobalScope
-from gboml.tools.tree_modifier import modify, visit_hier
-from gboml.ast import *
+from gboml.tools.tree_modifier import modify
 import dataclasses
 import os
 from pathlib import Path
-
-def _check_varid_redefinition(tree: GBOMLGraph) -> None:
-    def check_hier(elem: VarOrParamDefinition, hier: list[Loop]) -> None:
-        if (loop := next((loop for loop in hier if loop.varid == elem.name), None)) is not None:
-            raise KeyError(f"{elem} {elem.meta} is overwriting {loop} {loop.meta}.")
-    
-    visit_hier(tree, {Loop}, dict.fromkeys(VarOrParamDefinition.__args__, check_hier))
 
 parser = GBOMLParser()
 tree = parser.parse("""
@@ -132,13 +122,5 @@ for i in reversed(range(29)):
     print(f"------------------------------- {i} -------------------------------------")
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
 tree = resolve_imports(tree, Path('.'), parser)
-_check_varid_redefinition(tree)  # needs to be done before remove_redundant_definitions()
-tree = remove_redundant_definitions(tree)
-# print(tree)
-
-# print(tree.meta)
-# print(tree.global_defs[0].meta)
-globalScope = GlobalScope(tree)
-globalScope = semantic_check(globalScope)
-print(globalScope.ast)
-# parse_file("test/test1.txt")
+tree, global_scope = semantic_check(tree)
+print(tree)
