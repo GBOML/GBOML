@@ -166,7 +166,7 @@ class GBOMLParser:
                 param_block = param_block or tuple()
 
                 if loop is not None and not indices:
-                    raise Exception(f"Generated hyperedge {name} needs brackets for declaration.")
+                    raise Exception(f"{meta}: Generated hyperedge {name} needs brackets for declaration.")
                 hyperedge = HyperEdgeDefinition(name, indices, extends, param_block, constraint_block, activations, tags, meta=meta)
                 return _insert_genobj_below_loops(loop, hyperedge)
 
@@ -187,7 +187,7 @@ class GBOMLParser:
                 objectives_block = tuple(x for x in objectives_block if _isinstance_obj_below_loops(x, Objective))
 
                 if loop is not None and not indices:
-                    raise Exception(f"Generated node {name} needs brackets for declaration.")
+                    raise Exception(f"{meta}: Generated node {name} needs brackets for declaration.")
 
                 node = NodeDefinition(name, indices, extends, param_block, subprogram_block.nodes, subprogram_block.hyperedges,
                                       variable_block, constraint_block, objectives_block, activations, tags, meta=meta)
@@ -213,7 +213,7 @@ class GBOMLParser:
                                     imports_from: Optional[tuple[Path]],
                                     bound_lower: Optional[Expression], bound_upper: Optional[Expression], tags: frozenset[str]):
                 if imports_from is not None and len(imports_from) != len(names):
-                    raise Exception("Invalid variable import, numbers of variables on the left and on the right-side of `<-` don't match")
+                    raise Exception(f"{meta}: Invalid variable import, numbers of variables on the left and on the right-side of `<-` don't match")
                 for name, import_from in zip(names, imports_from or repeat(None, len(names))):
                     yield VariableDefinition(name[0], tuple(name[1]), scope, _type or VarType.continuous,
                                              bound_lower, bound_upper, import_from, tags, meta=meta)
@@ -237,12 +237,12 @@ class GBOMLParser:
                     return Dictionary(entries, meta=meta)
                 if all(not _isinstance_obj_below_loops(x, DictEntry) for x in entries):
                     return Array(entries, meta=meta)
-                raise Exception("An array cannot contain dictionary entries (and conversely)")
+                raise Exception(f"{meta}: An array cannot contain dictionary entries (and conversely)")
 
             def definition_std_param(self, meta: Meta, name: str, args: Optional[tuple[str]], typ: DefinitionType, val: Expression, tags: frozenset[str]):
                 if args is not None:
                     if typ != DefinitionType.expression:
-                        raise Exception("Functions can only be defined as expressions (use `<-` instead of `=`)")
+                        raise Exception(f"{meta}: Functions can only be defined as expressions (use `<-` instead of `=`)")
                     return FunctionDefinition(name, args, val, tags, meta=meta)
                 elif typ == DefinitionType.expression:
                     return ExpressionDefinition(name, val, tags, meta=meta)
@@ -252,11 +252,11 @@ class GBOMLParser:
             def constraint(self, meta: Meta, name: Optional[str], expr: Expression, loop: Optional[Loop], tags: frozenset[str]):
                 if isinstance(expr, BoolExpressionComparison):
                     if expr.operator not in (Operator.lesser_or_equal, Operator.greater_or_equal, Operator.equal):
-                        raise Exception("Comparisons in constraints can only be done using <=, >=, or ==")
+                        raise Exception(f"{meta}: Comparisons in constraints can only be done using <=, >=, or ==")
                     return _insert_genobj_below_loops(loop, StdConstraint(name, expr.lhs, expr.operator, expr.rhs, tags, meta=meta))
-                if isinstance(expr, ExpressionFunctionCall) and expr.lhs.name in ('SOS1','SOS2') and loop is None:
+                if isinstance(expr, ExpressionFunctionCall) and expr.lhs.name in map(lambda f: f.name, filter(lambda f: isinstance(f, FunctionConstraintDefinition), GBOML_RESERVED_DEFINITIONS)) and loop is None:
                     return FunctionConstraint(name, expr.lhs, expr.operands, tags, meta=meta)
-                raise Exception("Not a valid constraint; it should be either a function call to SOS1 or SOS2 without loop or a comparison")
+                raise Exception(f"{meta}: Not a valid constraint; it should be either a function call to FunctionConstraintDefinition without loop or a comparison")
 
             def base_loop(self, meta: Meta, varid: str, on: Expression, condition: Optional[Expression], childloop: Optional[Loop] = None):
                 return BaseLoop(childloop, varid, on, condition, meta=meta)

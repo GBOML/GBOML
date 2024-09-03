@@ -44,6 +44,12 @@ class FunctionDefinition(Definition):
     tags: frozenset[str] = field(default=frozenset())
 
 @dataclass(frozen=True)
+class FunctionConstraintDefinition(Definition):
+    args: tuple[str]
+    value: Expression
+    tags: frozenset[str] = field(default=frozenset())
+
+@dataclass(frozen=True)
 class IndexingParameterDefinition(Definition):
     value: Expression
 

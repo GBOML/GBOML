@@ -161,9 +161,6 @@ def semantic_check(globalScope: GlobalScope) -> GlobalScope:
 # Documentation in folder docs (for readthedocs.io)
 # don't forget to add 'parent', say that adding Function(Constraint) needs to be done in reserved_keywords.py
 #
-# SOS1 and SOS2 functions are FunctionConstraint definitions, reserved keyword of the GBOML language
-# FunctionConstraint can only be SOS1 and SOS2 (could add some of them later in Python in but not in GBOML); SOS1 and SOS2 can only be used as FunctionConstraints
-#
 # Errors
 # Should not stop at first error, and should be nicer print ('B.param', not ExpressionDotCall(lhs=PathRoot(name='B'), rhs='param')) by e.g. defining a short_string() in gboml.ast
 # Can be implemented with function decorator or separate additionnal argument to all functions
