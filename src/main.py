@@ -21,7 +21,7 @@ tree = parser.parse("""
 
 #NODE A
     #PARAMETERS
-        param = 1;
+        param = T-1;
         subnodes = {P} + {P};  // TODO should be forbidden
         z=4;
         a <- 1;

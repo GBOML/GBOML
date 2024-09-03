@@ -87,7 +87,7 @@ def _add_implicit_loops(elem: GenobjsOrGenattrs|ExpressionObj, hier: list[HierTy
 
 
 def _check_fct_use_and_def(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: Optional[Scope]) -> None:
-    """ Compare function usage and definition """  # TODO more generic to check also for array/indices
+    """ Compare function usage and definition """
     if not scope:
         return
 
@@ -101,7 +101,7 @@ def _check_fct_use_and_def(elem: ExpressionDotCall|ExpressionFunctionCall|PathRo
 
 def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
     """ Checks if elem is accessible in the current scope (if not, an error is raised), adds elem to its VarOrParamDefinition parent's dependencies """
-    if isinstance(hier[-2], ExpressionFunctionCall|ExpressionArrayCall|ExpressionDotCall) and hier[-2].lhs is elem:
+    if isinstance(hier[-2], ExpressionFunctionCall|ExpressionDotCall) and hier[-2].lhs is elem:
         return
 
     _check_fct_use_and_def(elem, scope := _get_scope_after_expr(elem, _get_scope_from_hier(hier)))
@@ -152,28 +152,23 @@ def semantic_check(globalScope: GlobalScope) -> GlobalScope:
                 by_after=dict.fromkeys(GenobjsOrGenattrs.__args__ + (ExpressionObj,), lambda elem,hier: _add_implicit_loops(elem, hier, implicit_loops)))
     return dataclasses.replace(globalScope, ast=new_ast)
 
-# TODO
-# know which one of the nodes of the DAG does not do anything with iterable and mark their types
-# TODO then propagate varorparams values to varorparams not depending on iterables (for that I can create a new function in ASTNodes that takes a scope as arg)
-
-# TODO define short_string() at least for Path + ExpressionFunctionCall + Meta (in fact, could literally store it in Meta - or only store start+end line/col and reload text file as needed?) for easier-to-read errors
-
-# TODO documentation in folder docs (for readthedocs.io)
-# don't forget to add 'parent'
-
-# TODO SOS1 and SOS2 functions are FunctionConstraint definitions, reserved keyword of the GBOML language
-# FunctionConstraint can only be SOS1 and SOS2 (could add some of them later in Python but not in GBOML); SOS1 and SOS2 can only be used as FunctionConstraints
-
-# TODO
-#NODE A[u] (with u in [:2] IndexParamDef parameter from parent node) is NOT valid; should it be?
-# where implicit loop in 'a = {f(u)}' inside function or inside array
-
-# function decorator ↓ (or separate additionnal argument to all functions)
+# TODO list
+#
+# VarOrParam values propagation:
+# using the list returned by the toposort, know which nodes don't do anything with iterable and propagate scalar value for these ones
+# once done, do 2nd pass to check for array declaration vs use (like _check_fct_use_and_def)
+#
+# Documentation in folder docs (for readthedocs.io)
+# don't forget to add 'parent', say that adding Function(Constraint) needs to be done in reserved_keywords.py
+#
+# SOS1 and SOS2 functions are FunctionConstraint definitions, reserved keyword of the GBOML language
+# FunctionConstraint can only be SOS1 and SOS2 (could add some of them later in Python in but not in GBOML); SOS1 and SOS2 can only be used as FunctionConstraints
+#
+# Errors
+# Should not stop at first error, and should be nicer print ('B.param', not ExpressionDotCall(lhs=PathRoot(name='B'), rhs='param')) by e.g. defining a short_string() in gboml.ast
+# Can be implemented with function decorator or separate additionnal argument to all functions
 # TODO define function to raise error; TODO do not stop at first error
-# what about attaching error to a new scope.variable? if that var already has an error, don't add another one; at the end simply visit() and raise all errors
-
-# TODO I assumed reserved_definitions function all only take 1 arg (array). Is that true (we could force the user to create an array ?)
-
-# TODO in production tests, 
+#
+# Production tests:
 # - use check.py to check AST types are respected
 # - use pyright to check for correct typing of method etc

@@ -107,7 +107,7 @@ def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLP
                 imported_node = _find_leaf_with_name(imported_node.nodes if isinstance(ast, NodeDefinition) else imported_node.hyperedges, path_i.rhs)
         if isinstance(imported_node, Loop):
             RuntimeError(f"{ast.import_from.name.meta} Too few indices. Declared here {ast.import_from.filename}:{imported_node.meta}")
-        ast_path_str = '.'.join(hier_item.name for hier_item in hier)  # TODO use short_string() as explained in semantic.py
+        ast_path_str = '.'.join(hier_item.name for hier_item in hier)
         if _is_node_path_valid(ast_path_str, path_str):
             raise RuntimeError(f"Trying to import a child or a parent node {path_str} {imported_node.meta} (from {ast_path_str} {ast.meta}).")
         if imported_node not in hier[:-1]:
