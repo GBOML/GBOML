@@ -1,21 +1,22 @@
 from gboml.ast import *
 from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier, modify_hier
+from gboml.reserved_definitions import GBOML_RESERVED_DEFINITIONS
 
 from graphlib import TopologicalSorter, CycleError
 from typing import NamedTuple, Optional
 import dataclasses
 
-ObjectsWithScopeOrDefs = ObjectsWithScope|VarOrParamDefinition
+HierTypes = ObjectsWithScope|VarOrParamDefinition|ExpressionFunctionCall|ExpressionArrayCall|ExpressionDotCall|PathRoot
 GenobjsOrGenattrs = GeneratedObjectsType|Array|FunctionConstraint|ExpressionFunctionCall
 
-def _get_scope_from_hier(hier: list[ObjectsWithScopeOrDefs]) -> Scope:
+def _get_scope_from_hier(hier: list[HierTypes]) -> Scope:
     return next(hier_item.semantic.scope for hier_item in reversed(hier) if hier_item.semantic.scope is not None)
 
-def _get_parent_from_hier(hier: list[ObjectsWithScopeOrDefs], _type: type[ObjectsWithScopeOrDefs]) -> ObjectsWithScopeOrDefs|None:
+def _get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> HierTypes|None:
     return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
 
-def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[ObjectsWithScopeOrDefs], dep: Optional[Scope]) -> None:
+def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[HierTypes], dep: Optional[Scope]) -> None:
     if dep is not None and isinstance(dep, VarOrParamDefScope) and (parent_def := _get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
         if parent_def in deps:
             deps[parent_def].add(dep.ast)
@@ -46,13 +47,13 @@ def _get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoo
     return scope
 
 
-def _likeloop_to_baseloop(elem: LikeLoop, hier: list[ObjectsWithScopeOrDefs]) -> BaseLoop:
+def _likeloop_to_baseloop(elem: LikeLoop, hier: list[HierTypes]) -> BaseLoop:
     if not isinstance(index_param_def := getattr(_get_scope_after_expr(elem.on, _get_scope_from_hier(hier)), 'ast', None), IndexingParameterDefinition):
         raise RuntimeError(f"{elem} {elem.meta}: {elem.on} is not an IndexingParameterDefinition")
     return BaseLoop(elem.child, elem.varid, index_param_def.value, elem.condition, meta=elem.meta, semantic=elem.semantic)
 
 
-def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[ObjectsWithScopeOrDefs|GenobjsOrGenattrs|ImplicitLoop], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> ExpressionDotCall|PathRoot:
+def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes|GenobjsOrGenattrs|ImplicitLoop], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> ExpressionDotCall|PathRoot:
     """ If an elem references is an IndexingParameterDefinition, mark a new ImplicitLoop in implicit_loops (key=future child of ImplicitLoop, val=ImplicitLoops) """
     if not isinstance(getattr(elem, 'lhs', elem), PathRoot):
         return elem  # if both elem and lhs are not PathRoot, cannot check anything
@@ -71,7 +72,7 @@ def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[ObjectsWit
     return elem
 
 
-def _add_implicit_loops(elem: GenobjsOrGenattrs|ExpressionObj, hier: list[ObjectsWithScopeOrDefs|GenobjsOrGenattrs|ImplicitLoop], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> GenobjsOrGenattrs|ExpressionObj:
+def _add_implicit_loops(elem: GenobjsOrGenattrs|ExpressionObj, hier: list[HierTypes|GenobjsOrGenattrs|ImplicitLoop], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> GenobjsOrGenattrs|ExpressionObj:
     new_elem = elem
     for loop in implicit_loops.get(elem, []):
         match elem:
@@ -93,23 +94,27 @@ def _check_fct_use_and_def(elem: ExpressionDotCall|ExpressionFunctionCall|PathRo
     if isinstance(scope, ScopedFunctionDefinition) != isinstance(elem, ExpressionFunctionCall):
         raise RuntimeError(f"{elem} {elem.meta}: used as {'function' if isinstance(elem, ExpressionFunctionCall) else 'non-fonction'} "
                            f"but declared as {'function' if isinstance(scope, ScopedFunctionDefinition) else 'non-fonction'} {scope.ast.meta}!")
-    elif isinstance(scope, ScopedFunctionDefinition) and isinstance(elem, ExpressionFunctionCall) and all(not isinstance(arg, Loop) for arg in elem.operands) and len(elem.operands) != len(scope.ast.args):
+    elif isinstance(scope, ScopedFunctionDefinition) and isinstance(elem, ExpressionFunctionCall) and (
+            not elem.operands or scope.ast not in GBOML_RESERVED_DEFINITIONS and all(not isinstance(arg, Loop) for arg in elem.operands) and len(elem.operands) != len(scope.ast.args)):
         raise RuntimeError(f"{elem} {elem.meta}: function call got {len(elem.operands)} arguments but declared with {len(scope.ast.args)} arguments at {scope.ast.meta}.")
 
 
-def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[ObjectsWithScopeOrDefs], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
+def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
     """ Checks if elem is accessible in the current scope (if not, an error is raised), adds elem to its VarOrParamDefinition parent's dependencies """
-
-    _add_dep(deps, hier, _get_scope_after_expr(elem, _get_scope_from_hier(hier)))
-
-
-def _check_fct_scoping(elem: ExpressionFunctionCall, hier: list[ObjectsWithScopeOrDefs], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
+    if isinstance(hier[-2], ExpressionFunctionCall|ExpressionArrayCall|ExpressionDotCall) and hier[-2].lhs is elem:
+        return
 
     _check_fct_use_and_def(elem, scope := _get_scope_after_expr(elem, _get_scope_from_hier(hier)))
     _add_dep(deps, hier, scope)
 
 
-def _check_node_or_hyperedge_indices(elem: NodeDefinition|HyperEdgeDefinition, hier: list[ObjectsWithScopeOrDefs]) -> None:
+def _check_fct_scoping(elem: ExpressionFunctionCall, hier: list[HierTypes], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
+
+    _check_fct_use_and_def(elem, scope := _get_scope_after_expr(elem, _get_scope_from_hier(hier)))
+    _add_dep(deps, hier, scope)
+
+
+def _check_node_or_hyperedge_indices(elem: NodeDefinition|HyperEdgeDefinition, hier: list[HierTypes]) -> None:
     if not elem.indices:
         return
     scope = _get_scope_from_hier(hier)
@@ -134,15 +139,15 @@ def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
 def semantic_check(globalScope: GlobalScope) -> GlobalScope:
     # check if variables are in scope, and store deps
     deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]] = {}
-    visit_hier(globalScope.ast, set(ObjectsWithScopeOrDefs.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
+    visit_hier(globalScope.ast, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
 
-    _topo_sort(globalScope, deps)  # TODO propagate scalar values in the order of the returned list
+    sorted_varorparam_defs = _topo_sort(globalScope, deps)  # TODO propagate scalar values in the order of the returned list, and store which variables are arrays, then do 2nd pass to check for array declaration vs use (like _check_fct_use_and_def)
     del deps
 
     # add implicit loops in GBOMLGraph (and while we're at it, convert LikeLoops to BaseLoops)
-    new_ast = modify_hier(globalScope.ast, set(ObjectsWithScopeOrDefs.__args__), {LikeLoop: _likeloop_to_baseloop})
+    new_ast = modify_hier(globalScope.ast, set(HierTypes.__args__), {LikeLoop: _likeloop_to_baseloop})
     implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]] = {}
-    new_ast = modify_hier(new_ast, GeneratedObjects | {*ObjectsWithScopeOrDefs.__args__, ImplicitLoop, Array, FunctionConstraint, ExpressionFunctionCall},
+    new_ast = modify_hier(new_ast, GeneratedObjects | {*HierTypes.__args__, ImplicitLoop, Array, FunctionConstraint, ExpressionFunctionCall},
                 by_before=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _mark_implicit_loops(elem, hier, implicit_loops)),
                 by_after=dict.fromkeys(GenobjsOrGenattrs.__args__ + (ExpressionObj,), lambda elem,hier: _add_implicit_loops(elem, hier, implicit_loops)))
     return dataclasses.replace(globalScope, ast=new_ast)

@@ -14,15 +14,15 @@ parser = GBOMLParser()
 tree = parser.parse("""
 #TIMEHORIZON T = 2*2;
 #GLOBAL
-    a = 75;
+    a = 75 + A.param;
     pi = 314;
     m = {a for i2 in [0:10] where i2 + pi < 6 for i in [1:2] where i2 % i == 0};  // will use pi = 456
-    pi = 456 + A.param;
+    pi = 456;
 
 #NODE A
     #PARAMETERS
         param = 1;
-        subnodes = {P};
+        subnodes = {P} + {P};  // TODO should be forbidden
         z=4;
         a <- 1;
         a <- a + 1;
@@ -94,7 +94,7 @@ tree = parser.parse("""
 
             #NODE E
                 #PARAMETERS
-                    param = 5.5;
+                    param = 5.5 + C.A;  // TODO should be forbidden ?
                 #VARIABLES
                     external integer : y[T];
                 #CONSTRAINTS
@@ -120,7 +120,7 @@ tree = parser.parse("""
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + sum(l for l in hello where l < 2) + len(hello) + f(global.pi) + subnodes[param].a.a + (param > 1).x + (B * 2).param + f(x).a;
+        min : x[t-5] + sum(l for l in hello where l < 2) + sum(1,2) + len(hello) + f(global.pi) + subnodes[param].a.a + (param > 1).x + (B * 2).param + f(x).a;
 
 """)
 

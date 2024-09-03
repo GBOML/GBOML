@@ -66,7 +66,7 @@ class Scope:
             except KeyError:
                 pass
             else:
-                if isinstance(scope, EmptyScope) or glob is not None and scope.ast in glob.ast.reserved_defs:
+                if isinstance(scope, EmptyScope) or glob is not None and not isinstance(scope, ChildNodeScope) and scope.ast in glob.ast.reserved_defs:
                     return scope
                 else:
                     raise
