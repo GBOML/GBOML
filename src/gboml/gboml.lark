@@ -35,9 +35,11 @@ TAG: /@[a-zA-Z\-_]+/
 extends: "extends" _path ["from" STRING]
 
 // NODES
-?node: node_definition | node_import
+?node: node_definition | node_definition_gen | node_import
 node_definition: _block_shortcut{_node_header, _node_content}
-_node_header: "#NODE" ID olist{index_id} [extends] [loop] tags
+node_definition_gen: _block_shortcut{_node_header_gen, _node_content}
+_node_header: "#NODE" ID [extends] tags
+_node_header_gen: "#NODE" ID mlist{index_id} [extends] loop tags
 _node_content: parameters_block program_block variables_block constraints_block objectives_block
 
 parameters_block: (_block_repeat_or_pass{_opt_param_header,definition})?
@@ -54,10 +56,12 @@ node_redefs: ("with" redefinition*) | ";"
 variable_scope_change: ID SCOPE ";"
 
 // HYPEREDGES
-?hyperedge: hyperedge_definition | hyperedge_import
+?hyperedge: hyperedge_definition | hyperedge_definition_gen | hyperedge_import
 
 hyperedge_definition: _block_shortcut{_hyperedge_header, _hyperedge_content}
-_hyperedge_header: "#HYPEREDGE" ID olist{index_id} [extends] [loop] tags
+hyperedge_definition_gen: _block_shortcut{_hyperedge_header_gen, _hyperedge_content}
+_hyperedge_header: "#HYPEREDGE" ID [extends] tags
+_hyperedge_header_gen: "#HYPEREDGE" ID mlist{index_id} [extends] loop tags
 _hyperedge_content: parameters_block constraints_block
 
 hyperedge_import: "#HYPEREDGE" ID "=" "import" _path "from" STRING hyperedge_redefs

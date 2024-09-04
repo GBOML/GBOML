@@ -12,7 +12,7 @@ from gboml.tools.tree_modifier import visit
 
 def _op_transform(op): return lambda *x, meta: ExpressionOp(op, x, meta=meta)
 def _bool_op_transform(op): return lambda *x, meta: BoolExpressionOp(op, x, meta=meta)
-def _insert_genobj_below_loops(loop: Optional[Loop], generated_obj: GeneratedObjectsType) -> Optional[GeneratedObjectsType|Loop]:
+def _insert_genobj_below_loops(loop: Optional[Loop], generated_obj: GeneratedObjectsType) -> GeneratedObjectsType|Loop:
     if loop is None:
         return generated_obj
     return dataclasses.replace(loop, child=_insert_genobj_below_loops(loop.child, generated_obj))
@@ -157,9 +157,13 @@ class GBOMLParser:
             def program_block(self, meta: Meta, *childrens: tuple[NodeDefinition | HyperEdgeDefinition]) -> NodesAndHyperEdges:
                 return self.NodesAndHyperEdges(tuple(x for x in childrens if _isinstance_obj_below_loops(x, NodeDefinition)), tuple(x for x in childrens if _isinstance_obj_below_loops(x, HyperEdgeDefinition)))
 
-            def hyperedge_definition(self, meta: Meta, name: str, indices: tuple[str], extends: Optional[Extends],
-                                     loop: Optional[Loop], tags: frozenset[str], param_block: tuple[Definition] = None,
-                                     constraint_block: tuple[Constraint | CtrActivation] = None):
+            def hyperedge_definition(self, meta: Meta, name: str, extends: Optional[Extends], tags: frozenset[str],
+                                     param_block: tuple[Definition] = None, constraint_block: tuple[Constraint | CtrActivation] = None):
+                return self.hyperedge_definition_gen(meta, name, tuple(), extends, None, tags, param_block, constraint_block)
+
+            def hyperedge_definition_gen(self, meta: Meta, name: str, indices: tuple[str], extends: Optional[Extends],
+                                         loop: Optional[Loop], tags: frozenset[str], param_block: tuple[Definition] = None,
+                                         constraint_block: tuple[Constraint | CtrActivation] = None):
                 constraint_block = constraint_block or tuple()
                 activations = tuple(x for x in constraint_block if _isinstance_obj_below_loops(x, CtrActivation))
                 constraint_block = tuple(x for x in constraint_block if _isinstance_obj_below_loops(x, Constraint))
@@ -170,12 +174,19 @@ class GBOMLParser:
                 hyperedge = HyperEdgeDefinition(name, indices, extends, param_block, constraint_block, activations, tags, meta=meta)
                 return _insert_genobj_below_loops(loop, hyperedge)
 
-            def node_definition(self, meta: Meta, name: str, indices: tuple[str], extends: Optional[Extends],
-                                loop: Optional[Loop], tags: frozenset[str],
+            def node_definition(self, meta: Meta, name: str, extends: Optional[Extends], tags: frozenset[str],
                                 param_block: tuple[Definition] = None, subprogram_block: NodesAndHyperEdges = None,
                                 variable_block: tuple[VariableDefinition] = None,
                                 constraint_block: tuple[Constraint | CtrActivation] = None,
                                 objectives_block: tuple[Objective | ObjActivation] = None):
+                return self.node_definition_gen(meta, name, tuple(), extends, None, tags, param_block, subprogram_block, variable_block, constraint_block, objectives_block)
+
+            def node_definition_gen(self, meta: Meta, name: str, indices: tuple[str], extends: Optional[Extends],
+                                    loop: Optional[Loop], tags: frozenset[str],
+                                    param_block: tuple[Definition] = None, subprogram_block: NodesAndHyperEdges = None,
+                                    variable_block: tuple[VariableDefinition] = None,
+                                    constraint_block: tuple[Constraint | CtrActivation] = None,
+                                    objectives_block: tuple[Objective | ObjActivation] = None):
                 objectives_block = objectives_block or tuple()
                 constraint_block = constraint_block or tuple()
                 variable_block = variable_block or tuple()
