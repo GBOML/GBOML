@@ -50,14 +50,29 @@ from gboml.tools.tree_modifier import modify, modify_hier
 def _warn_redefinition(old_def: VarOrParamDefinition, new_def: VarOrParamDefinition) -> None:
     warnings.warn(f"Removed definition '{old_def.name}' {old_def.meta} since it is redefined later {new_def.meta}", SyntaxWarning, stacklevel=2)
 
+def _get_obj_below_loops(obj: GBOMLObject) -> GBOMLObject:
+    while isinstance(obj, Loop):
+        obj = obj.child
+    return obj
+
+def _replace_obj_below_loops(possible_loop: GBOMLObject, obj: GBOMLObject) -> GBOMLObject:
+    if not isinstance(possible_loop, Loop):
+        return generated_obj
+    return dataclasses.replace(possible_loop, child=_replace_obj_below_loops(loop.child, generated_obj))
+
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
+    print("17823217527173187251871278317231782315723")
     if isinstance(elem, GBOMLGraph):
         elem = _merge_attributes(elem, dict.fromkeys(('global_defs', 'nodes', 'hyperedges'), _merge_definitions))
+    print("azeryuiopqsd,fml;fsksjjfzezefnfzefnjzenfkzfnzjkfnfjfnkze")
     return modify(elem, {
-        NodeDefinition: lambda node: _merge_attributes(node, {'parameters': _merge_definitions, 'variables': _merge_node_variables}),
+        NodeDefinition: lambda node: _merge_attributes(node, {'variables': _merge_node_variables} | dict.fromkeys(('parameters', 'nodes', 'hyperedges'), _merge_definitions)),
         HyperEdgeDefinition: lambda hedge: _merge_attributes(hedge, {'parameters': _merge_definitions})
-    })
+    })  # TODO see
+    # constraints: tuple[Constraint] = field(default=tuple())
+    # objectives: tuple[Objective] = field(default=tuple())
+    # activations: tuple[Activation] = field(default=tuple())
 
 
 def _merge_attributes(elem: AnyGBOMLObject, attrs_to_mergemethods: dict[str, Callable[[tuple[GBOMLObject]], Optional[tuple[GBOMLObject]]]]) -> AnyGBOMLObject:
@@ -73,7 +88,7 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
         if old_name in pdef.args:  # ignore if shadowed
             return pdef
 
-    def change_var(p: PathRoot, hier: list[Path]):
+    def change_var(p: PathRoot, hier: list[Path]): # TODO I feel like A.B.c c won't be renamed when it is needed
         if len(hier) >= 2 and isinstance(hier[-2], ExpressionDotCall) and hier[-2].lhs is not p:
             return
         if p.name == old_name:
@@ -83,15 +98,18 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
     return modify_hier(pdef, {*Path.__args__}, {PathRoot: change_var})
 
 
-def _merge_definitions(parameters: tuple[Definition]) -> Optional[tuple[Definition]]:
+def _merge_definitions(parameters: tuple[Definition|NodeDefinition|HyperEdgeDefinition|Loop]) -> Optional[tuple[Definition|NodeDefinition|HyperEdgeDefinition|Loop]]:
     need_update = False
-    params: dict[str, list[Definition]] = {}
-    for p in parameters:
+    params: dict[str, list[Definition|NodeDefinition|HyperEdgeDefinition|Loop]] = {}
+    for possible_loop in parameters:
+        p = _get_obj_below_loops(possible_loop)  # TODO reinsert Loops after if need_update
+        print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH 1 {isinstance(possible_loop, Loop)}")
         if p.name in params:
             need_update = True
-            old_name = params[p.name][-1].name
+            old_obj = _get_obj_below_loops(params[p.name][-1])
+            old_name = old_obj.name
             new_name = f"${old_name}${len(params[p.name])}"
-            old_tags = params[p.name][-1].tags
+            old_tags = old_obj.tags
 
             new_p = _name_change(p, old_name, new_name)
             throw_old = new_p is p  # if there is no usage of the old value, we will throw it
@@ -101,13 +119,16 @@ def _merge_definitions(parameters: tuple[Definition]) -> Optional[tuple[Definiti
                 new_p = dataclasses.replace(new_p, tags=old_tags | new_p.tags)
 
             if throw_old:
-                _warn_redefinition(params[p.name][-1], p)
-                params[p.name] = [new_p]
+                _warn_redefinition(old_obj, new_p)
+                params[p.name] = [possible_loop if new_p is p else _replace_obj_below_loops(possible_loop, new_p)]
+                print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH 2 {isinstance(params[p.name][0], Loop)}")
             else:
-                params[p.name][-1] = dataclasses.replace(params[p.name][-1], name=new_name, tags=frozenset())
-                params[p.name].append(new_p)
+                params[p.name][-1] = _replace_obj_below_loops(params[p.name][-1], dataclasses.replace(old_obj, name=new_name, tags=frozenset()))
+                params[p.name].append(_replace_obj_below_loops(possible_loop, new_p))
+                print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH 3 {isinstance(params[p.name][-1], Loop)}")
         else:
-            params[p.name] = [p]
+            params[p.name] = [possible_loop]
+            print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH 4 {isinstance(params[p.name][-1], Loop)}")
 
     if need_update:
         return tuple(y for x in params.values() for y in x)
