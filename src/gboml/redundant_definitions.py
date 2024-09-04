@@ -57,15 +57,13 @@ def _get_obj_below_loops(obj: GBOMLObject) -> GBOMLObject:
 
 def _replace_obj_below_loops(possible_loop: GBOMLObject, obj: GBOMLObject) -> GBOMLObject:
     if not isinstance(possible_loop, Loop):
-        return generated_obj
-    return dataclasses.replace(possible_loop, child=_replace_obj_below_loops(loop.child, generated_obj))
+        return obj
+    return dataclasses.replace(possible_loop, child=_replace_obj_below_loops(loop.child, obj))
 
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
-    print("17823217527173187251871278317231782315723")
     if isinstance(elem, GBOMLGraph):
         elem = _merge_attributes(elem, dict.fromkeys(('global_defs', 'nodes', 'hyperedges'), _merge_definitions))
-    print("azeryuiopqsd,fml;fsksjjfzezefnfzefnjzenfkzfnzjkfnfjfnkze")
     return modify(elem, {
         NodeDefinition: lambda node: _merge_attributes(node, {'variables': _merge_node_variables} | dict.fromkeys(('parameters', 'nodes', 'hyperedges'), _merge_definitions)),
         HyperEdgeDefinition: lambda hedge: _merge_attributes(hedge, {'parameters': _merge_definitions})
@@ -102,8 +100,7 @@ def _merge_definitions(parameters: tuple[Definition|NodeDefinition|HyperEdgeDefi
     need_update = False
     params: dict[str, list[Definition|NodeDefinition|HyperEdgeDefinition|Loop]] = {}
     for possible_loop in parameters:
-        p = _get_obj_below_loops(possible_loop)  # TODO reinsert Loops after if need_update
-        print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH 1 {isinstance(possible_loop, Loop)}")
+        p = _get_obj_below_loops(possible_loop)
         if p.name in params:
             need_update = True
             old_obj = _get_obj_below_loops(params[p.name][-1])
@@ -121,14 +118,11 @@ def _merge_definitions(parameters: tuple[Definition|NodeDefinition|HyperEdgeDefi
             if throw_old:
                 _warn_redefinition(old_obj, new_p)
                 params[p.name] = [possible_loop if new_p is p else _replace_obj_below_loops(possible_loop, new_p)]
-                print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH 2 {isinstance(params[p.name][0], Loop)}")
             else:
                 params[p.name][-1] = _replace_obj_below_loops(params[p.name][-1], dataclasses.replace(old_obj, name=new_name, tags=frozenset()))
                 params[p.name].append(_replace_obj_below_loops(possible_loop, new_p))
-                print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH 3 {isinstance(params[p.name][-1], Loop)}")
         else:
             params[p.name] = [possible_loop]
-            print(f"HHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHH 4 {isinstance(params[p.name][-1], Loop)}")
 
     if need_update:
         return tuple(y for x in params.values() for y in x)
