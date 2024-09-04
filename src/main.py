@@ -24,7 +24,7 @@ tree = parser.parse("""
         a7 = {1,2,3,4,5} + 1;  // apply +1 on all array elements
         z=4;
         a <- 1;
-        a <- a + 1;
+        a <- a + a[a].a;
         a <- a + 1;
         a <- a + 1;
         f(a) <- global.pi ** iDontExistAndItsFineBecauseFunctionIsRedefinedAfter;
@@ -64,16 +64,18 @@ tree = parser.parse("""
         param = 9;
         var external;
 
-    #NODE GEN[azertyuiop][j] for azertyuiop in [0:3] where azertyuiop == 3 for j like u
+    #NODE GEN;
+
+    #NODE GEN[i][a_man] for i in [0:3] where i == 3 for a_man like u
         #PARAMETERS
-            x = azertyuiop * j;
+            x = i * a_man;
         #VARIABLES
             pass;
 
     #NODE B
         #PARAMETERS
             param = 2;
-        #NODE C
+        #NODE C[param] where param == 2
             #PARAMETERS
                 param = 3;
             #NODE D
@@ -112,7 +114,8 @@ tree = parser.parse("""
     #VARIABLES
         internal : x[T] <- B.x[T];
     #OBJECTIVES
-        min : x[t-5] + sum(l for l in hello where l < 2) + sum(1,2) + len(hello) + f(global.pi) + subnodes[param].a.a + (param > 1).x + (B * 2).param + f(x).a;
+        min name : x[t-5] + sum(l for l in hello where l < 2) + sum(1,2) + len(hello) + f(global.pi) + subnodes[param].a.a + (param > 1).x + (B * 2).param + f(x).a;
+        max name : x[t];
 
 """)
 
