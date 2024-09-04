@@ -156,9 +156,11 @@ class LoopScope(Scope):
 
     # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
     def _finalize_init(self):
+        if isinstance(self.ast, ImplicitLoop):
+            return
         try:
             self.parent[self.ast.varid]
-            raise RuntimeError(f"Identifier {self.ast.varid} is already used")
+            raise RuntimeError(f"{self.ast} {self.ast.meta}: Identifier {self.ast.varid} is already used")
         except KeyError:
             pass
 
@@ -224,7 +226,7 @@ class ScopedFunctionDefinition(VarOrParamDefScope):
         for arg in self.ast.args:
             try:
                 self.parent[arg]
-                raise RuntimeError(f"Identifier {arg} is already used")
+                raise RuntimeError(f"{self.ast} {self.ast.meta}: Identifier {arg} is already used")
             except KeyError:
                 pass
 
