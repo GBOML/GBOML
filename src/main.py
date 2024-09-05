@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 
 from gboml.parsing import GBOMLParser
+from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.resolve_imports import resolve_imports
+from gboml.scope import GlobalScope
 from gboml.semantic import semantic_check
 from gboml.tools.tree_modifier import modify
 import dataclasses
@@ -125,5 +127,7 @@ for i in reversed(range(29)):
     print(f"------------------------------- {i} -------------------------------------")
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
 tree = resolve_imports(tree, Path('.'), parser)
-tree, global_scope = semantic_check(tree)
+tree = remove_redundant_definitions(tree)
+global_scope = GlobalScope(tree)
+tree, global_scope = semantic_check(global_scope)
 print(tree)

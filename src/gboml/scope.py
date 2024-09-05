@@ -8,10 +8,20 @@ from gboml.tools.tree_modifier import visit, visit_hier
 T = TypeVar('T', bound=NamedGBOMLObject)
 ObjectsWithScope = NodeDefinition|HyperEdgeDefinition|Loop|VarOrParamDefinition|FunctionDefinition
 
-def _create_loopscope_from_attrs(scope: "Scope", element: GBOMLObject, attrs: tuple[str]):
+def _create_loopscope_from_attrs(scope: 'Scope', element: GBOMLObject, attrs: tuple[str]) -> None:
     for attr in attrs:
         for sub_ast in getattr(element, attr):
             visit_hier(sub_ast, {GBOMLObject, Loop}, {Loop: lambda loop,hier: LoopScope(next((hier_item.semantic.scope for hier_item in reversed(hier[:-1]) if hier_item.semantic.scope is not None), scope), loop)})
+
+def _check_redefinition(scope: 'Scope', meta: Meta, item: str) -> None:
+    try:
+        ans = scope[item]
+    except KeyError:
+        pass
+    else:
+        if isinstance(ans, ParentNodeScope|ChildNodeScope):
+            ans = ans.parent
+        raise KeyError(f"{meta}: Identifier {item} is already used {'' if not ans else ans.ast.meta}.")
 
 class OverrideBehavior(Enum):
     ignore = 0
@@ -34,16 +44,18 @@ class Scope:
             parent = LoopScope(parent, ast)
             ast = ast.child
 
-        if ast.name in self.content:
+        if ast.name == 'parent':
+            raise KeyError(f"{ast.meta}: Identifier {ast.name} cannot be redefined (reserved keyword).")
+
+        try:
+            self[ast.name]
+        except KeyError:
+            pass
+        else:
             if whenPresent == OverrideBehavior.fail:
-                raise RuntimeError(f"Identifier {ast.name} is already used")
+                raise KeyError(f"{ast.meta}: Identifier {ast.name} is already used {scope.parent.ast.meta if isinstance(scope := self.content[ast.name], ParentNodeScope) else scope.ast.meta} GROS CACAA.")
             elif whenPresent == OverrideBehavior.ignore:
                 return None
-            else:
-                pass
-
-        if ast.name == 'parent':
-            raise KeyError(f"Identifier {ast.name} cannot be redefined (reserved keyword)")
 
         self.content[ast.name] = wrapper(create_scope(ast, parent))
         return self.content[ast.name]
@@ -83,7 +95,7 @@ class EmptyScope(Scope):
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(EmptyScope, cls).__new__(cls)
+            cls._instance = super().__new__(cls)
             object.__setattr__(cls._instance, 'parent', None)
             object.__setattr__(cls._instance, 'name', "")
             object.__setattr__(cls._instance, 'path', tuple())
@@ -104,8 +116,8 @@ class NamedAstScope(Scope, Generic[T]):
 
     def __post_init__(self):
         object.__setattr__(self, 'name', self.ast.name)
+        super().__post_init__()
         self.ast.semantic.scope = self
-        super(NamedAstScope, self).__post_init__()
 
 
 @dataclass(frozen=True)
@@ -120,7 +132,7 @@ class ParentNodeScope(Scope):
         object.__setattr__(self, 'content', self.parent.content)
 
     def __getitem__(self, item):
-        out = super(ParentNodeScope, self).__getitem__(item)
+        out = super().__getitem__(item)
         if not isinstance(out, ParentNodeScope | ScopedDefinition | ScopedFunctionDefinition | EmptyScope):
             raise KeyError(f"{item} is not accessible")
         return out
@@ -138,7 +150,7 @@ class ChildNodeScope(Scope):
         object.__setattr__(self, 'content', self.parent.content)
 
     def __getitem__(self, item):
-        out = super(ChildNodeScope, self).__getitem__(item)
+        out = super().__getitem__(item)
         if not isinstance(out, ScopedVariableDefinition):
             raise KeyError(f"{item} is not accessible")
         return out
@@ -153,16 +165,8 @@ class LoopScope(Scope):
         object.__setattr__(self, 'path', self.parent.path)
         object.__setattr__(self, 'content', self.parent.content)
         self.ast.semantic.scope = self
-
-    # needed post_post_init because we need parent's scope fully filled in to update it with keys and check if intersects
-    def _finalize_init(self):
-        if isinstance(self.ast, ImplicitLoop):
-            return
-        try:
-            self.parent[self.ast.varid]
-            raise RuntimeError(f"{self.ast} {self.ast.meta}: Identifier {self.ast.varid} is already used")
-        except KeyError:
-            pass
+        if not isinstance(self.ast, ImplicitLoop):
+            _check_redefinition(self.parent, self.ast.meta, self.ast.varid)
 
     def __getitem__(self, item):
         return EmptyScope() if item == self.ast.varid else self.parent[item]
@@ -174,21 +178,23 @@ class NodeScope(NamedAstScope[NodeDefinition]):
     hyperedges: dict[str, "HyperEdgeScope"] = field(init=False, repr=False)
 
     def __post_init__(self):
-        super(NodeScope, self).__post_init__()
         object.__setattr__(self, 'content', {})
-        self._add_all_to_scope(self.ast.parameters)
-        node_scopes = self._add_all_to_scope(self.ast.nodes, ChildNodeScope)
-        self._add_all_to_scope(self.ast.variables)
-
+        super().__post_init__()
+        
         parents = [self.parent]
         while not isinstance(parents[-1], GlobalScope):
             parents.append(parents[-1].parent)
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
+        self._add_all_to_scope(self.ast.parameters)
+        node_scopes = self._add_all_to_scope(self.ast.nodes, ChildNodeScope)
+        self._add_all_to_scope(self.ast.variables)
+
         object.__setattr__(self, 'nodes', {x.parent.name: x.parent for x in node_scopes})
         object.__setattr__(self, 'hyperedges', {h.name: HyperEdgeScope(self, h, list(self.nodes.values())) for h in self.ast.hyperedges})
 
         _create_loopscope_from_attrs(self, self.ast, ('constraints', 'objectives', 'parameters'))
+        _check_redefinition(self, self.ast.meta, self.ast.name)
 
 
 @dataclass(frozen=True)
@@ -196,8 +202,8 @@ class HyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
     _parent_nodes: tuple[NodeScope]
 
     def __post_init__(self):
-        super(HyperEdgeScope, self).__post_init__()
         object.__setattr__(self, 'content', {})
+        super().__post_init__()
         self._add_all_to_scope(self.ast.parameters)
         self._add_all_to_scope(self._parent_nodes)
 
@@ -207,13 +213,15 @@ class HyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
         _create_loopscope_from_attrs(self, self.ast, ('constraints', 'parameters'))
+        _check_redefinition(self, self.ast.meta, self.ast.name)
 
 
 @dataclass(frozen=True)
 class VarOrParamDefScope(NamedAstScope[Definition]):
     def __post_init__(self):
         object.__setattr__(self, 'content', self.parent.content)
-        super(VarOrParamDefScope, self).__post_init__()
+        super().__post_init__()
+        _check_redefinition(self, self.ast.meta, self.ast.name)
 
 @dataclass(frozen=True)
 class ScopedDefinition(VarOrParamDefScope):
@@ -221,14 +229,10 @@ class ScopedDefinition(VarOrParamDefScope):
 
 @dataclass(frozen=True)
 class ScopedFunctionDefinition(VarOrParamDefScope):
-    # needed post_post_init because we need parent's scope fully filled in to check if intersects
-    def _finalize_init(self):
+    def __post_init__(self):
+        super().__post_init__()
         for arg in self.ast.args:
-            try:
-                self.parent[arg]
-                raise RuntimeError(f"{self.ast} {self.ast.meta}: Identifier {arg} is already used")
-            except KeyError:
-                pass
+            _check_redefinition(self.parent, self.ast.meta, arg)
 
     def __getitem__(self, item):
         return EmptyScope() if item in self.ast.args else self.parent[item]
@@ -264,4 +268,3 @@ class GlobalScope(Scope):
         _create_loopscope_from_attrs(self, self.ast, ('global_defs',))
         object.__setattr__(self, 'nodes', {x.name: x for x in self._add_all_to_scope(self.ast.nodes)})
         object.__setattr__(self, 'hyperedges', {h.name: HyperEdgeScope(self, h, tuple(self.nodes.values())) for h in self.ast.hyperedges})
-        visit(self.ast, dict.fromkeys({FunctionDefinition, Loop}, lambda elem: elem.semantic.scope._finalize_init()))

@@ -2,13 +2,12 @@ from gboml.ast import *
 from gboml.scope import *
 from gboml.tools.tree_modifier import visit, visit_hier, modify_hier
 from gboml.reserved_definitions import GBOML_RESERVED_DEFINITIONS
-from gboml.redundant_definitions import remove_redundant_definitions
 
 from graphlib import TopologicalSorter, CycleError
 from typing import NamedTuple, Optional
 import dataclasses
 
-HierTypes = ObjectsWithScope|VarOrParamDefinition|ExpressionFunctionCall|ExpressionArrayCall|ExpressionDotCall|PathRoot
+HierTypes = ObjectsWithScope|VarOrParamDefinition|ExpressionFunctionCall|Path
 GenobjsOrGenattrs = GeneratedObjectsType|Array|FunctionConstraint|ExpressionFunctionCall
 
 def _get_scope_from_hier(hier: list[HierTypes]) -> Scope:
@@ -16,13 +15,6 @@ def _get_scope_from_hier(hier: list[HierTypes]) -> Scope:
 
 def _get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:
     return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
-
-def _check_varid_redefinition(tree: GBOMLGraph) -> None:
-    def check_hier(elem: VarOrParamDefinition, hier: list[Loop]) -> None:
-        if (loop := next((loop for loop in hier if loop.varid == elem.name), None)) is not None:
-            raise KeyError(f"{elem} {elem.meta} is overwriting {loop} {loop.meta}.")
-    
-    visit_hier(tree, {Loop}, dict.fromkeys(VarOrParamDefinition.__args__, check_hier))
 
 def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[HierTypes], dep: Optional[Scope]) -> None:
     if dep is not None and isinstance(dep, VarOrParamDefScope) and (parent_def := _get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
@@ -144,11 +136,7 @@ def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
         raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.path_to_str(), dep.ast.meta), err.args[1]))) from None
 
 
-def semantic_check(tree: GBOMLGraph) -> tuple[GBOMLGraph, GlobalScope]:
-    _check_varid_redefinition(tree)  # needs to be done before remove_redundant_definitions()
-    tree = remove_redundant_definitions(tree)
-    global_scope = GlobalScope(tree)
-    
+def semantic_check(global_scope: GlobalScope) -> tuple[GBOMLGraph, GlobalScope]:
     # check if variables are in scope, and store deps
     deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]] = {}
     visit_hier(global_scope.ast, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
@@ -176,7 +164,6 @@ def semantic_check(tree: GBOMLGraph) -> tuple[GBOMLGraph, GlobalScope]:
 # Errors
 # Should not stop at first error, and should be nicer print ('B.param', not ExpressionDotCall(lhs=PathRoot(name='B'), rhs='param')) by e.g. defining a short_string() in gboml.ast
 # Can be implemented with function decorator or separate additionnal argument to all functions
-# TODO define function to raise error; TODO do not stop at first error
 #
 # Production tests:
 # - use check.py to check AST types are respected

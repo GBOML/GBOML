@@ -86,13 +86,12 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
         if old_name in pdef.args:  # ignore if shadowed
             return pdef
 
-    def change_var(p: PathRoot, hier: list[ExpressionDotCall|ExpressionFunctionCall|ExpressionArrayCall]): # TODO I feel like A.B.c c won't be renamed when it is needed
+    def change_var(p: PathRoot, hier: list[ExpressionDotCall|ExpressionFunctionCall|ExpressionArrayCall]):
         if p.name != old_name or hier and isinstance(hier[-1], ExpressionDotCall):
             return p
         else:
             return dataclasses.replace(p, name=new_name)
 
-    print(pdef)
     return modify_hier(pdef, {ExpressionDotCall, ExpressionFunctionCall, ExpressionArrayCall}, {PathRoot: change_var})
 
 

@@ -86,7 +86,7 @@ def resolve_imports(tree: GBOMLObject, current_dir: pathlib.Path, parser: GBOMLP
         path_i: Path = ast.import_from.name
         imported_node: GBOMLGraph | NodeDefinition | HyperEdgeDefinition = tree if ast.import_from.filename is None else _load_file(current_dir / ast.import_from.filename, parser, file_cache)
         stack: list[ExpressionArrayCall | ExpressionDotCall] = []
-        constant_defs: ConstantDefinition = []  # used for declaring as params indices (e.g. "import A.B[2*sqrt(64)]" and "A.B[i] for i in [0:99]" => "i = 2*sqrt(64)")
+        constant_defs: ConstantDefinition = []  # used for declaring as params indices (e.g. "import A.B[2*sqrt(64)]" and "A.B[i] for i in [0:99]" => "i = 2*sqrt(64)")  # TODO should be forbidden to redefine i. Is it rn ?
         while not isinstance(path_i, PathRoot):
             stack.append(path_i)
             path_i = path_i.lhs
