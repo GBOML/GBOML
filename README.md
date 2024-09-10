@@ -1,0 +1,75 @@
+*GBOML: Graph-Based Optimization Modeling Language*
+
+---
+
+## Contents
+
+- [About](#about)
+- [Development issues](#development-issues)
+- [Quick start](#quick-start)
+- [Documentation](#documentation)
+- [Community guidelines](#community-guidelines)
+- [Citing GBOML](#citing-GBOML)
+- [License](#license)
+
+---
+
+## About
+
+The Graph-Based Optimization Modeling Language (GBOML) is a modeling language for mathematical programming enabling the easy implementation of a broad class of structured mixed-integer linear programs typically found in applications ranging from energy system planning to supply chain management. More precisely, the language is particularly well-suited for representing problems involving the optimization of discrete-time dynamical systems over a finite time horizon and possessing a block structure that can be encoded by a hierarchical hypergraph. The language combines elements of both algebraic and object-oriented modeling languages in order to facilitate problem encoding and model re-use, speed up model generation, expose problem structure to specialised solvers and simplify post-processing. The GBOML parser, which is implemented in Python, turns GBOML input files into hierarchical graph data structures representing optimization models. The associated tool provides both a command-line interface and a Python API to construct models, and directly interfaces with a variety of open source and commercial solvers, including structure-exploiting ones.
+
+## Development issues
+
+`TODO`: we use in several places Python's frozen `dataclasses`. The issue with them is that any change require to **re**create the whole object (thus calls `__init__()` and `__post_init__()` functions, and in the case of `Scope` any `dataclasses.replace()` is costly as it **re**create all children Scopes.  
+A way to avoid doing this costly operation, is by using `object.__setattr__(scope_instance, 'attr_name', attr_content)`.  
+Timings were **NOT** done to see how much time this was actually taking.
+
+## Quick start
+
+GBOML has been tested on Windows, macOS and Linux. The simplest way to install it is via the *pip* package manager in a terminal window:
+
+    pip install gboml
+
+Please refer to the online documentation for more [information on how to install GBOML](https://gboml.readthedocs.io/en/latest/installation.html). Note that optimization solvers are also required to solve GBOML models and installation instructions are also provided in the online documentation.
+
+Several examples are provided in this repository ([in the examples directory](examples/)) and explained in the [online documentation](https://gboml.readthedocs.io/en/latest/).
+
+## Documentation
+
+Documentation is available on Read the Docs:
+
+* [Read the documentation online](https://gboml.readthedocs.io/en/latest/)
+
+## Community guidelines
+
+To contribute changes:
+
+1. Fork the project on Gitlab
+2. Create a feature branch to work on in your fork (`git checkout -b new-feature`)
+3. Commit your changes to the feature branch
+4. Push the branch to Gitlab (`git push origin my-new-feature`)
+5. On Gitlab, create a new pull request from the feature branch
+
+Issues and questions shall be reported in the [issues directory](https://gitlab.uliege.be/smart_grids/public/gboml/-/issues).
+
+## Citing GBOML
+
+```
+@article{Miftari2022,
+  doi = {10.21105/joss.04158},
+  url = {https://doi.org/10.21105/joss.04158},
+  year = {2022},
+  publisher = {The Open Journal},
+  volume = {7},
+  number = {72},
+  pages = {4158},
+  author = {Bardhyl Miftari and Mathias Berger and Hatim Djelassi and Damien Ernst},
+  title = {GBOML: Graph-Based Optimization Modeling Language},
+  journal = {Journal of Open Source Software}
+}
+```
+
+
+
+## License
+Copyright (C) since 2020 Bardhyl Miftari, Mathias Berger, Hatim Djelassi, Damien Ernst, University of Liege .   Licensed under the MIT License (see LICENSE file).
