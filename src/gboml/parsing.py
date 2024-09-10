@@ -282,7 +282,7 @@ class GBOMLParser:
                 return _insert_genobj_below_loops(loop, GeneratedExpression(value, meta=meta))
 
             def objective(self, meta: Meta, _type: ObjType, name: Optional[str], expression: Expression, loop: Optional[Loop], tags: frozenset[str]):
-                return _insert_genobj_below_loops(loop, Objective(_type, name, expression, tags))
+                return _insert_genobj_below_loops(loop, Objective(_type, name, expression, tags, meta=meta))
 
             def dict_entry(self, meta: Meta, key: Expression, value: Expression, loop: Optional[Loop]):
-                return _insert_genobj_below_loops(loop, DictEntry(key, value))
+                return _insert_genobj_below_loops(loop, DictEntry(key, value, meta=meta))

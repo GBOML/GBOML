@@ -7,11 +7,35 @@ from gboml.tools.tree_modifier import visit, visit_hier
 
 T = TypeVar('T', bound=NamedGBOMLObject)
 ObjectsWithScope = NodeDefinition|HyperEdgeDefinition|Loop|VarOrParamDefinition|FunctionDefinition
+HierTypes = ObjectsWithScope|VarOrParamDefinition|ExpressionFunctionCall|Path
+
+def _obj_below_loops(obj: GBOMLObject) -> GBOMLObject:
+    while isinstance(obj, Loop):
+        obj = obj.child
+    return obj
 
 def _create_loopscope_from_attrs(scope: 'Scope', element: GBOMLObject, attrs: tuple[str]) -> None:
     for attr in attrs:
         for sub_ast in getattr(element, attr):
             visit_hier(sub_ast, {GBOMLObject, Loop}, {Loop: lambda loop,hier: LoopScope(next((hier_item.semantic.scope for hier_item in reversed(hier[:-1]) if hier_item.semantic.scope is not None), scope), loop)})
+
+def _check_dup_names(ctrs: tuple[Constraint], acts: tuple[Activation], objs: tuple[Objective] = tuple()) -> None:
+    return
+    def check_dups(t):
+        seen = set()
+        if dups := [x for x in t if x.name in seen or seen.add(x.name)]:
+            raise KeyError(f"{list(map(lambda d: d.meta, dups))}: several {type(dups[0]).__name__} with the same name {set(map(lambda d: d.name, dups))}.")
+    
+    for a in acts:
+        pass
+    for t in (ctrs, acts, objs):
+        if not t:
+            continue
+        match _obj_below_loops(t[0]): # TODO all can be under loops (does activation make sense)
+            case Constraint() | Objective():
+                check_dups(filter(lambda e: e.name is not None, t))
+            case Activation():
+                pass
 
 def _check_redefinition(scope: 'Scope', meta: Meta, item: str) -> None:
     try:
@@ -23,6 +47,36 @@ def _check_redefinition(scope: 'Scope', meta: Meta, item: str) -> None:
             ans = ans.parent
         raise KeyError(f"{meta}: Identifier {item} is already used {'' if not ans else ans.ast.meta}.")
 
+
+def get_scope_from_hier(hier: list[HierTypes]) -> 'Scope':
+    return next(hier_item.semantic.scope for hier_item in reversed(hier) if hier_item.semantic.scope is not None)
+
+def get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:
+    return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
+
+def get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: 'Scope') -> Optional['Scope']:
+    """ Returns the scope after looking for expression 'elem' or None if it is impossible to know (e.g. a().x); Raises an error if cannot find the scope. """
+
+    names = []
+    if not isinstance(child := elem, PathRoot):
+        if isinstance(child, ExpressionDotCall):
+            names.append(child.rhs)
+        while isinstance(child := child.lhs, ExpressionDotCall):
+            names.append(child.rhs)
+        if not isinstance(child, PathRoot):
+            return None  # cannot check existence
+
+    try:
+        scope = scope[child.name]  # child is sure to be PathRoot
+        while names:
+            if isinstance(scope, VarOrParamDefScope):
+                raise KeyError
+            scope = scope[names.pop()]
+    except KeyError:
+        raise RuntimeError(f"{elem} {elem.meta}: cannot be used in this scope")
+    return scope
+
+
 class OverrideBehavior(Enum):
     ignore = 0
     fail = 1
@@ -33,9 +87,10 @@ class Scope:
     parent: "Scope" = field(repr=False)
     name: str
     path: tuple[str] = field(init=False)
-    content: dict[str, "Scope"] = field(init=False)
+    content: dict[str, "Scope"] = field(init=False, hash=False)
 
     def __post_init__(self):
+        print(f"{type(self)} was INITIALIZED")
         object.__setattr__(self, 'path', self.parent.path + (self.name,))  # needs to use __setattr__() to keep class frozen
 
     def _add_to_scope(self, ast, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> Optional['Scope']:
@@ -174,8 +229,8 @@ class LoopScope(Scope):
 
 @dataclass(frozen=True)
 class NodeScope(NamedAstScope[NodeDefinition]):
-    nodes: dict[str, "NodeScope"] = field(init=False, repr=False)
-    hyperedges: dict[str, "HyperEdgeScope"] = field(init=False, repr=False)
+    nodes: dict[str, "NodeScope"] = field(init=False, repr=False, hash=False)
+    hyperedges: dict[str, "HyperEdgeScope"] = field(init=False, repr=False, hash=False)
 
     def __post_init__(self):
         object.__setattr__(self, 'content', {})
@@ -194,6 +249,7 @@ class NodeScope(NamedAstScope[NodeDefinition]):
         object.__setattr__(self, 'hyperedges', {h.name: HyperEdgeScope(self, h, list(self.nodes.values())) for h in self.ast.hyperedges})
 
         _create_loopscope_from_attrs(self, self.ast, ('constraints', 'objectives', 'parameters'))
+        _check_dup_names(self.ast.constraints, self.ast.activations, self.ast.objectives)
         _check_redefinition(self, self.ast.meta, self.ast.name)
 
 
@@ -213,6 +269,7 @@ class HyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
         _create_loopscope_from_attrs(self, self.ast, ('constraints', 'parameters'))
+        _check_dup_names(self.ast.constraints, self.ast.activations)
         _check_redefinition(self, self.ast.meta, self.ast.name)
 
 
@@ -258,8 +315,8 @@ class GlobalScope(Scope):
     path: tuple[str] = field(init=False, default_factory=tuple)
     parent: Scope = field(init=False, default=None)
     ast: GBOMLGraph = field(repr=False)
-    nodes: dict[str, NodeScope] = field(init=False, repr=False)
-    hyperedges: dict[str, HyperEdgeScope] = field(init=False, repr=False)
+    nodes: dict[str, NodeScope] = field(init=False, repr=False, hash=False)
+    hyperedges: dict[str, HyperEdgeScope] = field(init=False, repr=False, hash=False)
 
     def __post_init__(self):
         object.__setattr__(self, 'content', {})
@@ -268,3 +325,4 @@ class GlobalScope(Scope):
         _create_loopscope_from_attrs(self, self.ast, ('global_defs',))
         object.__setattr__(self, 'nodes', {x.name: x for x in self._add_all_to_scope(self.ast.nodes)})
         object.__setattr__(self, 'hyperedges', {h.name: HyperEdgeScope(self, h, tuple(self.nodes.values())) for h in self.ast.hyperedges})
+        self.ast.semantic.scope = self

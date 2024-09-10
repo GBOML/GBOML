@@ -7,83 +7,12 @@ from graphlib import TopologicalSorter, CycleError
 from typing import NamedTuple, Optional
 import dataclasses
 
-HierTypes = ObjectsWithScope|VarOrParamDefinition|ExpressionFunctionCall|Path
-GenobjsOrGenattrs = GeneratedObjectsType|Array|FunctionConstraint|ExpressionFunctionCall
-
-def _get_scope_from_hier(hier: list[HierTypes]) -> Scope:
-    return next(hier_item.semantic.scope for hier_item in reversed(hier) if hier_item.semantic.scope is not None)
-
-def _get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:
-    return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
-
 def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[HierTypes], dep: Optional[Scope]) -> None:
-    if dep is not None and isinstance(dep, VarOrParamDefScope) and (parent_def := _get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
+    if dep is not None and isinstance(dep, VarOrParamDefScope) and (parent_def := get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
         if parent_def in deps:
             deps[parent_def].add(dep.ast)
         else:
             deps[parent_def] = {dep.ast}
-
-
-def _get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: Scope) -> Optional[Scope]:
-    """ Returns the scope after looking for expression 'elem' or None if it is impossible to know (e.g. a().x); Raises an error if cannot find the scope. """
-
-    names = []
-    if not isinstance(child := elem, PathRoot):
-        if isinstance(child, ExpressionDotCall):
-            names.append(child.rhs)
-        while isinstance(child := child.lhs, ExpressionDotCall):
-            names.append(child.rhs)
-        if not isinstance(child, PathRoot):
-            return None  # cannot check existence
-
-    try:
-        scope = scope[child.name]  # at this time, child is sure to be PathRoot
-        while names:
-            if isinstance(scope, VarOrParamDefScope):
-                raise KeyError
-            scope = scope[names.pop()]
-    except KeyError:
-        raise RuntimeError(f"{elem} {elem.meta}: cannot be used in this scope")
-    return scope
-
-
-def _likeloop_to_baseloop(elem: LikeLoop, hier: list[HierTypes]) -> BaseLoop:
-    if not isinstance(index_param_def := getattr(_get_scope_after_expr(elem.on, _get_scope_from_hier(hier)), 'ast', None), IndexingParameterDefinition):
-        raise RuntimeError(f"{elem} {elem.meta}: {elem.on} is not an IndexingParameterDefinition")
-    return BaseLoop(elem.child, elem.varid, index_param_def.value, elem.condition, meta=elem.meta, semantic=elem.semantic)
-
-
-def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes|GenobjsOrGenattrs|ImplicitLoop], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> ExpressionDotCall|PathRoot:
-    """ If an elem references is an IndexingParameterDefinition, mark a new ImplicitLoop in implicit_loops (key=future child of ImplicitLoop, val=ImplicitLoops) """
-    if not isinstance(getattr(elem, 'lhs', elem), PathRoot):
-        return elem  # if both elem and lhs are not PathRoot, cannot check anything
-
-    if (parent := _get_parent_from_hier(hier, GenobjsOrGenattrs|ImplicitLoop)) is not None and isinstance(index_param_def := getattr(_get_scope_after_expr(elem, _get_scope_from_hier(hier)), 'ast', None), IndexingParameterDefinition):
-        new_loop = ImplicitLoop(None, None, varid=index_param_def.name, on=index_param_def.value, meta=parent.meta)
-        # do not add ImplicitLoop if already present in hier (could only be with varid='t' at this time)
-        if any(isinstance(hier_item, ImplicitLoop) and hier_item.varid == new_loop.varid == 't' for hier_item in hier):
-            return  # TODO throw error if the loop from hier does not have IndexParam as child?
-
-        if parent in implicit_loops:
-            implicit_loops[parent].add(new_loop)
-        else:
-            implicit_loops[parent] = {new_loop}
-
-    return elem
-
-
-def _add_implicit_loops(elem: GenobjsOrGenattrs|ExpressionObj, hier: list[HierTypes|GenobjsOrGenattrs|ImplicitLoop], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> GenobjsOrGenattrs|ExpressionObj:
-    new_elem = elem
-    for loop in implicit_loops.get(elem, []):
-        match elem:
-            case Array():
-                print('arr')  # TODO, array and fcts need to know on which argument the ImplicitLoop(s) are
-            case FunctionConstraint() | ExpressionFunctionCall():
-                print('fct')
-            case _:
-                print('default')
-        new_elem = dataclasses.replace(loop, child=new_elem)
-    return new_elem
 
 
 def _check_fct_use_and_def(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: Optional[Scope]) -> None:
@@ -104,20 +33,20 @@ def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[Hie
     if isinstance(hier[-2], ExpressionFunctionCall|ExpressionDotCall) and hier[-2].lhs is elem:
         return
 
-    _check_fct_use_and_def(elem, scope := _get_scope_after_expr(elem, _get_scope_from_hier(hier)))
+    _check_fct_use_and_def(elem, scope := get_scope_after_expr(elem, get_scope_from_hier(hier)))
     _add_dep(deps, hier, scope)
 
 
 def _check_fct_scoping(elem: ExpressionFunctionCall, hier: list[HierTypes], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
 
-    _check_fct_use_and_def(elem, scope := _get_scope_after_expr(elem, _get_scope_from_hier(hier)))
+    _check_fct_use_and_def(elem, scope := get_scope_after_expr(elem, get_scope_from_hier(hier)))
     _add_dep(deps, hier, scope)
 
 
 def _check_node_or_hyperedge_indices(elem: NodeDefinition|HyperEdgeDefinition, hier: list[HierTypes]) -> None:
     if not elem.indices:
         return
-    scope = _get_scope_from_hier(hier)
+    scope = get_scope_from_hier(hier)
     for index in elem.indices:
         try:
             scope[index]
@@ -136,27 +65,21 @@ def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
         raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.path_to_str(), dep.ast.meta), err.args[1]))) from None
 
 
-def semantic_check(global_scope: GlobalScope) -> tuple[GBOMLGraph, GlobalScope]:
+def semantic_check(tree: GBOMLGraph) -> None:
     # check if variables are in scope, and store deps
     deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]] = {}
-    visit_hier(global_scope.ast, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
+    visit_hier(tree, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
 
-    sorted_varorparam_defs = _topo_sort(global_scope, deps)
+    sorted_varorparam_defs = _topo_sort(tree.semantic.scope, deps)
     del deps
-
-    # add implicit loops in GBOMLGraph (and while we're at it, convert LikeLoops to BaseLoops)
-    new_ast = modify_hier(global_scope.ast, set(HierTypes.__args__), {LikeLoop: _likeloop_to_baseloop})
-    implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]] = {}
-    new_ast = modify_hier(new_ast, GeneratedObjects | {*HierTypes.__args__, ImplicitLoop, Array, FunctionConstraint, ExpressionFunctionCall},
-                by_before=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _mark_implicit_loops(elem, hier, implicit_loops)),
-                by_after=dict.fromkeys(GenobjsOrGenattrs.__args__ + (ExpressionObj,), lambda elem,hier: _add_implicit_loops(elem, hier, implicit_loops)))
-    return new_ast, dataclasses.replace(global_scope, ast=new_ast)
 
 # TODO list
 #
 # VarOrParam values propagation:
 # using the list returned by the toposort, know which nodes don't do anything with iterable and propagate scalar value for these ones
 # once done, do 2nd pass to check for array declaration vs use (like _check_fct_use_and_def)
+# also, Activations should be processed (non-conditional ones are already processed by tree_post_process.py): the conditions should only contains params (no variables)
+# make sure Activations are well done, lots of edge cases (e.g. if conditionnally deactivate an already deactivated constraint, should drop completely the conditionnally constraint)
 #
 # Documentation in folder docs (for readthedocs.io)
 # don't forget to add 'parent', say that adding Function(Constraint) needs to be done in reserved_keywords.py

@@ -1,14 +1,8 @@
 #!/usr/bin/env python3
 
 from gboml.parsing import GBOMLParser
-from gboml.redundant_definitions import remove_redundant_definitions
-from gboml.resolve_imports import resolve_imports
-from gboml.scope import GlobalScope
 from gboml.semantic import semantic_check
-from gboml.tools.tree_modifier import modify
-import dataclasses
-import os
-from pathlib import Path
+from gboml.tree_post_process import post_process
 
 parser = GBOMLParser()
 tree = parser.parse("""
@@ -55,12 +49,14 @@ tree = parser.parse("""
         #CONSTRAINTS
             deactivate named_constraint;
 
-    #NODE P2 extends A.P
+    #NODE P2 extends A.P1
         #PARAMETERS
             parentnodes = {A, A};
             new_param = 12.35;
         #VARIABLES
             pass;
+        #CONSTRAINTS
+            deactivate named_constraint if A.param < 3;
     
     #NODE import = import test[3] from "import_testing.gboml" with
         param = 9;
@@ -117,7 +113,6 @@ tree = parser.parse("""
         internal : x[T] <- B.x[T];
     #OBJECTIVES
         min name : x[t-5] + sum(l for l in hello where l < 2) + sum(1,2) + len(hello) + f(global.pi) + subnodes[param].a.a + (param > 1).x + (B * 2).param + f(x).a;
-        max name : x[t];
 
 """)
 
@@ -126,8 +121,6 @@ for i in reversed(range(29)):
         continue  # no test25.txt
     print(f"------------------------------- {i} -------------------------------------")
 # tree = parser.parse_file(f"../tests/instances/ok/test{i}.txt")
-tree = resolve_imports(tree, Path('.'), parser)
-tree = remove_redundant_definitions(tree)
-global_scope = GlobalScope(tree)
-tree, global_scope = semantic_check(global_scope)
+tree = post_process(tree, parser)
+semantic_check(tree)
 print(tree)
