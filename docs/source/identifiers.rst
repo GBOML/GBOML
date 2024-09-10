@@ -7,3 +7,4 @@ Accordingly, the following identifiers are all valid: ``mynode1``, ``_SolarPlant
 Besides these lexical requirements, identifiers must also be unique in their respective scope. Hence, no two nodes may have the same identifier since this would prohibit the unambiguous identification of a particular node.
 Similarly, variables and parameters may not have the same identifier as a node or other variables and parameters belonging to the same node.
 However, the same identifier may be re-used to define variables or parameters that belong to different nodes.
+Finally, constraints and objectives may not have the same identifiers (if any).

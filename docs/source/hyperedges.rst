@@ -1,18 +1,12 @@
 Hyperedges
 ----------
 
-A hyperedge typically couples variables belonging to different nodes via equality or inequality constraints (or both). Each hyperedge is defined using a dedicated code block. This code block must be started by either the ``#HYPEREDGE`` keyword or the :``#LINK`` keyword (the two can be used interchangeably). A hyperedge must have a unique :math:`\texttt{<identifier>}` and no two hyperedges or hyperedge and node may have the same identifier. In addition, a hyperedge may have its own parameters and constraints.
+A hyperedge typically couples variables belonging to different nodes via equality or inequality constraints (or both). Each hyperedge is defined using a dedicated code block. This code block must be started by the ``#HYPEREDGE`` keyword. A hyperedge must have a unique :math:`\texttt{<identifier>}` and no two hyperedges or hyperedge and node may have the same identifier. In addition, a hyperedge may have its own parameters and constraints.
 Hence, valid hyperedge blocks have the following structure:
 
 .. code-block:: c
 
    #HYPEREDGE <identifier 1>
-   #PARAMETERS
-   // parameter definitions
-   #CONSTRAINTS
-   // constraint definitions
-
-   #LINK <identifier 2>
    #PARAMETERS
    // parameter definitions
    #CONSTRAINTS
@@ -72,7 +66,7 @@ Given these syntax rules, the following is an example including valid hyperedge 
    external : z;
    // further node content
 
-   #LINK hyperedge2
+   #HYPEREDGE hyperedge2
    #PARAMETERS
    weight = {1/3,2/3};
    #CONSTRAINTS

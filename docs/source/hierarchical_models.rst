@@ -46,11 +46,15 @@ Sub-nodes and sub-hyperedges are defined between the ``#PARAMETERS`` and ``#VARI
 
 Information can be exchanged between different levels in the hierarchy, notably through parameters and variables. However, the direction in which information can be shared between levels depends on its nature, as discussed below.
 
-Parameters can be only passed from the top down. Hence, parameters defined in a parent node can be accessed in any child node or sub-hyperedge by prefixing the identifier of the parent node in any expression involving this parameter. In other words, parent node parameters can be accessed in child nodes as follows:
+| Parameters can be only passed from the top down. Hence, parameters defined in a parent node can be accessed in any child node or sub-hyperedge by prefixing the identifier of the parent node in any expression involving this parameter.
+| In other words, parent node parameters can be accessed in child nodes as follows:
 
  .. math::
 
     \texttt{<parent node identifier>.<parameter identifier>}
+
+| Note that the reserved GBOML keyword ``parent`` can also be used to reference the *direct* parent of the node. It is useful when the child node does not know its parent name (i.e. when imported from another file).
+| Therefore, such a child can access its grandparent with ``parent.parent.<parameter identifier>`` too.
 
 Given these syntax rules, the following is a valid example of hierarchical parameter use (with three levels):
 
@@ -67,7 +71,7 @@ Given these syntax rules, the following is a valid example of hierarchical param
          #NODE C
          #PARAMETERS
          parameter_C = 3;
-         sum_parameters = A.parameter_A + B.parameter_B + parameter_C; // = 6
+         sum_parameters = A.parameter_A + parent.parameter_B + B.parameter_B + parameter_C; // = 8
 
 Note that indenting node blocks corresponding to different levels in the hierarchy is not mandatory but makes for easier reading.
 
