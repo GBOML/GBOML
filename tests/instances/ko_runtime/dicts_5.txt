@@ -1,10 +1,9 @@
 #NODE H
     #PARAMETERS
-        a(i) <- i**2;
-        b = {a: 0};  // cannot use non-scalar as key
+        a = {0: 0};
     #VARIABLES
         internal : x;
     #CONSTRAINTS
-        x <= -4;
+        x <= -4 + a["0"];  // key does not exist
     #OBJECTIVES
         max : x;
