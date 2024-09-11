@@ -1,0 +1,9 @@
+#NODE H
+    #PARAMETERS
+        a = {0: 0};
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x <= -4 + a[1];  // key does not exist
+    #OBJECTIVES
+        max : x;

@@ -1,16 +1,14 @@
 // Working example where x = -4
-
-#TIMEHORIZON T = 1;
-
 #NODE H
     #PARAMETERS
         a = {2: 2};
-        b = {2: x};
-        c = {x: 2};
+        b = {2: x, 1: a, H: H};
+        c = {x: 2, "key": 0};
         d = {i: i*2 for i in [0:12]};
+        e = {p/3: m+1 for p in [3:9:3] for m in [0:p], "key": c};
     #VARIABLES
         internal : x;
     #CONSTRAINTS
-        x <= -4;
+        x <= -4 + sum(key*2 - d[key] for key in d) + e["key"]["key"];
     #OBJECTIVES
         max : x;

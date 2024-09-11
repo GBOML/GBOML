@@ -1,0 +1,10 @@
+#NODE H
+    #PARAMETERS
+        a = {2: 2};
+        b = {a: 0};  // cannot use non-scalar as key
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x <= -4;
+    #OBJECTIVES
+        max : x;
