@@ -85,7 +85,7 @@ def _process_activations(tree: GBOMLGraph) -> GBOMLGraph:
         return elem if new_ctrs is None and new_objs is None else dataclasses.replace(elem, activations=tuple(act for act in elem.acts if act.condition is not None), constraints=new_ctrs, objectives=new_objs)
 
     def hyperedge_acts(elem: HyperEdgeDefinition) -> HyperEdgeDefinition:
-        new_ctrs = modify_ctrs_objs(elem.constraints, (acts for acts in elem.activations if isinstance(acts, CtrActivation)), elem.meta)
+        new_ctrs = modify_ctrs_objs(elem.constraints, elem.activations, elem.meta)
         return elem if new_ctrs is None else dataclasses.replace(elem, activations=tuple(act for act in elem.acts if act.condition is not None), constraints=new_ctrs)
 
     return modify(tree, {NodeDefinition: node_acts, HyperEdgeDefinition: hyperedge_acts})
