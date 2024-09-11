@@ -7,7 +7,7 @@ from gboml.tools.tree_modifier import visit, visit_hier
 
 T = TypeVar('T', bound=NamedGBOMLObject)
 ObjectsWithScope = NodeDefinition|HyperEdgeDefinition|Loop|VarOrParamDefinition|FunctionDefinition
-HierTypes = ObjectsWithScope|VarOrParamDefinition|ExpressionFunctionCall|Path
+HierTypes = ObjectsWithScope|Array|VarOrParamDefinition|ExpressionFunctionCall|Path
 
 def _obj_below_loops(obj: GBOMLObject) -> GBOMLObject:
     while isinstance(obj, Loop):

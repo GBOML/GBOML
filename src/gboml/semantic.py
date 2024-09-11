@@ -33,7 +33,10 @@ def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[Hie
     if isinstance(hier[-2], ExpressionFunctionCall|ExpressionDotCall) and hier[-2].lhs is elem:
         return
 
-    _check_fct_use_and_def(elem, scope := get_scope_after_expr(elem, get_scope_from_hier(hier)))
+    print(HierTypes)
+    scope = get_scope_after_expr(elem, get_scope_from_hier(hier))
+    if not (isinstance(hier[-2], Array) and elem in hier[-2].content or isinstance(hier[-2], ExpressionFunctionCall) and elem in hier[-2].operands):
+        _check_fct_use_and_def(elem, scope)
     _add_dep(deps, hier, scope)
 
 
