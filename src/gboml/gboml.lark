@@ -128,7 +128,7 @@ _other_expression: subtraction
 _maybe_unary_minus: _maybe_call | unary_minus
 unary_minus: "-" _maybe_call
 _maybe_call: function_call | dot_call | array_call | _parenthesis
-function_call: _maybe_call "(" separated_maybe_empty_list{generated_expression, ","} ")"
+function_call: _maybe_call "(" separated_list{generated_expression, ","} ")"
 dot_call: _maybe_call "." ID
 array_call: _maybe_call "[" expression "]"
 _parenthesis: "(" expression ")" | _leaf_value
