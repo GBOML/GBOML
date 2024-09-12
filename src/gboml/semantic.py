@@ -60,14 +60,14 @@ def _check_node_or_hyperedge_indices(elem: NodeDefinition|HyperEdgeDefinition, h
 
 
 def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
-    """ Performs the topological sort for VarOrParamDefinition elements (if there's a circular dependency, an error is raised), and returns the sorted elements in a map """
+    """ Performs the topological sort for VarOrParamDefinition elements (if there's a circular dependency, an error is raised), and returns the sorted elements (should be evaluated in the same order) """
     ts = TopologicalSorter()
     add_node = lambda definition: ts.add(definition, *deps.get(definition, frozenset()))
     visit(globalScope.ast, dict.fromkeys(VarOrParamDefinition.__args__, add_node))
     try:
         return tuple(ts.static_order())
     except CycleError as err:  # default error too long to print, so raise from None
-        raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.path_to_str(), dep.ast.meta), err.args[1]))) from None
+        raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.semantic.scope.path_to_str(), dep.meta), err.args[1]))) from None
 
 
 def semantic_check(tree: GBOMLGraph) -> None:
