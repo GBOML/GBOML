@@ -93,7 +93,7 @@ implicit_loop: "where" expression
 // DEFINITIONS
 ?definition: definition_std_param | definition_indexing_param
 definition_indexing_param: ID "in" expression ";"
-definition_std_param: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE expression tags ";"
+definition_std_param: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE expression_or_string tags ";"
 DEF_TYPE: "=" | "<-"
 
 // ARRAYS
@@ -101,12 +101,13 @@ array_or_dict: "{" separated_maybe_empty_list{_array_or_dict_entry, ","} "}"
 array: "{" separated_maybe_empty_list{generated_expression, ","} "}"
 dict: "{" separated_maybe_empty_list{dict_entry, ","} "}"
 _array_or_dict_entry: generated_expression | dict_entry
-dict_entry: expression ":" expression [loop]
+dict_entry: expression_or_string ":" expression [loop]
 
 // RANGE
 range: "[" expression ":" expression [":" expression] "]"
 
 // EXPRESSIONS
+?expression_or_string: expression | STRING  // no operation is allowed on strings
 ?expression: bool_expression
 
 ?bool_expression: bool_expression_or
@@ -125,14 +126,18 @@ _other_expression: subtraction
 ?product: _separated_list{modulo, "*"}
 ?modulo: _separated_list{exponent, "%"}
 ?exponent: _separated_list{_maybe_unary_minus, "**"}
-_maybe_unary_minus: _maybe_call | unary_minus
-unary_minus: "-" _maybe_call
-_maybe_call: function_call | dot_call | array_call | _parenthesis
-function_call: _maybe_call "(" separated_list{generated_expression, ","} ")"
-dot_call: _maybe_call "." ID
-array_call: _maybe_call "[" expression "]"
-_parenthesis: "(" expression ")" | _leaf_value
-_leaf_value: path_root | INT | FLOAT | range | array_or_dict | STRING | import | TAG
+_maybe_unary_minus: _maybe_call | unary_minus | _leaf_value
+unary_minus: "-" (_leaf_negatable | _call)
+_maybe_call: _call | "(" expression ")"
+_call: function_call | dot_call | array_call | "(" _call ")"
+function_call: (_call | _leaf_callable) "(" separated_list{generated_expression, ","} ")"
+dot_call: (_call | _leaf_dotable) "." ID
+array_call: (_call | _leaf_indexable) "[" expression_or_string "]"
+_leaf_value: path_root | INT | FLOAT | range | array_or_dict | import | TAG
+_leaf_negatable: path_root | INT | FLOAT | TAG
+_leaf_indexable: path_root | range | array_or_dict | import | TAG
+_leaf_callable: path_root | TAG
+_leaf_dotable: path_root
 
 // ACTIVATE/DEACTIVATE
 _activate.1: "activate" separated_list{_activation_id, ","} ["if" expression] ";"
@@ -148,11 +153,11 @@ _path: path_root | dot_call | array_call
 path_root: ID
 
 // INDEXES
-?index: "[" expression "]"
+?index: "[" expression_or_string "]"
 ?index_id: "[" ID "]"
 
 // IMPORT (old way to import csvs)
 import: "import" STRING
 
 // GENERATED EXPRESSIONS
-?generated_expression: expression loop?
+?generated_expression: expression_or_string loop?
