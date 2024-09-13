@@ -125,11 +125,11 @@ _other_expression: concatenation
 ?sum: _separated_list{division, "+"}
 ?division: _separated_list{product, "/"}
 ?product: _separated_list{modulo, "*"}
-?modulo: _separated_list{exponent, "%"}
-?exponent: _separated_list{_maybe_unary_minus, "**"}
-_maybe_unary_minus: _maybe_call | unary_minus | _leaf_value
-unary_minus: "-" (_leaf_negatable | _call)
-_maybe_call: _call | "(" expression ")"
+?modulo: _separated_list{_maybe_unary_minus, "%"}
+_maybe_unary_minus: unary_minus | exponent
+unary_minus: "-" exponent
+?exponent: _separated_list{_maybe_call, "**"}
+_maybe_call: _call | "(" expression ")" | _leaf_value
 _call: function_call | dot_call | array_call | "(" _call ")"
 function_call: (_call | _leaf_callable) "(" separated_list{generated_expression, ","} ")"
 dot_call: (_call | _leaf_dotable) "." ID
