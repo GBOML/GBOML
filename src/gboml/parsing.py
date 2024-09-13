@@ -100,6 +100,7 @@ class GBOMLParser:
             #
             to_obj = {
                 "path_root": PathRoot,
+                "concatenation": _op_transform(Operator.concatenation),
                 "subtraction": _op_transform(Operator.minus),
                 "sum": _op_transform(Operator.plus),
                 "exponent": _op_transform(Operator.exponent),

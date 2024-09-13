@@ -119,7 +119,8 @@ _bool_expression_leaf: bool_expression_comparison | _other_expression
 bool_expression_comparison: _other_expression COMPARISON_OPERATOR _other_expression
 COMPARISON_OPERATOR:  "<" | ">" | "!=" | "<=" | ">=" | "=="
 
-_other_expression: subtraction
+_other_expression: concatenation
+?concatenation: _separated_list{subtraction, "|"}
 ?subtraction: _separated_list{sum, "-"}
 ?sum: _separated_list{division, "+"}
 ?division: _separated_list{product, "/"}
@@ -134,9 +135,9 @@ function_call: (_call | _leaf_callable) "(" separated_list{generated_expression,
 dot_call: (_call | _leaf_dotable) "." ID
 array_call: (_call | _leaf_indexable) "[" expression_or_string "]"
 _leaf_value: path_root | INT | FLOAT | range | array_or_dict | import | TAG
-_leaf_negatable: path_root | INT | FLOAT | TAG
-_leaf_indexable: path_root | range | array_or_dict | import | TAG
-_leaf_callable: path_root | TAG
+_leaf_negatable: path_root | INT | FLOAT
+_leaf_indexable: path_root | range | array_or_dict | import
+_leaf_callable: path_root
 _leaf_dotable: path_root
 
 // ACTIVATE/DEACTIVATE

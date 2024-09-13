@@ -15,6 +15,7 @@ class Operator(Enum):
     greater_or_equal = ">="
     equal = "=="
     not_equal = "!="
+    concatenation = "|"
     times = "*"
     divide = "/"
     plus = "+"
