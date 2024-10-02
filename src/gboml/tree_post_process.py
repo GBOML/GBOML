@@ -43,7 +43,7 @@ def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes]
 
     return elem
 
-
+# TODO: reimplement completely implicit loops insertion: they should only be possibly used in Constraints and Objectives
 def _add_implicit_loops(elem: GenobjsOrGenattrs|ExpressionObj, hier: list[HierTypes], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> GenobjsOrGenattrs|ExpressionObj:
     new_elem = elem
     for loop in implicit_loops.get(elem, []):

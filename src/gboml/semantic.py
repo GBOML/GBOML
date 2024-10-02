@@ -80,19 +80,22 @@ def semantic_check(tree: GBOMLGraph) -> None:
 
 # TODO list
 #
+# Add support for params importing a csv
+#
+# Should we forbid A.B.C.param ? C.B.A.param is always allowed because of parent.parent.parent.param
+#
 # VarOrParam values propagation:
 # using the list returned by the toposort, know which nodes don't do anything with iterable and propagate scalar value for these ones
-# once done, do 2nd pass to check for array declaration vs use (like _check_fct_use_and_def)
+# once done, do 2nd pass to check for all types (e.g. array declaration vs use (like _check_fct_use_and_def); cannot ExpressionFunctionCall on a STRING/Array/Dictionary, no allowed operation with STRING, ...)
 # also, Activations should be processed (non-conditional ones are already processed by tree_post_process.py): the conditions should only contains params (no variables)
 # make sure Activations are well done, lots of edge cases (e.g. if conditionnally deactivate an already deactivated constraint, should drop completely the conditionnally constraint)
 #
 # Documentation in folder docs (for readthedocs.io)
-# don't forget to add 'parent', say that adding Function(Constraint) needs to be done in reserved_keywords.py
+# say that adding Function(Constraint) needs to be done in reserved_keywords.py; say that multine comment /* */ is supported
 #
 # Errors
 # Should not stop at first error, and should be nicer print ('B.param', not ExpressionDotCall(lhs=PathRoot(name='B'), rhs='param')) by e.g. defining a short_string() in gboml.ast
 # Can be implemented with function decorator or separate additionnal argument to all functions
 #
 # Production tests:
-# - use check.py to check AST types are respected
 # - use pyright to check for correct typing of method etc
