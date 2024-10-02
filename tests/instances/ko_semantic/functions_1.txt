@@ -1,0 +1,6 @@
+#NODE Parent
+    #PARAMETERS
+        a(i, j) <- 2 * i + j;
+        k = a(0) + a(0,1,2);  // wrong number of arguments
+    #VARIABLES
+        pass;

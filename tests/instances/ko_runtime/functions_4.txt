@@ -1,0 +1,21 @@
+#NODE Parent
+    #PARAMETERS
+        a(i, j) <- 2 * i + j;
+        b = {a, a(9, a(3, 4))};
+        c(arr, i) <- arr[i-1];
+        d(fct, val) <- fct(val*2);
+        e(i) <- i;
+        k = b[0](i for i in [1:2]) - c(b, 1)(1,2);  // k = 0
+        m = c({{2}}, 1)[0] - d(e, 1) + n;  // m = 0
+        n = {"0": e}["0"](0) + {1}(0);  // error here, ExpressionFunctionCall on array (not fct)
+    #NODE Child
+        #PARAMETERS
+            f = {"0": Parent.e(Parent).e}["0"](0);  // f = 0
+        #VARIABLES
+            internal : x;
+        #CONSTRAINTS
+            parent.a(z+3,2) >= x + Parent.k + Parent.m for z in [0:2];
+        #OBJECTIVES
+            max : x;
+    #VARIABLES
+        pass;

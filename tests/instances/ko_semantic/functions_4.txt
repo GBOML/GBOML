@@ -1,0 +1,6 @@
+#NODE Parent
+    #PARAMETERS
+        a(i, j) <- 2 * i + j;
+        b = 1 + a;  // a is a function, not a scalar
+    #VARIABLES
+        pass;

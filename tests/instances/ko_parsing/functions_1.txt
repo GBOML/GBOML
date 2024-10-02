@@ -1,0 +1,5 @@
+#NODE Parent
+    #PARAMETERS
+        b() <- 1;  // fct without arg not allowed, simple use `b <- 1`
+    #VARIABLES
+        pass;

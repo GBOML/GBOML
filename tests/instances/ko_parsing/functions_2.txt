@@ -1,0 +1,6 @@
+#NODE Parent
+    #PARAMETERS
+        a(c) <- c;
+        b = a();  // fct call without arg not allowed, since declaration not allowed (see ./functions_1.txt)
+    #VARIABLES
+        pass;

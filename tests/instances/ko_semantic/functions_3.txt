@@ -1,0 +1,6 @@
+#NODE Parent
+    #PARAMETERS
+        a(i, j) <- 2 * i + j;
+        b(a) <- i+1;  // i not defined in this scope
+    #VARIABLES
+        pass;
