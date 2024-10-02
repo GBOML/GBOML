@@ -129,16 +129,15 @@ _other_expression: concatenation
 _maybe_unary_minus: unary_minus | exponent
 unary_minus: "-" exponent
 ?exponent: _separated_list{_maybe_call, "**"}
-_maybe_call: _call | "(" expression ")" | _leaf_value
-_call: function_call | dot_call | array_call | "(" _call ")"
-function_call: (_call | _leaf_callable) "(" separated_list{generated_expression, ","} ")"
-dot_call: (_call | _leaf_dotable) "." ID
-array_call: (_call | _leaf_indexable) "[" expression_or_string "]"
-_leaf_value: path_root | INT | FLOAT | range | array_or_dict | import | TAG
-_leaf_negatable: path_root | INT | FLOAT
-_leaf_indexable: path_root | range | array_or_dict | import
-_leaf_callable: path_root
-_leaf_dotable: path_root
+_maybe_call: function_call | dot_call | array_call | "(" _maybe_call ")" | _leaf_value
+function_call: _maybe_call "(" separated_list{generated_expression, ","} ")"
+dot_call: _maybe_call "." ID
+array_call: _maybe_call "[" expression_or_string "]"
+_leaf_value: path_root | INT | FLOAT | range | array_or_dict | import | TAG | "(" expression ")"
+
+_leaf_indexable: path_root | range | array_or_dict | import | "(" _leaf_indexable ")"
+_leaf_callable: path_root | "(" _leaf_callable ")"
+_leaf_dotable: path_root | "(" _leaf_dotable ")"
 
 // ACTIVATE/DEACTIVATE
 _activate.1: "activate" separated_list{_activation_id, ","} ["if" expression] ";"
