@@ -1,11 +1,13 @@
 // Working example where x = -4
 #NODE H
     #PARAMETERS
-        a = {2: 2};
+        a = {2: 2, 9: "blabla"};
         b = {2: x, 1: a, H: H};
-        c = {x: 2, "key": 0};
+        c = {x: 2, "key": f};
         d = {i: i*2 for i in [0:12]};
         e = {p/3: m+1 for p in [3:9:3] for m in [0:p], "key": c};
+        f = {0: 3}[0] - len(b) + g;  // f = 0
+        g = {1: {"0": {0}}}[1]["0"][0];  // g = 0
     #VARIABLES
         internal : x;
     #CONSTRAINTS
