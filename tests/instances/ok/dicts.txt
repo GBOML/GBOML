@@ -7,7 +7,8 @@
         d = {i: i*2 for i in [0:12]};
         e = {p/3: m+1 for p in [3:9:3] for m in [0:p], "key": c};
         f = {0: 3}[0] - len(b) + g;  // f = 0
-        g = {1: {"0": {0}}}[1]["0"][0];  // g = 0
+        g = {1: {"0": {0}}}[1]["0"][0] + len(h);  // g = 0
+        h = {};  // TODO how to define an empty dict? this is an empty list, and I guess join op '|' only works with both dicts or both lists, so there should be a way to define empty dicts
     #VARIABLES
         internal : x;
     #CONSTRAINTS
