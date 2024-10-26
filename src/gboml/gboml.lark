@@ -120,24 +120,23 @@ bool_expression_comparison: _other_expression COMPARISON_OPERATOR _other_express
 COMPARISON_OPERATOR:  "<" | ">" | "!=" | "<=" | ">=" | "=="
 
 _other_expression: concatenation
-?concatenation: _separated_list{subtraction, "|"}
-?subtraction: _separated_list{sum, "-"}
-?sum: _separated_list{division, "+"}
-?division: _separated_list{product, "/"}
-?product: _separated_list{modulo, "*"}
-?modulo: _separated_list{_maybe_unary_minus, "%"}
-_maybe_unary_minus: unary_minus | exponent
-unary_minus: "-" exponent
-?exponent: _separated_list{_maybe_call, "**"}
-_maybe_call: function_call | dot_call | array_call | "(" _maybe_call ")" | _leaf_value
+?concatenation: _separated_list{subsum, "|"}
+?subsum: subsum ("-" divprodmod)+ -> subtraction
+		| subsum ("+" divprodmod)+ -> sum
+		| divprodmod
+?divprodmod: divprodmod ("/" _maybe_uminus)+ -> division
+			| divprodmod ("*" _maybe_uminus)+ -> product
+			| divprodmod ("%" _maybe_uminus)+ -> modulo
+			| _maybe_uminus
+_maybe_uminus: unary_minus | exponent
+unary_minus: "-" exponent  // as in Python, unary_minus has greater precedence than exponent if in right operand, lesser if left: -2**-2**-2 = -(2**(-(2**(-2))))
+?exponent: _maybe_call ("**" _maybe_uminus)?  // do not use _separated_list as unary_minux has different precedence regarding the context
+
+_maybe_call: function_call | dot_call | array_call | _leaf_value  // TODO a1 = 1(5); should not be accepted
 function_call: _maybe_call "(" separated_list{generated_expression, ","} ")"
 dot_call: _maybe_call "." ID
 array_call: _maybe_call "[" expression_or_string "]"
 _leaf_value: path_root | INT | FLOAT | range | array_or_dict | import | TAG | "(" expression ")"
-
-_leaf_indexable: path_root | range | array_or_dict | import | "(" _leaf_indexable ")"
-_leaf_callable: path_root | "(" _leaf_callable ")"
-_leaf_dotable: path_root | "(" _leaf_dotable ")"
 
 // ACTIVATE/DEACTIVATE
 _activate.1: "activate" separated_list{_activation_id, ","} ["if" expression] ";"
