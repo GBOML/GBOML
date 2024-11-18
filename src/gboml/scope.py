@@ -48,7 +48,7 @@ def _check_redefinition(scope: 'Scope', meta: Meta, item: str) -> None:
         raise KeyError(f"{meta}: Identifier {item} is already used {'' if not ans else ans.ast.meta}.")
 
 
-def get_scope_from_hier(hier: list[HierTypes]) -> 'Scope':
+def get_scope_from_hier(hier: list[GBOMLObject]) -> 'Scope':
     return next(hier_item.semantic.scope for hier_item in reversed(hier) if hier_item.semantic.scope is not None)
 
 def get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:

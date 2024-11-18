@@ -5,7 +5,9 @@ from gboml.reserved_definitions import GBOML_RESERVED_DEFINITIONS
 
 from graphlib import TopologicalSorter, CycleError
 from typing import NamedTuple, Optional
+import ast
 import dataclasses
+import numpy as np
 
 def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[HierTypes], dep: Optional[Scope]) -> None:
     if dep is not None and isinstance(dep, VarOrParamDefScope) and (parent_def := get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
@@ -43,7 +45,6 @@ def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[Hie
 
 
 def _check_fct_scoping(elem: ExpressionFunctionCall, hier: list[HierTypes], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
-
     _check_fct_use_and_def(elem, scope := get_scope_after_expr(elem, get_scope_from_hier(hier)))
     _add_dep(deps, hier, scope)
 
@@ -70,6 +71,57 @@ def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
         raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.semantic.scope.path_to_str(), dep.meta), err.args[1]))) from None
 
 
+def _evaluate_from_gboml(root: GBOMLObject, local_defs: dict[str, int|float], scope: Scope):
+    return eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(root, scope))), "", mode="eval"), None, local_defs)
+
+def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dict[str, float], param_defs_and_zeroed_vars: dict[str, int|float], scope: Scope) -> None:
+    """ Returns a tuple(variable_coefs, independant_term) for a given Constraint """
+    new_line = [0] * len(var_maps)
+    indep_term = 0
+    def add_variable_in_constr(elem: ExpressionDotCall|PathRoot, hier: list[ExpressionOp]) -> None:
+        if isinstance(scope_new := get_scope_after_expr(elem, scope), ScopedVariableDefinition):
+            coef = sign
+            for op in reversed(hier):
+                op_new = dataclasses.replace(op, operands=tuple(operand for operand in op.operands if operand is not elem))
+                if len(op_new.operands) != len(op.operands):
+                    match op.operator:
+                        case Operator.plus:
+                            pass
+                        case Operator.minus:
+                            if op.operands[0] is not elem:
+                                coef = -coef
+                        case Operator.unary_minus:
+                            coef = -coef
+                        case Operator.times:
+                            try:
+                                coef *= _evaluate_from_gboml(op_new, param_defs, scope)
+                            except NameError:
+                                raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope_new.path_to_str()}")
+                        case Operator.divide:
+                            if op.operands[0] is not elem:
+                                raise RuntimeError(f"Variable {scope_new.path_to_str()} is in the denominator, non-linear Constraint at {c.meta}.")
+                            try:
+                                coef /= _evaluate_from_gboml(op_new, param_defs, scope)
+                            except NameError:
+                                raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope_new.path_to_str()}")
+                        case _:
+                            raise RuntimeError(f"Unsupported ExpressionOp {op.operator} applied to {scope_new.path_to_str()}. Ensure that Constraint at {c.meta} is linear.")
+                elem = op
+
+            new_line[var_maps[scope_new.path_to_str()]] += coef
+
+    if isinstance(c, StdConstraint):
+        sign = 1
+        visit_hier(c.lhs, {ExpressionOp}, dict.fromkeys((ExpressionDotCall, PathRoot), add_variable_in_constr))
+        indep_term -= eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(c.lhs, scope))), "", mode="eval"), None, param_defs_and_zeroed_vars)
+        sign = -1
+        visit_hier(c.rhs, {ExpressionOp}, dict.fromkeys((ExpressionDotCall, PathRoot), add_variable_in_constr))
+        indep_term += eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(c.rhs, scope))), "", mode="eval"), None, param_defs_and_zeroed_vars)
+
+    return new_line, indep_term
+
+
+
 def semantic_check(tree: GBOMLGraph) -> None:
     # check if variables are in scope, and store deps
     deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]] = {}
@@ -77,6 +129,49 @@ def semantic_check(tree: GBOMLGraph) -> None:
 
     sorted_varorparam_defs = _topo_sort(tree.semantic.scope, deps)
     del deps
+    print(sorted_varorparam_defs)
+    param_defs = {}
+    for d in filter(lambda x: isinstance(x, Definition), sorted_varorparam_defs):
+        if isinstance(d, FunctionDefinition | FunctionConstraintDefinition):  # this is to skip global defs like len()
+            continue
+        param_defs[d.semantic.scope.path_to_str()] = eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(d.value, d.semantic.scope))), "", mode="eval"), None, param_defs)
+    print("all params values: ", param_defs, len(param_defs))
+
+    var_maps = {}  # map all variables to a different index
+    var_idx = 0
+    def update_var_maps(var) -> None:
+        nonlocal var_idx
+        var_maps[var.semantic.scope.path_to_str()] = var_idx
+        var_idx += 1
+    visit(tree, {VariableDefinition: update_var_maps})
+    del var_idx
+    print("variables mapping idx: ", var_maps)
+    param_defs_and_zeroed_vars = param_defs | dict.fromkeys(var_maps, 0)
+    print("params with zero'd vars: ", param_defs_and_zeroed_vars)
+    var_coefs: list[list[float]] = []
+    indep_terms: list[float] = []
+    def add_coefs_and_term(c: Constraint, hier: list[HierTypes]) -> None:
+        coefs, term = _process_constraint(c, var_maps, param_defs, param_defs_and_zeroed_vars, get_scope_from_hier(hier))
+        var_coefs.append(coefs)
+        indep_terms.append(term)
+    visit_hier(tree, set(HierTypes.__args__), {Constraint: add_coefs_and_term})
+    print("matrices:\n", var_coefs, indep_terms)
+
+# enregistrer pas direct (en évaluation) dans matrice mais symboliquement par variabble(et idx) différentes; car mieux pour générer des arrays pour les variables indiçantes si dans coef
+# simplement partir de feuille si c'est une variable, remonter jusqu'à root en faisant les bonnes opérations (ne pas oublier: checker si linéaire). additionner les coef si plusieurs fois la variable avec GBOML.add
+# pour terme indépendant, même chose (AST symbolique) en mettant tous les variables = 0
+
+# A=( colonne=param ligne=contrainte) x=(vars) = b=(const part from constraints)
+
+# factorisation: tuple (coefficient de variable, indice de variable possiblement None)
+# gen: loop generateur (implicit et/ou explicite)
+# sign: <= == >=
+# terme indépendant
+
+# pour faire la factorisation, faire un AST par variable; un AST par x[t+1] avec même nom de variable et même indice (symboliquement!) x[t] != x[t+0]
+
+# TODO quand on évalue les indices faudrait-il enregistrer la conversion ASTGboml -> ASTPython?
+
 
 # TODO list
 #
@@ -84,11 +179,20 @@ def semantic_check(tree: GBOMLGraph) -> None:
 #
 # Should we forbid A.B.C.param ? C.B.A.param is always allowed because of parent.parent.parent.param
 #
+# I think modify() does not work if by_before AND by_after change the whole node
+#
+# a1 = 1(5); should not be accepted by Lark
+#
 # VarOrParam values propagation:
+# DO NOT EVALUATE VALUES IF NOT USED (aka only evaluate the varorparams from objective/contraint expressions)
 # using the list returned by the toposort, know which nodes don't do anything with iterable and propagate scalar value for these ones
 # once done, do 2nd pass to check for all types (e.g. array declaration vs use (like _check_fct_use_and_def); cannot ExpressionFunctionCall on a STRING/Array/Dictionary, no allowed operation with STRING, ...)
 # also, Activations should be processed (non-conditional ones are already processed by tree_post_process.py): the conditions should only contains params (no variables)
 # make sure Activations are well done, lots of edge cases (e.g. if conditionnally deactivate an already deactivated constraint, should drop completely the conditionnally constraint)
+#
+# Can params use vars in their expression ? At least forbid it in GLOBAL and TIMEHOZIRON
+#
+# Allow TIMEHORIZON to use global variables (as it already can use node's params)
 #
 # Documentation in folder docs (for readthedocs.io)
 # say that adding Function(Constraint) needs to be done in reserved_keywords.py; say that multine comment /* */ is supported
@@ -99,3 +203,4 @@ def semantic_check(tree: GBOMLGraph) -> None:
 #
 # Production tests:
 # - use pyright to check for correct typing of method etc
+# - add test to check 'assert Operator("<") is Operator.lesser' and 'assert Operator("<") == Operator.lesser'
