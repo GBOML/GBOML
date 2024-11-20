@@ -35,7 +35,7 @@ def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[Hie
     if isinstance(hier[-2], ExpressionFunctionCall|ExpressionDotCall) and hier[-2].lhs is elem:
         return
 
-    scope = get_scope_after_expr(elem, get_scope_from_hier(hier))
+    scope = get_scope_after_expr(elem)
     # a single PathRoot as array element, DictEntry value or ExpressionFunctionCall could be a function_call without argument (even if definition has 1+ arg)
     if not (isinstance(hier[-2], Array) and elem in hier[-2].content
             or isinstance(hier[-2], DictEntry) and elem is hier[-2].value
@@ -45,17 +45,16 @@ def _check_var_or_param_scoping(elem: ExpressionDotCall|PathRoot, hier: list[Hie
 
 
 def _check_fct_scoping(elem: ExpressionFunctionCall, hier: list[HierTypes], deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]]) -> None:
-    _check_fct_use_and_def(elem, scope := get_scope_after_expr(elem, get_scope_from_hier(hier)))
+    _check_fct_use_and_def(elem, scope := get_scope_after_expr(elem))
     _add_dep(deps, hier, scope)
 
 
-def _check_node_or_hyperedge_indices(elem: NodeDefinition|HyperEdgeDefinition, hier: list[HierTypes]) -> None:
+def _check_node_or_hyperedge_indices(elem: NodeDefinition|HyperEdgeDefinition) -> None:
     if not elem.indices:
         return
-    scope = get_scope_from_hier(hier)
     for index in elem.indices:
         try:
-            scope[index]
+            elem.semantic.scope[index]
         except KeyError:
             raise KeyError(f"{elem} {elem.meta} index {index} can not be used in this scope")
 
@@ -71,16 +70,16 @@ def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
         raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.semantic.scope.path_to_str(), dep.meta), err.args[1]))) from None
 
 
-def _evaluate_from_gboml(root: GBOMLObject, local_defs: dict[str, int|float], scope: Scope):
-    return eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(root, scope))), "", mode="eval"), None, local_defs)
+def _evaluate_from_gboml(root: GBOMLObject, local_defs: dict[str, int|float]):
+    return eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(root))), "", mode="eval"), None, local_defs)
 
-def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dict[str, float], param_defs_and_zeroed_vars: dict[str, int|float], scope: Scope) -> None:
+def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dict[str, float], param_defs_and_zeroed_vars: dict[str, int|float]) -> None:
     """ Returns a tuple(variable_coefs, independant_term) for a given Constraint """
     new_line = [0] * len(var_maps)
     indep_term = 0
     def add_variable_in_constr(elem: ExpressionDotCall|PathRoot, hier: list[ExpressionOp], sign: int) -> None:
         """ Returns 0 (to remove the variable for the indep term calculation) and adds the var coef to the approriate index of new_line """
-        if isinstance(scope_new := get_scope_after_expr(elem, scope), ScopedVariableDefinition):
+        if isinstance(scope := get_scope_after_expr(elem), ScopedVariableDefinition):
             coef = sign
             sign_has_changed = False
             for op in reversed(hier):
@@ -97,25 +96,25 @@ def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dic
                         case Operator.times:
                             coef = ExpressionOp(Operator.times, (coef, op_new.operands[0] if len(op_new.operands) == 1 else op_new))
                             # try:
-                                # coef *= _evaluate_from_gboml(op_new, param_defs, scope)
+                                # coef *= _evaluate_from_gboml(op_new, param_defs, c.semantic.scope)
                             # except NameError:
-                                # raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope_new.path_to_str()}")
+                                # raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope.path_to_str()}")
                         case Operator.divide:
                             if op.operands[0] is not elem:
-                                raise RuntimeError(f"Variable {scope_new.path_to_str()} is in the denominator, non-linear Constraint at {c.meta}.")
+                                raise RuntimeError(f"Variable {scope.path_to_str()} is in the denominator, non-linear Constraint at {c.meta}.")
                             coef = ExpressionOp(Operator.divide, (coef, op_new.operands[0] if len(op_new.operands) == 1 else op_new))
                             # try:
-                                # coef /= _evaluate_from_gboml(op_new, param_defs, scope)
+                                # coef /= _evaluate_from_gboml(op_new, param_defs, c.semantic.scope)
                             # except NameError:
-                                # raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope_new.path_to_str()}")
+                                # raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope.path_to_str()}")
                         case _:
-                            raise RuntimeError(f"Unsupported ExpressionOp {op.operator} applied to {scope_new.path_to_str()}. Ensure that Constraint at {c.meta} is linear.")
+                            raise RuntimeError(f"Unsupported ExpressionOp {op.operator} applied to {scope.path_to_str()}. Ensure that Constraint at {c.meta} is linear.")
                 elem = op
 
             if sign_has_changed:
                 coef = -coef if isinstance(coef, int) else ExpressionOp(Operator.unary_minus, (coef,))
             
-            match new_line[idx := var_maps[scope_new.path_to_str()]]:
+            match new_line[idx := var_maps[scope.path_to_str()]]:
                 case 0: new_line[idx] = coef
                 case int(value): new_line[idx] = coef + value if isinstance(coef, int) else ExpressionOp(Operator.plus, (coef, value))
                 case ExpressionOp(operator=Operator.plus, operands=operands) as expr_op: new_line[idx] = dataclasses.replace(expr_op, operands=operands + (coef,))
@@ -126,7 +125,7 @@ def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dic
     if isinstance(c, StdConstraint):
         lhs_indep = modify_hier(c.lhs, {ExpressionOp}, by_after=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: add_variable_in_constr(elem, hier, +1)))
         rhs_indep = modify_hier(c.rhs, {ExpressionOp}, by_after=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: add_variable_in_constr(elem, hier, -1)))
-        indep_term = ExpressionOp(Operator.minus, (lhs_indep, rhs_indep))
+        indep_term = ExpressionOp(Operator.minus, (rhs_indep, lhs_indep))
 
     return new_line, indep_term
 
@@ -135,16 +134,16 @@ def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dic
 def semantic_check(tree: GBOMLGraph) -> None:
     # check if variables are in scope, and store deps
     deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]] = {}
-    visit_hier(tree, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), _check_node_or_hyperedge_indices))
+    visit_hier(tree, set(HierTypes.__args__), {ExpressionFunctionCall: lambda elem,hier: _check_fct_scoping(elem, hier, deps)} | dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _check_var_or_param_scoping(elem, hier, deps)) | dict.fromkeys((NodeDefinition, HyperEdgeDefinition), lambda elem,_: _check_node_or_hyperedge_indices(elem)))
 
     sorted_varorparam_defs = _topo_sort(tree.semantic.scope, deps)
     del deps
     print(sorted_varorparam_defs)
     param_defs = {}
     for d in filter(lambda x: isinstance(x, Definition), sorted_varorparam_defs):
-        if isinstance(d, FunctionDefinition | FunctionConstraintDefinition):  # this is to skip global defs like len()
+        if isinstance(d, FunctionDefinition | FunctionConstraintDefinition):  # TODO this is to skip global defs like len() - should do proper condition
             continue
-        param_defs[d.semantic.scope.path_to_str()] = eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(d.value, d.semantic.scope))), "", mode="eval"), None, param_defs)
+        param_defs[d.semantic.scope.path_to_str()] = _evaluate_from_gboml(d, param_defs)
     print("all params values: ", param_defs, len(param_defs))
 
     var_maps = {}  # map all variables to a different index
@@ -160,11 +159,11 @@ def semantic_check(tree: GBOMLGraph) -> None:
     print("params with zero'd vars: ", param_defs_and_zeroed_vars)
     var_coefs: list[list[float]] = []
     indep_terms: list[float] = []
-    def add_coefs_and_term(c: Constraint, hier: list[HierTypes]) -> None:
-        coefs, term = _process_constraint(c, var_maps, param_defs, param_defs_and_zeroed_vars, get_scope_from_hier(hier))
-        var_coefs.append(coefs)
-        indep_terms.append(term)
-    visit_hier(tree, set(HierTypes.__args__), {Constraint: add_coefs_and_term})
+    def add_coefs_and_term(c: Constraint) -> None:
+        coefs, term = _process_constraint(c, var_maps, param_defs, param_defs_and_zeroed_vars)
+        var_coefs.append(list(map(lambda coef: _evaluate_from_gboml(coef, param_defs), coefs)))
+        indep_terms.append(_evaluate_from_gboml(term, param_defs))
+    visit(tree, {Constraint: add_coefs_and_term})
     print("matrices:\n", var_coefs, indep_terms)
 
 # enregistrer pas direct (en évaluation) dans matrice mais symboliquement par variabble(et idx) différentes; car mieux pour générer des arrays pour les variables indiçantes si dans coef

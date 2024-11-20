@@ -8,7 +8,7 @@ from gboml.ast import *
 from gboml.parsing import GBOMLParser
 from gboml.redundant_definitions import remove_redundant_definitions
 from gboml.resolve_imports import resolve_imports
-from gboml.scope import GlobalScope, HierTypes, get_scope_from_hier, get_parent_from_hier, get_scope_after_expr
+from gboml.scope import GlobalScope, HierTypes, get_parent_from_hier, get_scope_after_expr
 from gboml.tools.tree_modifier import modify_hier, modify
 from itertools import chain, groupby
 from pathlib import Path
@@ -30,7 +30,7 @@ def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes]
     if not isinstance(getattr(elem, 'lhs', elem), PathRoot):
         return elem  # if both elem and lhs are not PathRoot, cannot check anything
 
-    if (parent := get_parent_from_hier(hier, GenobjsOrGenattrs|ImplicitLoop)) is not None and isinstance(index_param_def := getattr(get_scope_after_expr(elem, get_scope_from_hier(hier)), 'ast', None), IndexingParameterDefinition):
+    if (parent := get_parent_from_hier(hier, GenobjsOrGenattrs|ImplicitLoop)) is not None and isinstance(index_param_def := getattr(get_scope_after_expr(elem), 'ast', None), IndexingParameterDefinition):
         new_loop = ImplicitLoop(None, None, varid=index_param_def.name, on=index_param_def.value, meta=parent.meta)
         # do not add ImplicitLoop if already present in hier (could only be with varid='t' at this time)
         if any(isinstance(hier_item, ImplicitLoop) and hier_item.varid == new_loop.varid == 't' for hier_item in hier):
@@ -96,7 +96,7 @@ def _process_activations(tree: GBOMLGraph) -> GBOMLGraph:
 def _process_loops(tree: GBOMLGraph) -> GBOMLGraph:
     """ Adds ImplicitLoops and convert LikeLoops to BaseLoops """
     def likeloop_to_baseloop(elem: LikeLoop, hier: list[HierTypes]) -> BaseLoop:
-        if not isinstance(index_param_def := getattr(get_scope_after_expr(elem.on, get_scope_from_hier(hier)), 'ast', None), IndexingParameterDefinition):
+        if not isinstance(index_param_def := getattr(get_scope_after_expr(elem.on), 'ast', None), IndexingParameterDefinition):
             raise RuntimeError(f"{elem} {elem.meta}: {elem.on} is not an IndexingParameterDefinition")
         return BaseLoop(elem.child, elem.varid, index_param_def.value, elem.condition, meta=elem.meta, semantic=elem.semantic)
 
@@ -105,9 +105,9 @@ def _process_loops(tree: GBOMLGraph) -> GBOMLGraph:
     tree = modify_hier(tree, GeneratedObjects | {*HierTypes.__args__, ImplicitLoop, Array, FunctionConstraint, ExpressionFunctionCall},
                 by_before=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: _mark_implicit_loops(elem, hier, implicit_loops)),
                 by_after=dict.fromkeys(GenobjsOrGenattrs.__args__ + (ExpressionObj,), lambda elem,hier: _add_implicit_loops(elem, hier, implicit_loops)))
-    print("⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻", hash(tree.semantic.scope))
-    tree.semantic.scope = dataclasses.replace(tree.semantic.scope, ast=tree)  # TODO: this reconstructs the WHOLE Scope
-    print("⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻", hash(tree.semantic.scope))
+    print("⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻TODO: this reconstructs the WHOLE Scope (children's init and post_init are called too)⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻", hash(tree.semantic.scope))
+    tree.semantic.scope = dataclasses.replace(tree.semantic.scope, ast=tree)  # TODO: this reconstructs the WHOLE Scope (children's init and post_init are called too)
+    print("⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻TODO: this reconstructs the WHOLE Scope (children's init and post_init are called too)⸻⸻⸻⸻⸻⸻⸻⸻⸻⸻", hash(tree.semantic.scope))
     return tree
 
 

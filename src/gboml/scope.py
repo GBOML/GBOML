@@ -20,7 +20,7 @@ def _create_loopscope_from_attrs(scope: 'Scope', element: GBOMLObject, attrs: tu
             visit_hier(sub_ast, {GBOMLObject, Loop}, {Loop: lambda loop,hier: LoopScope(next((hier_item.semantic.scope for hier_item in reversed(hier[:-1]) if hier_item.semantic.scope is not None), scope), loop)})
 
 def _check_dup_names(ctrs: tuple[Constraint], acts: tuple[Activation], objs: tuple[Objective] = tuple()) -> None:
-    return
+    return # TODO
     def check_dups(t):
         seen = set()
         if dups := [x for x in t if x.name in seen or seen.add(x.name)]:
@@ -45,18 +45,14 @@ def _check_redefinition(scope: 'Scope', meta: Meta, item: str) -> None:
     else:
         if isinstance(ans, ParentNodeScope|ChildNodeScope):
             ans = ans.parent
-        raise KeyError(f"{meta}: Identifier {item} is already used {'' if not ans else ans.ast.meta}.")
+        raise KeyError(f"{meta}: Identifier {item} is already used {ans.ast.meta if ans else ''}.")
 
-
-def get_scope_from_hier(hier: list[GBOMLObject]) -> 'Scope':
-    return next(hier_item.semantic.scope for hier_item in reversed(hier) if hier_item.semantic.scope is not None)
 
 def get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:
     return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
 
-def get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot, scope: 'Scope') -> Optional['Scope']:
+def get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot) -> Optional['Scope']:
     """ Returns the scope after looking for expression 'elem' or None if it is impossible to know (e.g. a().x); Raises an error if cannot find the scope. """
-
     names = []
     if not isinstance(child := elem, PathRoot):
         if isinstance(child, ExpressionDotCall):
@@ -67,7 +63,7 @@ def get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot
             return None  # cannot check existence
 
     try:
-        scope = scope[child.name]  # child is sure to be PathRoot
+        scope = elem.semantic.scope[child.name]  # child is sure to be PathRoot
         while names:
             if isinstance(scope, VarOrParamDefScope):
                 raise KeyError
@@ -90,7 +86,6 @@ class Scope:
     content: dict[str, "Scope"] = field(init=False, hash=False)
 
     def __post_init__(self):
-        print(f"{type(self)} was INITIALIZED")
         object.__setattr__(self, 'path', self.parent.path + (self.name,))  # needs to use __setattr__() to keep class frozen
 
     def _add_to_scope(self, ast, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> Optional['Scope']:
@@ -163,16 +158,25 @@ class EmptyScope(Scope):
     def __bool__(self):
         return False
 
+@dataclass(frozen=True)
+class AstScope(Scope, Generic[T]):
+    ast: T
+
+    def __post_init__(self):
+        super().__post_init__()
+        self.ast.semantic.scope = self
+        def f(elem):
+            elem.semantic.scope = self
+        visit(self.ast, dict.fromkeys((PathRoot, ExpressionDotCall, ExpressionFunctionCall), f))
+
 
 @dataclass(frozen=True)
-class NamedAstScope(Scope, Generic[T]):
+class NamedAstScope(AstScope, Generic[T]):
     name: str = field(init=False)
-    ast: T
 
     def __post_init__(self):
         object.__setattr__(self, 'name', self.ast.name)
         super().__post_init__()
-        self.ast.semantic.scope = self
 
 
 @dataclass(frozen=True)
@@ -212,14 +216,13 @@ class ChildNodeScope(Scope):
 
 
 @dataclass(frozen=True)
-class LoopScope(Scope):
+class LoopScope(AstScope[Loop]):
     name: str = field(init=False, default=None)
-    ast: Loop
 
     def __post_init__(self):
         object.__setattr__(self, 'path', self.parent.path)
         object.__setattr__(self, 'content', self.parent.content)
-        self.ast.semantic.scope = self
+        super().__post_init__()
         if not isinstance(self.ast, ImplicitLoop):
             _check_redefinition(self.parent, self.ast.meta, self.ast.varid)
 

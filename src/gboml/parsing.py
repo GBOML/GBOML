@@ -82,7 +82,7 @@ class GBOMLParser:
             """ Transforms the Lark-parsed tree to a GBOMLGraph instance """
 
             #
-            # These rules will be converted to lists
+            # These rules will be converted to tuples
             #
             as_tuple = {
                 "objectives_block", "constraints_block",
@@ -135,7 +135,6 @@ class GBOMLParser:
                 if data in self.as_frozenset:
                     return frozenset(children)
                 if data in self.to_obj:
-                    print("ABSJABSJABSJKBAKSBKABSJABSK", children)
                     return self.to_obj[data](*_childlists_to_tuples(children), meta=_gen_meta(meta))
                 raise RuntimeError(f"Unknown rule {data}")
 

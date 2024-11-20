@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional
 
 from gboml.ast.arrays import Array, Range
-from gboml.ast.base import GBOMLObject, NamedGBOMLObject
+from gboml.ast.base import GBOMLObject, NamedGBOMLObject, to_python_ast
 from gboml.ast.values import Expression
 from gboml.ast.path import Path
 
@@ -26,6 +26,9 @@ class DefinitionType(Enum):
 @dataclass(frozen=True)
 class Definition(NamedGBOMLObject):
     name: str
+
+    def _to_python_ast(self):
+        return to_python_ast(self.value)
 
 @dataclass(frozen=True)
 class ConstantDefinition(Definition):

@@ -2,14 +2,14 @@ from dataclasses import dataclass, field
 from typing import Optional, Any, TypeVar, Callable
 from ast import Constant, AST, BinOp
 
-def to_python_ast(expr: 'GBOMLObject|int|float|str', scope: 'Scope') -> AST:  # TODO see for str; TODO Scope
-    return expr._to_python_ast(scope) if isinstance(expr, GBOMLObject) else Constant(expr)
+def to_python_ast(expr: 'GBOMLObject|int|float|str') -> AST:  # TODO see for str
+    return expr._to_python_ast() if isinstance(expr, GBOMLObject) else Constant(expr)
 
-def to_balanced_python_ast(operands: tuple['GBOMLObject|int|float|str'], bin_builder: Callable[[AST, AST], BinOp], scope: 'Scope') -> BinOp:
+def to_balanced_python_ast(operands: tuple['GBOMLObject|int|float|str'], bin_builder: Callable[[AST, AST], BinOp]) -> BinOp:
     if mid := len(operands) // 2:
-        return bin_builder(to_balanced_python_ast(operands[:mid], bin_builder, scope), to_balanced_python_ast(operands[mid:], bin_builder, scope))
+        return bin_builder(to_balanced_python_ast(operands[:mid], bin_builder), to_balanced_python_ast(operands[mid:], bin_builder))
     else:
-        return to_python_ast(operands[0], scope)
+        return to_python_ast(operands[0])
 
 @dataclass
 class Meta:
