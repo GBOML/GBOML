@@ -78,9 +78,11 @@ def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dic
     """ Returns a tuple(variable_coefs, independant_term) for a given Constraint """
     new_line = [0] * len(var_maps)
     indep_term = 0
-    def add_variable_in_constr(elem: ExpressionDotCall|PathRoot, hier: list[ExpressionOp]) -> None:
+    def add_variable_in_constr(elem: ExpressionDotCall|PathRoot, hier: list[ExpressionOp], sign: int) -> None:
+        """ Returns 0 (to remove the variable for the indep term calculation) and adds the var coef to the approriate index of new_line """
         if isinstance(scope_new := get_scope_after_expr(elem, scope), ScopedVariableDefinition):
             coef = sign
+            sign_has_changed = False
             for op in reversed(hier):
                 op_new = dataclasses.replace(op, operands=tuple(operand for operand in op.operands if operand is not elem))
                 if len(op_new.operands) != len(op.operands):
@@ -89,34 +91,42 @@ def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dic
                             pass
                         case Operator.minus:
                             if op.operands[0] is not elem:
-                                coef = -coef
+                                sign_has_changed = not sign_has_changed
                         case Operator.unary_minus:
-                            coef = -coef
+                            sign_has_changed = not sign_has_changed
                         case Operator.times:
-                            try:
-                                coef *= _evaluate_from_gboml(op_new, param_defs, scope)
-                            except NameError:
-                                raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope_new.path_to_str()}")
+                            coef = ExpressionOp(Operator.times, (coef, op_new.operands[0] if len(op_new.operands) == 1 else op_new))
+                            # try:
+                                # coef *= _evaluate_from_gboml(op_new, param_defs, scope)
+                            # except NameError:
+                                # raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope_new.path_to_str()}")
                         case Operator.divide:
                             if op.operands[0] is not elem:
                                 raise RuntimeError(f"Variable {scope_new.path_to_str()} is in the denominator, non-linear Constraint at {c.meta}.")
-                            try:
-                                coef /= _evaluate_from_gboml(op_new, param_defs, scope)
-                            except NameError:
-                                raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope_new.path_to_str()}")
+                            coef = ExpressionOp(Operator.divide, (coef, op_new.operands[0] if len(op_new.operands) == 1 else op_new))
+                            # try:
+                                # coef /= _evaluate_from_gboml(op_new, param_defs, scope)
+                            # except NameError:
+                                # raise RuntimeError(f"Non-linear Constraint at {c.meta} on variable {scope_new.path_to_str()}")
                         case _:
                             raise RuntimeError(f"Unsupported ExpressionOp {op.operator} applied to {scope_new.path_to_str()}. Ensure that Constraint at {c.meta} is linear.")
                 elem = op
 
-            new_line[var_maps[scope_new.path_to_str()]] += coef
+            if sign_has_changed:
+                coef = -coef if isinstance(coef, int) else ExpressionOp(Operator.unary_minus, (coef,))
+            
+            match new_line[idx := var_maps[scope_new.path_to_str()]]:
+                case 0: new_line[idx] = coef
+                case int(value): new_line[idx] = coef + value if isinstance(coef, int) else ExpressionOp(Operator.plus, (coef, value))
+                case ExpressionOp(operator=Operator.plus, operands=operands) as expr_op: new_line[idx] = dataclasses.replace(expr_op, operands=operands + (coef,))
+                case ExpressionOp() as expr_op: new_line[idx] = ExpressionOp(Operator.plus, (expr_op, coef))
+            return 0
+        return elem
 
     if isinstance(c, StdConstraint):
-        sign = 1
-        visit_hier(c.lhs, {ExpressionOp}, dict.fromkeys((ExpressionDotCall, PathRoot), add_variable_in_constr))
-        indep_term -= eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(c.lhs, scope))), "", mode="eval"), None, param_defs_and_zeroed_vars)
-        sign = -1
-        visit_hier(c.rhs, {ExpressionOp}, dict.fromkeys((ExpressionDotCall, PathRoot), add_variable_in_constr))
-        indep_term += eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(c.rhs, scope))), "", mode="eval"), None, param_defs_and_zeroed_vars)
+        lhs_indep = modify_hier(c.lhs, {ExpressionOp}, by_after=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: add_variable_in_constr(elem, hier, +1)))
+        rhs_indep = modify_hier(c.rhs, {ExpressionOp}, by_after=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: add_variable_in_constr(elem, hier, -1)))
+        indep_term = ExpressionOp(Operator.minus, (lhs_indep, rhs_indep))
 
     return new_line, indep_term
 
@@ -171,6 +181,8 @@ def semantic_check(tree: GBOMLGraph) -> None:
 # pour faire la factorisation, faire un AST par variable; un AST par x[t+1] avec même nom de variable et même indice (symboliquement!) x[t] != x[t+0]
 
 # TODO quand on évalue les indices faudrait-il enregistrer la conversion ASTGboml -> ASTPython?
+
+# TODO use by_after for all modify/modify_hier when possible
 
 
 # TODO list
