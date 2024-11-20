@@ -50,7 +50,7 @@ class ExpressionOp(ExpressionObj):
     operator: Operator
     operands: tuple["Expression"]
     
-    def to_python_ast(self, scope: 'Scope'):
+    def _to_python_ast(self, scope: 'Scope'):
         if self.operator is Operator.unary_minus:
             # if operand is a value, return a negative Constant (evaluated 2x faster than UnaryOp(USub, Constant))
             return ast.UnaryOp(op=ast.USub(), operand=to_python_ast(self.operands[0], scope)) if isinstance(self.operands[0], GBOMLObject) else ast.Constant(-self.operands[0])

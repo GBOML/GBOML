@@ -8,7 +8,7 @@ from gboml.ast.expression_operators import ExpressionArrayCall, ExpressionDotCal
 class PathRoot(ExpressionObj):
     name: str
 
-    def to_python_ast(self, scope: 'Scope'):
+    def _to_python_ast(self, scope: 'Scope'):
         return Name(id=scope[self.name].path_to_str(), ctx=Load())
 
 

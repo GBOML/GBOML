@@ -3,7 +3,7 @@ from typing import Optional, Any, TypeVar, Callable
 from ast import Constant, AST, BinOp
 
 def to_python_ast(expr: 'GBOMLObject|int|float|str', scope: 'Scope') -> AST:  # TODO see for str; TODO Scope
-    return expr.to_python_ast(scope) if isinstance(expr, GBOMLObject) else Constant(expr)
+    return expr._to_python_ast(scope) if isinstance(expr, GBOMLObject) else Constant(expr)
 
 def to_balanced_python_ast(operands: tuple['GBOMLObject|int|float|str'], bin_builder: Callable[[AST, AST], BinOp], scope: 'Scope') -> BinOp:
     if mid := len(operands) // 2:
