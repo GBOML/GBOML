@@ -69,7 +69,7 @@ def get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot
                 raise KeyError
             scope = scope[names.pop()]
     except KeyError:
-        raise RuntimeError(f"{elem} {elem.meta}: cannot be used in this scope")
+        raise RuntimeError(f"{elem} {elem.meta}: cannot be used in this scope.{' Did you set #TIMEHORIZON?' if isinstance(elem, PathRoot) and elem.name in ('t','T') else ''}")
     return scope
 
 
