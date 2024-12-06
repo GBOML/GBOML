@@ -51,7 +51,7 @@ def _check_redefinition(scope: 'Scope', meta: Meta, item: str) -> None:
 def get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:
     return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
 
-def get_scope_after_expr(elem: ExpressionDotCall|ExpressionFunctionCall|PathRoot) -> Optional['Scope']:
+def get_scope_after_expr(elem: ExpressionFunctionCall|Path) -> Optional['Scope']:
     """ Returns the scope after looking for expression 'elem' or None if it is impossible to know (e.g. a().x); Raises an error if cannot find the scope. """
     names = []
     if not isinstance(child := elem, PathRoot):
@@ -139,24 +139,24 @@ class Scope:
         return '.'.join(self.path)
 
 
-# singleton
+@dataclass(frozen=True)
 class EmptyScope(Scope):
-    _instance = None
+    parent: "Scope" = field(init=False, default=None)
+    name: str
+    path: tuple[str] = field(init=False, default=tuple())
+    content: dict[str, "Scope"] = field(init=False, default_factory=dict)
 
-    def __new__(cls):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            object.__setattr__(cls._instance, 'parent', None)
-            object.__setattr__(cls._instance, 'name', "")
-            object.__setattr__(cls._instance, 'path', tuple())
-            object.__setattr__(cls._instance, 'content', {})
-        return cls._instance
-
-    def __init__(self):
-        pass  # Override to do nothing (and no need for constructor args)
-
+    def __post_init__(self):
+        pass
     def __bool__(self):
         return False
+
+@dataclass(frozen=True)
+class EmptyScopeVarid(EmptyScope):
+    pass
+@dataclass(frozen=True)
+class EmptyScopeArg(EmptyScope):
+    pass
 
 @dataclass(frozen=True)
 class AstScope(Scope, Generic[T]):
@@ -227,7 +227,7 @@ class LoopScope(AstScope[Loop]):
             _check_redefinition(self.parent, self.ast.meta, self.ast.varid)
 
     def __getitem__(self, item):
-        return EmptyScope() if item == self.ast.varid else self.parent[item]
+        return EmptyScopeVarid(item) if item == self.ast.varid else self.parent[item]
 
 
 @dataclass(frozen=True)
@@ -295,7 +295,7 @@ class ScopedFunctionDefinition(VarOrParamDefScope):
             _check_redefinition(self.parent, self.ast.meta, arg)
 
     def __getitem__(self, item):
-        return EmptyScope() if item in self.ast.args else self.parent[item]
+        return EmptyScopeArg(item) if item in self.ast.args else self.parent[item]
 
 @dataclass(frozen=True)
 class ScopedVariableDefinition(VarOrParamDefScope):
@@ -315,7 +315,7 @@ def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope
 @dataclass(frozen=True)
 class GlobalScope(Scope):
     name: str = field(init=False, default="global")
-    path: tuple[str] = field(init=False, default_factory=tuple)
+    path: tuple[str] = field(init=False, default=tuple())
     parent: Scope = field(init=False, default=None)
     ast: GBOMLGraph = field(repr=False)
     nodes: dict[str, NodeScope] = field(init=False, repr=False, hash=False)

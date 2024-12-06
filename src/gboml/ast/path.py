@@ -9,7 +9,7 @@ class PathRoot(ExpressionObj):
     name: str
 
     def _to_python_ast(self):
-        return Name(id=self.semantic.scope[self.name].path_to_str(), ctx=Load())
+        return Name(id=self.semantic.scope[self.name].path_to_str() or self.name, ctx=Load())
 
 
 Path = ExpressionArrayCall | ExpressionDotCall | PathRoot

@@ -4,10 +4,13 @@ from gboml.tools.tree_modifier import visit, visit_hier, modify_hier
 from gboml.reserved_definitions import GBOML_RESERVED_DEFINITIONS
 
 from graphlib import TopologicalSorter, CycleError
-from typing import NamedTuple, Optional
+from typing import NamedTuple, Optional, Any
 import ast
+from collections.abc import Iterable
 import dataclasses
+from math import prod
 import numpy as np
+from scipy.sparse import csr_matrix
 
 def _add_dep(deps: dict[VarOrParamDefinition, set[VarOrParamDefinition]], hier: list[HierTypes], dep: Optional[Scope]) -> None:
     if dep is not None and isinstance(dep, VarOrParamDefScope) and (parent_def := get_parent_from_hier(hier, VarOrParamDefinition)) is not None:
@@ -70,19 +73,30 @@ def _topo_sort(globalScope: GlobalScope, deps) -> tuple[VarOrParamDefScope]:
         raise RuntimeError("Circular dependency found!", list(map(lambda dep: (dep.semantic.scope.path_to_str(), dep.meta), err.args[1]))) from None
 
 
-def _evaluate_from_gboml(root: GBOMLObject, local_defs: dict[str, int|float]):
-    return eval(compile(ast.fix_missing_locations(ast.Expression(to_python_ast(root))), "", mode="eval"), None, local_defs)
+def _compile_from_gboml(root: GBOMLObject|int):
+    return compile(ast.fix_missing_locations(ast.Expression(to_python_ast(root))), "", mode="eval")
 
-def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dict[str, float], param_defs_and_zeroed_vars: dict[str, int|float]) -> None:
-    """ Returns a tuple(variable_coefs, independant_term) for a given Constraint """
+def _evaluate_from_compiled_expr(compiled_expr, local_defs: dict[str, Any]):
+    return eval(compiled_expr, {'$range': np.arange}, local_defs)
+
+def _evaluate_from_gboml(root: GBOMLObject|int, local_defs: dict[str, Any]):
+    return root if isinstance(root, int) else _evaluate_from_compiled_expr(_compile_from_gboml(root), local_defs)
+
+def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dict[str, Any]) -> tuple[dict[tuple[str, Optional[Expression]], Expression], Expression]:
+    """ Returns a tuple(indexed_vars_to_coefs, independant_term) for a given Constraint """
     new_line = [0] * len(var_maps)
     indep_term = 0
-    def add_variable_in_constr(elem: ExpressionDotCall|PathRoot, hier: list[ExpressionOp], sign: int) -> None:
-        """ Returns 0 (to remove the variable for the indep term calculation) and adds the var coef to the approriate index of new_line """
+    indexed_vars_to_coefs: dict[tuple[str, Optional[Expression]], Expression] = {}  # {(var.path_to_str(), index_as_gboml_ast): coef_as_gboml_ast}
+    def add_variable_in_constr(elem: ExpressionDotCall|ExpressionArrayCall|PathRoot, hier: list[ExpressionOp|ExpressionArrayCall], sign: int) -> None:
+        """ Returns 0 (to remove the variable for the indep term calculation) and adds the var coef to the approriate entry in indexed_vars_to_coefs """
+        if isinstance(elem, ExpressionArrayCall):
+            return 0 if elem.lhs == 0 else elem
+
         if isinstance(scope := get_scope_after_expr(elem), ScopedVariableDefinition):
             coef = sign
             sign_has_changed = False
-            for op in reversed(hier):
+            var_idx = hier[-1].rhs if hier and isinstance(hier[-1], ExpressionArrayCall) and hier[-1].lhs is elem else 0
+            for op in filter(lambda o: isinstance(o, ExpressionOp), reversed(hier)):
                 op_new = dataclasses.replace(op, operands=tuple(operand for operand in op.operands if operand is not elem))
                 if len(op_new.operands) != len(op.operands):
                     match op.operator:
@@ -114,22 +128,31 @@ def _process_constraint(c: Constraint, var_maps: dict[str, int], param_defs: dic
             if sign_has_changed:
                 coef = -coef if isinstance(coef, int) else ExpressionOp(Operator.unary_minus, (coef,))
             
-            match new_line[idx := var_maps[scope.path_to_str()]]:
-                case 0: new_line[idx] = coef
-                case int(value): new_line[idx] = coef + value if isinstance(coef, int) else ExpressionOp(Operator.plus, (coef, value))
-                case ExpressionOp(operator=Operator.plus, operands=operands) as expr_op: new_line[idx] = dataclasses.replace(expr_op, operands=operands + (coef,))
-                case ExpressionOp() as expr_op: new_line[idx] = ExpressionOp(Operator.plus, (expr_op, coef))
+            key = (scope.path_to_str(), var_idx)
+            match indexed_vars_to_coefs.pop(key, None):
+                case int(value) if value: coef = coef + value if isinstance(coef, int) else ExpressionOp(Operator.plus, (coef, value))
+                case ExpressionOp(operator=Operator.plus, operands=operands): coef = ExpressionOp(Operator.plus, operands + (coef,))
+                case ExpressionOp() as expr_op: coef = ExpressionOp(Operator.plus, (expr_op, coef))
+            if coef:
+                indexed_vars_to_coefs[key] = coef
             return 0
         return elem
 
     if isinstance(c, StdConstraint):
-        lhs_indep = modify_hier(c.lhs, {ExpressionOp}, by_after=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: add_variable_in_constr(elem, hier, +1)))
-        rhs_indep = modify_hier(c.rhs, {ExpressionOp}, by_after=dict.fromkeys((ExpressionDotCall, PathRoot), lambda elem,hier: add_variable_in_constr(elem, hier, -1)))
+        lhs_indep = modify_hier(c.lhs, {ExpressionOp, ExpressionArrayCall}, by_after=dict.fromkeys((ExpressionDotCall, ExpressionArrayCall, PathRoot), lambda elem,hier: add_variable_in_constr(elem, hier, +1)))
+        rhs_indep = modify_hier(c.rhs, {ExpressionOp, ExpressionArrayCall}, by_after=dict.fromkeys((ExpressionDotCall, ExpressionArrayCall, PathRoot), lambda elem,hier: add_variable_in_constr(elem, hier, -1)))
         indep_term = ExpressionOp(Operator.minus, (rhs_indep, lhs_indep))
 
-    return new_line, indep_term
+    return indexed_vars_to_coefs, indep_term
 
-
+def _is_varid_in_gboml(root: GBOMLObject, varid: str) -> bool:
+    result = False
+    def f(elem):
+        nonlocal result
+        if not result and isinstance(indexing_param := get_scope_after_expr(elem), EmptyScopeVarid) and indexing_param.name == varid:
+            result = True
+    visit(root, dict.fromkeys((ExpressionDotCall, PathRoot), f))
+    return result
 
 def semantic_check(tree: GBOMLGraph) -> None:
     # check if variables are in scope, and store deps
@@ -145,25 +168,64 @@ def semantic_check(tree: GBOMLGraph) -> None:
             continue
         param_defs[d.semantic.scope.path_to_str()] = _evaluate_from_gboml(d, param_defs)
     print("all params values: ", param_defs, len(param_defs))
+    del sorted_varorparam_defs
 
-    var_maps = {}  # map all variables to a different index
-    var_idx = 0
-    def update_var_maps(var) -> None:
-        nonlocal var_idx
-        var_maps[var.semantic.scope.path_to_str()] = var_idx
-        var_idx += 1
-    visit(tree, {VariableDefinition: update_var_maps})
-    del var_idx
+    var_maps = {}  # maps variable's path_to_str() to the 1st column number allocated to it
+    var_cols = 0  # number of columns in the final matrix
+    var_rows = 0  # number of rows (nbr of constraints) in the final matrix
+    def update_var_maps(var: VariableDefinition) -> None:
+        nonlocal var_cols
+        var_maps[var.semantic.scope.path_to_str()] = var_cols
+        var_cols += prod(map(lambda idx: _evaluate_from_gboml(idx, param_defs), var.indices)) if var.indices else 1
+    def constr_count(_):
+        nonlocal var_rows
+        var_rows += 1
+    visit(tree, {VariableDefinition: update_var_maps, Constraint: constr_count})
+    # del var_cols, var_rows  # TODO incorrect var_rows since could be generated
+
     print("variables mapping idx: ", var_maps)
-    param_defs_and_zeroed_vars = param_defs | dict.fromkeys(var_maps, 0)
-    print("params with zero'd vars: ", param_defs_and_zeroed_vars)
     var_coefs: list[list[float]] = []
     indep_terms: list[float] = []
-    def add_coefs_and_term(c: Constraint) -> None:
-        coefs, term = _process_constraint(c, var_maps, param_defs, param_defs_and_zeroed_vars)
-        var_coefs.append(list(map(lambda coef: _evaluate_from_gboml(coef, param_defs), coefs)))
+    
+    def _evaluate_vars_coefs_indices(indexed_vars_to_coefs, repeat, param_defs):
+        for (var_name, var_idx), coef in indexed_vars_to_coefs.items():
+            indices_eval = _evaluate_from_gboml(var_idx, param_defs)
+            coefs_eval = _evaluate_from_gboml(coef, param_defs)
+            indices_is_iter = isinstance(indices_eval, Iterable)
+            coefs_is_iter = isinstance(coefs_eval, Iterable)
+            if indices_is_iter and coefs_is_iter and len(coefs_eval) != len(indices_eval): raise RuntimeError
+            if not indices_is_iter and coefs_is_iter: indices_eval = np.repeat(indices_eval, repeat)
+            if indices_is_iter and not coefs_is_iter: coefs_eval = np.repeat(coefs_eval, repeat)
+            if not indices_is_iter and not coefs_is_iter:
+                indices_eval = np.repeat(indices_eval, repeat)
+                coefs_eval = np.repeat(coefs_eval, repeat)
+            yield var_name, indices_eval, coefs_eval
+    def add_coefs_and_term(c: Constraint, hier: list[Loop]) -> None:
+        indexed_vars_to_coefs, term = _process_constraint(c, var_maps, param_defs)
+        new_var_coefs = np.zeros(var_cols)
+
+        idx_loops_on_constr = 0
+        child = c
+        while hier and -idx_loops_on_constr < len(hier) and hier[idx_loops_on_constr - 1].child is child:
+            idx_loops_on_constr -= 1
+            child = hier[idx_loops_on_constr]
+        
+        if idx_loops_on_constr and _is_varid_in_gboml(c, hier[-1].varid):
+            loop_iterable = _evaluate_from_gboml(hier[-1].on, param_defs)
+            param_defs_with_varid = param_defs | {hier[-1].varid: loop_iterable}
+            if hier[-1].condition is not None:
+                loop_iterable = loop_iterable[np.nonzero(_evaluate_from_gboml(hier[-1].condition, param_defs_with_varid))]
+            tmp = np.zeros((len(loop_iterable), var_cols))
+            for var_name, indices_eval, coefs_eval in _evaluate_vars_coefs_indices(indexed_vars_to_coefs, len(loop_iterable), param_defs | {hier[-1].varid: loop_iterable}):
+                tmp[range(len(loop_iterable)), var_maps[var_name] + indices_eval] += coefs_eval
+            for i in tmp:
+                var_coefs.append(i)
+        else:
+            for (var_name, var_idx), coef in indexed_vars_to_coefs.items():
+                new_var_coefs[var_maps[var_name] + _evaluate_from_gboml(var_idx, param_defs)] = _evaluate_from_gboml(coef, param_defs)
+            var_coefs.append(new_var_coefs)
         indep_terms.append(_evaluate_from_gboml(term, param_defs))
-    visit(tree, {Constraint: add_coefs_and_term})
+    visit_hier(tree, {Loop}, {Constraint: add_coefs_and_term})
     print("matrices:\n", var_coefs, indep_terms)
 
 # enregistrer pas direct (en évaluation) dans matrice mais symboliquement par variabble(et idx) différentes; car mieux pour générer des arrays pour les variables indiçantes si dans coef
@@ -177,12 +239,12 @@ def semantic_check(tree: GBOMLGraph) -> None:
 # sign: <= == >=
 # terme indépendant
 
-# pour faire la factorisation, faire un AST par variable; un AST par x[t+1] avec même nom de variable et même indice (symboliquement!) x[t] != x[t+0]
-
 # TODO quand on évalue les indices faudrait-il enregistrer la conversion ASTGboml -> ASTPython?
 
 # TODO use by_after for all modify/modify_hier when possible
 
+
+# TODOOOOOOOOOOO check VariableDefinition indices
 
 # TODO list
 #

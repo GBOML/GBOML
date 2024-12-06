@@ -6,7 +6,8 @@ from gboml.tree_post_process import post_process
 
 parser = GBOMLParser()
 tree = parser.parse("""
-// Working example where x = -256
+// Working example where x = -256 = y
+#TIMEHORIZON T=3;
 #NODE H
     #PARAMETERS
         a = b ** 2 ** 3;
@@ -17,11 +18,14 @@ tree = parser.parse("""
         f = 4 + -2 ** 2 + g;
         g = 2 ** -2 ** 2 - .0625;
     #VARIABLES
+        internal : y[T];  // TODO try y[T][T]
         internal : x;
     #CONSTRAINTS
         -(1 - x + 6 * x / 3 + 9 % 8) * 2 <= a - 2 ** 2 - x;
+        y[w] >= x for w like t where (t + 1) % 2;
     #OBJECTIVES
         max : x;
+        min : y[t];
 
 """)
 

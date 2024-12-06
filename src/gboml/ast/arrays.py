@@ -1,7 +1,8 @@
+import ast
 import typing
 from dataclasses import dataclass
 
-from gboml.ast.base import GBOMLObject
+from gboml.ast.base import GBOMLObject, to_python_ast
 
 
 if typing.TYPE_CHECKING:
@@ -30,3 +31,8 @@ class Range(GBOMLObject):
     start: "Expression"
     end: "Expression"
     step: typing.Optional["Expression"] = None
+
+    def _to_python_ast(self):
+        return ast.Call(func=ast.Name(id='$range', ctx=ast.Load()), args=
+            [to_python_ast(self.start), ast.BinOp(left=to_python_ast(self.end), op=ast.Add(), right=ast.Constant(1)), ast.Constant(1) if self.step is None else to_python_ast(self.step)]
+        )
