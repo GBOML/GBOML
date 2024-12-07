@@ -8,6 +8,7 @@ from typing import NamedTuple, Optional, Any
 import ast
 from collections.abc import Iterable
 import dataclasses
+from itertools import repeat
 from math import prod
 import numpy as np
 from scipy.sparse import csr_matrix
@@ -184,49 +185,55 @@ def semantic_check(tree: GBOMLGraph) -> None:
     # del var_cols, var_rows  # TODO incorrect var_rows since could be generated
 
     print("variables mapping idx: ", var_maps)
-    var_coefs: list[list[float]] = []
-    indep_terms: list[float] = []
+    csr_indptr: list[int] = [0]
+    csr_indices: list[int] = []
+    csr_values: list[float] = []
+    indep_terms = []
     
+    def _repeat_if_needed(repeat_times: int, *objects):
+        """ Repeat non-iterable inputs if at least one is iterable (all iterable ones must have their lengths equal to repeat_times) """
+        if any(len(obj) != repeat_times for obj in objects if isinstance(obj, Iterable)):
+            raise RuntimeError
+        return [obj if isinstance(obj, Iterable) else np.repeat(obj, repeat_times) for obj in objects]
+
     def _evaluate_vars_coefs_indices(indexed_vars_to_coefs, repeat, param_defs):
         for (var_name, var_idx), coef in indexed_vars_to_coefs.items():
-            indices_eval = _evaluate_from_gboml(var_idx, param_defs)
-            coefs_eval = _evaluate_from_gboml(coef, param_defs)
-            indices_is_iter = isinstance(indices_eval, Iterable)
-            coefs_is_iter = isinstance(coefs_eval, Iterable)
-            if indices_is_iter and coefs_is_iter and len(coefs_eval) != len(indices_eval): raise RuntimeError
-            if not indices_is_iter and coefs_is_iter: indices_eval = np.repeat(indices_eval, repeat)
-            if indices_is_iter and not coefs_is_iter: coefs_eval = np.repeat(coefs_eval, repeat)
-            if not indices_is_iter and not coefs_is_iter:
-                indices_eval = np.repeat(indices_eval, repeat)
-                coefs_eval = np.repeat(coefs_eval, repeat)
-            yield var_name, indices_eval, coefs_eval
+            yield var_name, *_repeat_if_needed(repeat, _evaluate_from_gboml(var_idx, param_defs), _evaluate_from_gboml(coef, param_defs))
     def add_coefs_and_term(c: Constraint, hier: list[Loop]) -> None:
         indexed_vars_to_coefs, term = _process_constraint(c, var_maps, param_defs)
-        new_var_coefs = np.zeros(var_cols)
 
         idx_loops_on_constr = 0
         child = c
         while hier and -idx_loops_on_constr < len(hier) and hier[idx_loops_on_constr - 1].child is child:
             idx_loops_on_constr -= 1
             child = hier[idx_loops_on_constr]
-        
+
         if idx_loops_on_constr and _is_varid_in_gboml(c, hier[-1].varid):
             loop_iterable = _evaluate_from_gboml(hier[-1].on, param_defs)
-            param_defs_with_varid = param_defs | {hier[-1].varid: loop_iterable}
             if hier[-1].condition is not None:
-                loop_iterable = loop_iterable[np.nonzero(_evaluate_from_gboml(hier[-1].condition, param_defs_with_varid))]
+                loop_iterable = loop_iterable[np.nonzero(_evaluate_from_gboml(hier[-1].condition, param_defs | {hier[-1].varid: loop_iterable}))]
             tmp = np.zeros((len(loop_iterable), var_cols))
-            for var_name, indices_eval, coefs_eval in _evaluate_vars_coefs_indices(indexed_vars_to_coefs, len(loop_iterable), param_defs | {hier[-1].varid: loop_iterable}):
+            param_defs_with_varid = param_defs | {hier[-1].varid: loop_iterable}
+            indep_term = _evaluate_from_gboml(term, param_defs_with_varid)
+            for var_name, indices_eval, coefs_eval in _evaluate_vars_coefs_indices(indexed_vars_to_coefs, len(loop_iterable), param_defs_with_varid):
                 tmp[range(len(loop_iterable)), var_maps[var_name] + indices_eval] += coefs_eval
-            for i in tmp:
-                var_coefs.append(i)
+            indep_terms.extend(*_repeat_if_needed(len(loop_iterable), _evaluate_from_gboml(term, param_defs_with_varid)))
+
         else:
+            tmp = np.zeros((1,var_cols))
             for (var_name, var_idx), coef in indexed_vars_to_coefs.items():
-                new_var_coefs[var_maps[var_name] + _evaluate_from_gboml(var_idx, param_defs)] = _evaluate_from_gboml(coef, param_defs)
-            var_coefs.append(new_var_coefs)
-        indep_terms.append(_evaluate_from_gboml(term, param_defs))
+                tmp[0, var_maps[var_name] + _evaluate_from_gboml(var_idx, param_defs)] = _evaluate_from_gboml(coef, param_defs)
+            indep_terms.append(_evaluate_from_gboml(term, param_defs))
+        for i in tmp:
+            if (nonzero_indices := np.flatnonzero(i)).any():
+                csr_values.extend(i[nonzero_indices])
+                csr_indices.extend(nonzero_indices)
+                csr_indptr.append(len(csr_indices))
+            else:
+                raise RuntimeError(f"{c} {c.meta}: no variable in constraint.")
     visit_hier(tree, {Loop}, {Constraint: add_coefs_and_term})
-    print("matrices:\n", var_coefs, indep_terms)
+    var_coefs = csr_matrix((csr_values, csr_indices, csr_indptr))
+    print("matrices:\n", var_coefs.toarray(), indep_terms)
 
 # enregistrer pas direct (en évaluation) dans matrice mais symboliquement par variabble(et idx) différentes; car mieux pour générer des arrays pour les variables indiçantes si dans coef
 # simplement partir de feuille si c'est une variable, remonter jusqu'à root en faisant les bonnes opérations (ne pas oublier: checker si linéaire). additionner les coef si plusieurs fois la variable avec GBOML.add
