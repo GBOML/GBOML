@@ -55,10 +55,9 @@ def get_scope_after_expr(elem: ExpressionFunctionCall|Path) -> Optional['Scope']
     """ Returns the scope after looking for expression 'elem' or None if it is impossible to know (e.g. a().x); Raises an error if cannot find the scope. """
     names = []
     if not isinstance(child := elem, PathRoot):
-        if isinstance(child, ExpressionDotCall):
+        while isinstance(child, ExpressionDotCall):
             names.append(child.rhs)
-        while isinstance(child := child.lhs, ExpressionDotCall):
-            names.append(child.rhs)
+            child = child.lhs
         if not isinstance(child, PathRoot):
             return None  # cannot check existence
 
