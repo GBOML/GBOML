@@ -1,6 +1,11 @@
+from ast import Constant, AST, BinOp, Expression, fix_missing_locations
 from dataclasses import dataclass, field
+from numpy import arange
 from typing import Optional, Any, TypeVar, Callable
-from ast import Constant, AST, BinOp
+
+
+def gboml_eval(root: "GBOMLObject|int", local_defs: dict[str, Any]):
+    return root if isinstance(root, int) else eval(compile(fix_missing_locations(Expression(to_python_ast(root))), "", mode="eval"), {'$range': arange}, local_defs)
 
 def to_python_ast(expr: 'GBOMLObject|float|str') -> AST:  # TODO see for str
     return expr._to_python_ast() if isinstance(expr, GBOMLObject) else Constant(expr)

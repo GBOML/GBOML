@@ -1,5 +1,5 @@
 __all__ = [
-    "Meta", "GBOMLObject", "VarScope", "VarType", "ObjType", "to_python_ast", "to_balanced_python_ast",
+    "Meta", "GBOMLObject", "VarScope", "VarType", "ObjType", "to_python_ast", "to_balanced_python_ast", "gboml_eval",
     "Operator", "ExpressionObj", "Expression", "Array", "Loop", "BaseLoop", "LikeLoop",
     "GeneratedObjectsType", "GeneratedObjects", "ImplicitLoop", "BoolExpressionOp", "BoolExpressionComparison",
     "ScopeChange", "ImportFile", "Definition", "Constraint", "StdConstraint", "FunctionConstraint",
