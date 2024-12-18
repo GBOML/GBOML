@@ -5,7 +5,13 @@ from dataclasses import replace
 from typing import Optional, Any
 
 def _process_var_in_gboml(elem: ExpressionDotCall|ExpressionArrayCall|PathRoot, hier: list[ExpressionOp|ExpressionArrayCall], indexed_vars_to_coefs: dict[tuple[str, Optional[Expression]], Expression], sign: int) -> None:
-    """ Returns 0 (to remove the variable for the indep term calculation) and adds the var coef to the approriate entry in indexed_vars_to_coefs """
+    """
+    :param elem:
+    :param hier:
+    :param indexed_vars_to_coefs: {(var.path_to_str(), index_as_gboml_ast): coef_as_gboml_ast}
+    :param sign: the sign of the coefficient to insert in (or update) indexed_vars_to_coefs (should be different between left handside and right handside of the (in)equation)
+    :returns: 0, to remove the variable from the tree for the independant term calculation (and 0 since the expression should be linear)
+    """
     if isinstance(elem, ExpressionArrayCall):
         return 0 if elem.lhs == 0 else elem
 
@@ -47,8 +53,14 @@ def _process_var_in_gboml(elem: ExpressionDotCall|ExpressionArrayCall|PathRoot, 
         return 0
     return elem
 
-def factorize_gboml(obj: GBOMLObject, var_maps: dict[str, int], param_defs: dict[str, Any]) -> tuple[dict[tuple[str, Optional[Expression]], Expression], Expression]:
-    """ Returns a tuple(indexed_vars_to_coefs, independant_term) - still in GBOML ast form - for a given Constraint """
+def factorize_gboml(obj: StdConstraint|Objective, param_defs: dict[str, Any]) -> tuple[dict[tuple[str, Optional[Expression]], Expression], Expression]:
+    """
+    Factorize by group(variable.name, variable.index) and give their corresponding coef, as well as the independant term of the whole obj
+
+    :param obj: a Standard Constraint or an Objective
+    :param param_defs: a dictionary with key=ParameterDefinition.semantic.scope.path_to_str() and value is the already-evaluated value of GBOML ParameterDefinition
+    :returns: tuple(indexed_vars_to_coefs, independant_term) - still in GBOML ast form - for a given Constraint   (see _process_var_in_gboml() for info about indexed_vars_to_coefs)
+    """
     indexed_vars_to_coefs: dict[tuple[str, Optional[Expression]], Expression] = {}  # {(var.path_to_str(), index_as_gboml_ast): coef_as_gboml_ast}
     indep_term = 0
     if isinstance(obj, StdConstraint):

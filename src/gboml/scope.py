@@ -140,6 +140,7 @@ class Scope:
 
 @dataclass(frozen=True)
 class EmptyScope(Scope):
+    """ Used when tring to resolve a PathRoot referencing a parameter undirectly declared (function args, IndexingParameter in Loop) """
     parent: "Scope" = field(init=False, default=None)
     name: str
     path: tuple[str] = field(init=False, default=tuple())

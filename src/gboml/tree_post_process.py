@@ -25,8 +25,13 @@ def _get_obj_below_loops(obj: GBOMLObject) -> GBOMLObject:
     return obj
 
 
-def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> ExpressionDotCall|PathRoot:
-    """ If an elem references is an IndexingParameterDefinition, mark a new ImplicitLoop in implicit_loops (key=future child of ImplicitLoop, val=ImplicitLoops) """
+def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes|ImplicitLoop|Array|FunctionConstraint|ExpressionFunctionCall], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> ExpressionDotCall|PathRoot:
+    """
+    :param elem: any leaf of the GBOMLGraph being either ExpressionDotCall or PathRoot
+    :param hier: hierarchy of objects between the GBOMLGraph and elem
+    :param implicit_loops: dictionary used to mark key=GBOMLObject (GenobjsOrGenattrs|ExpressionObj) from hier with an value=ImplicitLoop (which should be the parent of the GBOMLObject) if elem is a IndexingParameter
+    :returns: elem, untouched (this function does not modify the GBOMLGraph, but should be used by modify_hier())
+    """
     if not isinstance(getattr(elem, 'lhs', elem), PathRoot):
         return elem  # if both elem and lhs are not PathRoot, cannot check anything
 
@@ -43,23 +48,19 @@ def _mark_implicit_loops(elem: ExpressionDotCall|PathRoot, hier: list[HierTypes]
 
     return elem
 
-# TODO: reimplement completely implicit loops insertion: they should only be possibly used in Constraints and Objectives
+# TODO: reimplement completely implicit loops insertion: they should only be possibly used in Constraints and Objectives (_mark_implicit_loops should only get_parent_parent(Genobjs|ImplicitLoop))
 def _add_implicit_loops(elem: GenobjsOrGenattrs|ExpressionObj, hier: list[HierTypes], implicit_loops: dict[GenobjsOrGenattrs|ExpressionObj, set[ImplicitLoop]]) -> GenobjsOrGenattrs|ExpressionObj:
     new_elem = elem
     for loop in implicit_loops.get(elem, []):
-        match elem:
-            case Array():
-                print('arr')  # TODO, array and fcts need to know on which argument the ImplicitLoop(s) are
-            case FunctionConstraint() | ExpressionFunctionCall():
-                print('fct')
-            case _:
-                print('default')
         new_elem = dataclasses.replace(loop, child=new_elem)
     return new_elem
 
 
 def _process_activations(tree: GBOMLGraph) -> GBOMLGraph:
     """
+    :param tree: the whole GBOMLGraph (note that the Activations should all reference a Constraint/Objective in the Node or HyperEdge they are declared in)
+    :returns: the modified GBOMLGraph with removed unconditionnal Activation, and removed Objective/Constraint fpr
+    :raises: KeyError if there are duplicate named Constraints or Objectives, or if (de)activation does not refer to any known Objective/Constraint
     Checks for duplicate named Objectives, named Constraints, Activations; and for (de)Activations not refering to any known Obj/Constr.
     If Activation is not conditional and is "deactivate", remove Obj/Constr from tree. Activation is removed when possible.
     """

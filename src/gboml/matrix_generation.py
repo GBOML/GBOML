@@ -10,6 +10,7 @@ from typing import Any
 from scipy.sparse import csr_matrix
 
 def _is_varid_in_gboml(root: GBOMLObject, varid: str) -> bool:
+    """ Search in GBOMLObject if it contains a element referencing a Loop.varid (the "x" in "... for x in [0:1]") """
     result = False
     def f(elem):
         nonlocal result
@@ -29,7 +30,12 @@ def _evaluate_vars_coefs_indices(indexed_vars_to_coefs, repeat, param_defs):
         yield var_name, *_repeat_if_needed(repeat, gboml_eval(var_idx, param_defs), gboml_eval(coef, param_defs))
 
 def matrix_generation(tree: GBOMLGraph, param_defs: dict[str, Any]):
-    """ Returns A_eq, b_eq, A_ineq, b_ineq, objectives, obj_offsets """
+    """
+    :param tree: the whole GBOMLGraph, ready for evaluation
+    :param param_defs: a dictionary with key=ParameterDefinition.semantic.scope.path_to_str() and value is the already-evaluated value of GBOML ParameterDefinition
+    :returns: A_eq, b_eq, A_ineq, b_ineq, objectives, obj_offsets
+    :raises: RuntimeError if a constraint is non-linear or if it contains no variable
+    """
     var_maps_col = {}  # maps variable's path_to_str() to the 1st column number allocated to it  # TODO there is currently no detection if index out of range
     csr_cols = 0  # number of columns in the final matrix
     def update_var_maps_col(var: VariableDefinition) -> None:
@@ -47,7 +53,7 @@ def matrix_generation(tree: GBOMLGraph, param_defs: dict[str, Any]):
     indep_terms_ineq = []
 
     def add_coefs_and_term_from_constr(c: StdConstraint, hier: list[Loop]) -> None:
-        indexed_vars_to_coefs, term = factorize_gboml(c, var_maps_col, param_defs)
+        indexed_vars_to_coefs, term = factorize_gboml(c, param_defs)
         csr_indptr = csr_indptr_eq if c.op == Operator.equal else csr_indptr_ineq
         csr_indices = csr_indices_eq if c.op == Operator.equal else csr_indices_ineq
         csr_values = csr_values_eq if c.op == Operator.equal else csr_values_ineq

@@ -9,22 +9,25 @@ from gboml.tree_post_process import post_process
 parser = GBOMLParser()
 tree = parser.parse("""
 // Working example where x = -256 = y
-#TIMEHORIZON T=2;
+#TIMEHORIZON T=3;
 #NODE H
     #PARAMETERS
-        b = -2 - 5/5 * 60 / 60 + 0 * 1331/11/11;
-		a = b ** 2 ** 3;
+        a = b ** 2 ** 3;
+        b = -2 - 5/5 * 60 % 5 + 0 * 1331/11/11 + c;
+        c = 2 ** -1 - .5 + d;
+        d = 2 - 3 + 1 + e;
+        e = -2 ** 2 + 4 + f;
+        f = 4 + -2 ** 2 + g;
+        g = 2 ** -2 ** 2 - .0625;
     #VARIABLES
         internal : y[T];  // TODO try y[T][T]
         internal : x;
     #CONSTRAINTS
-        -(1 - x + 6 * x / 3 + 1) * 2 <= a - 2 ** 2 - x;
-        y[t] >= x - t where t;
-        //x - y[t] == 0;
+        -(1 - x + 6 * x / 3 + 9 % 8) * 2 <= a - 2 ** 2 - x;
+        y[w] >= x for w like t where (t + 1) % 2;
     #OBJECTIVES
         max : x;
         min : y[t];
-
 """)
 
 tree = post_process(tree, parser)
