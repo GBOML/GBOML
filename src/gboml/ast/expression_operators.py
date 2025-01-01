@@ -55,10 +55,11 @@ class ExpressionOp(ExpressionObj):
             # if operand is a value, return a negative Constant (evaluated 2x faster than UnaryOp(USub, Constant))
             return ast.UnaryOp(op=ast.USub(), operand=to_python_ast(self.operands[0])) if isinstance(self.operands[0], GBOMLObject) else ast.Constant(-self.operands[0])
         else:
+            builder = lambda l,r: ast.BinOp(left=l, op=self.operator.value.ast_fun(), right=r)
             match self.operator.value.is_left_associative:
-                case True: return reduce(lambda l,r: ast.BinOp(left=l, op=self.operator.value.ast_fun(), right=r), map(to_python_ast, self.operands))
-                case False: return reduce(lambda r,l: ast.BinOp(left=l, op=self.operator.value.ast_fun(), right=r), map(to_python_ast, reversed(self.operands)))
-                case None: return to_balanced_python_ast(self.operands, lambda l,r: ast.BinOp(left=l, op=self.operator.value.ast_fun(), right=r))
+                case True: return reduce(builder, map(to_python_ast, self.operands))
+                case False: return reduce(lambda r,l: builder(l, r), map(to_python_ast, reversed(self.operands)))
+                case None: return to_balanced_python_ast(self.operands, builder)
 
 
 @dataclass(frozen=True)
