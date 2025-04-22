@@ -1,13 +1,13 @@
-#TIMEHORIZON T = 1;
-
 #NODE H
     #PARAMETERS
         a = 2;
-        b = (a == 2);
-        c = {b, a == 3};
+        b = a == 2;
+        c = {b, a == 3 for i in [1:1]};
+        d = {"z": len(c) <= 6};
     #VARIABLES
         internal : x;
     #CONSTRAINTS
-        CUSTOMFUNC(a == 2);
+        SOS1(b);
+        c[1] >= 0;
     #OBJECTIVES
         max : x;

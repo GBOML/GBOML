@@ -3,7 +3,7 @@ from enum import Enum
 from typing import Optional
 
 from gboml.ast.arrays import Array, Range
-from gboml.ast.base import GBOMLObject, NamedGBOMLObject
+from gboml.ast.base import GBOMLObject, NamedGBOMLObject, to_python_ast
 from gboml.ast.values import Expression
 from gboml.ast.path import Path
 
@@ -23,45 +23,53 @@ class DefinitionType(Enum):
     expression = "<-"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Definition(NamedGBOMLObject):
     name: str
 
+    def _to_python_ast(self):
+        return to_python_ast(self.value)
 
-@dataclass
+@dataclass(frozen=True)
 class ConstantDefinition(Definition):
     value: Expression
-    tags: set[str] = field(default_factory=set)
+    tags: frozenset[str] = field(default=frozenset())
 
-
-@dataclass
+@dataclass(frozen=True)
 class ExpressionDefinition(Definition):
     value: Expression
-    tags: set[str] = field(default_factory=set)
+    tags: frozenset[str] = field(default=frozenset())
 
-@dataclass
+@dataclass(frozen=True)
 class FunctionDefinition(Definition):
-    args: list[str]
+    args: tuple[str]
     value: Expression
-    tags: set[str] = field(default_factory=set)
+    tags: frozenset[str] = field(default=frozenset())
 
-@dataclass
+@dataclass(frozen=True)
+class FunctionConstraintDefinition(Definition):
+    args: tuple[str]
+    value: Expression
+    tags: frozenset[str] = field(default=frozenset())
+
+@dataclass(frozen=True)
 class IndexingParameterDefinition(Definition):
     value: Expression
 
-@dataclass
+
+@dataclass(frozen=True)
 class VariableDefinition(NamedGBOMLObject):
     name: str
-    indices: list[Expression]
+    indices: tuple[Expression]
     scope: VarScope
     type: VarType
     bound_lower: Optional[Expression]
     bound_upper: Optional[Expression]
     import_from: Optional[Path] = None
-    tags: set[str] = field(default_factory=set)
+    tags: frozenset[str] = field(default=frozenset())
 
 
-@dataclass
+@dataclass(frozen=True)
 class ScopeChange(GBOMLObject):
     name: str
     scope: VarScope

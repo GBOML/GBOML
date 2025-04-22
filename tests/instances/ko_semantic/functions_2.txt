@@ -1,0 +1,6 @@
+#NODE Parent
+    #PARAMETERS
+        a(i, j) <- 2 * i + j;
+        b(a) <- 2*2;  // a is already defined
+    #VARIABLES
+        pass;

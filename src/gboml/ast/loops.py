@@ -1,41 +1,46 @@
-import typing
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Generic, Optional, TypeVar, TYPE_CHECKING
 
 from gboml.ast.arrays import Range
 from gboml.ast.base import GBOMLObject
 from gboml.ast.path import Path, PathRoot
+from gboml.ast.expression_operators import ExpressionOp, Operator
 
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from gboml.ast.values import Expression
 
 
-@dataclass
+T = TypeVar("T")
+
+@dataclass(frozen=True)
 class Loop(GBOMLObject):
-    pass
+    child: "GeneratedObjectsType | Loop" = field(compare=False)
+    # child: Loop[T] | T
 
 
-@dataclass
+@dataclass(frozen=True)
 class BaseLoop(Loop):
+    """
+     The expression
+
+     expr for a in b
+
+     Creates an object with varid=a, on=b, child=expr
+    """
     varid: str
     on: "Expression"
     condition: Optional["Expression"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class LikeLoop(Loop):
     varid: str
     on: "Path"
     condition: Optional["Expression"]
 
 
-@dataclass
+@dataclass(frozen=True)
 class ImplicitLoop(BaseLoop):
-    varid: str = field(default="t", init=False)
-    on: "Expression" = field(default_factory=lambda: Range(0, PathRoot("T")), init=False)
+    varid: str = field(default="t", kw_only=True)
+    on: "Expression" = field(default=Range(0, ExpressionOp(Operator.minus, operands=(PathRoot(name='T'), 1))), kw_only=True)  # fine to *not* use default_factory as Range is immutable/frozen
     condition: "Expression"
-
-
-@dataclass
-class MultiLoop(Loop):
-    sub: list[BaseLoop]

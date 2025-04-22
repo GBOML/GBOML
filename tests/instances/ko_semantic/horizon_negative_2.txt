@@ -1,0 +1,7 @@
+#TIMEHORIZON T = node.a ** 5;
+
+#NODE node
+	#PARAMETERS
+        a = -2 + 1;
+    #VARIABLES
+        pass;

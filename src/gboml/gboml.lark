@@ -23,7 +23,7 @@ _PASS.1: "pass"
 // HEADER
 start: [time_horizon] global_block program_block
 program_block: _program*
-?time_horizon: "#TIMEHORIZON" "T" "=" INT ";"
+?time_horizon: "#TIMEHORIZON" "T" "=" expression ";"
 global_block: _block_repeat_or_pass{"#GLOBAL",definition}?
 _program: node | hyperedge
 
@@ -35,9 +35,11 @@ TAG: /@[a-zA-Z\-_]+/
 extends: "extends" _path ["from" STRING]
 
 // NODES
-?node: node_definition | node_import
+?node: node_definition | node_definition_gen | node_import
 node_definition: _block_shortcut{_node_header, _node_content}
-_node_header: "#NODE" ID olist{index_id} [extends] [loop] tags
+node_definition_gen: _block_shortcut{_node_header_gen, _node_content}
+_node_header: "#NODE" ID [extends] tags
+_node_header_gen: "#NODE" ID mlist{index_id} [extends] loop tags
 _node_content: parameters_block program_block variables_block constraints_block objectives_block
 
 parameters_block: (_block_repeat_or_pass{_opt_param_header,definition})?
@@ -54,21 +56,25 @@ node_redefs: ("with" redefinition*) | ";"
 variable_scope_change: ID SCOPE ";"
 
 // HYPEREDGES
-?hyperedge: hyperedge_definition | hyperedge_import
+?hyperedge: hyperedge_definition | hyperedge_definition_gen | hyperedge_import
 
 hyperedge_definition: _block_shortcut{_hyperedge_header, _hyperedge_content}
-_hyperedge_header: "#HYPEREDGE" ID olist{index_id} [extends] [loop] tags
+hyperedge_definition_gen: _block_shortcut{_hyperedge_header_gen, _hyperedge_content}
+_hyperedge_header: "#HYPEREDGE" ID [extends] tags
+_hyperedge_header_gen: "#HYPEREDGE" ID mlist{index_id} [extends] loop tags
 _hyperedge_content: parameters_block constraints_block
 
 hyperedge_import: "#HYPEREDGE" ID "=" "import" _path "from" STRING hyperedge_redefs
 hyperedge_redefs: "with" definition* | ";"
 
 // VARIABLES
-variable_definition: SCOPE [VTYPE] ":" separated_list{variable_name,","} [_LARROW separated_list{_path, ","}] ["in" "[" [expression] ":" [expression] "]"] tags ";"
-variable_name: ID olist{index}
+variable_definition_std: SCOPE [VTYPE] ":" separated_list{variable_name,","} tags ";"
+variable_definition_arrow: SCOPE [VTYPE] ":" separated_list{variable_name,","} "<-" separated_list{_path, ","} tags ";"
+variable_definition_limit: SCOPE [VTYPE] ":" separated_list{variable_name,","} "in" "[" [expression] ":" [expression] "]" tags ";"
+?variable_definition: variable_definition_arrow | variable_definition_limit | variable_definition_std
 SCOPE: "internal" | "external"
 VTYPE: "binary" | "continuous" | "integer"
-_LARROW.1: "<-"
+variable_name: ID olist{index}
 
 // CONSTRAINTS
 constraint: [ID ":"] expression [loop] tags ";"
@@ -78,16 +84,16 @@ objective: OBJ_TYPE [ID] ":" expression [loop] tags ";"
 OBJ_TYPE: "min" | "max"
 
 // LOOPS
-?loop: multi_loop | implicit_loop
-?multi_loop: (base_loop | like_loop)+
-base_loop: "for" ID "in" expression ["where" expression]
-like_loop: "for" ID "like" _path ["where" expression] //_path must point to an indexing param
+?loop: _true_loop | implicit_loop
+_true_loop: base_loop | like_loop
+base_loop: "for" ID "in" expression ["where" expression] [_true_loop]
+like_loop: "for" ID "like" _path ["where" expression] [_true_loop] //_path must point to an indexing param
 implicit_loop: "where" expression
 
 // DEFINITIONS
 ?definition: definition_std_param | definition_indexing_param
 definition_indexing_param: ID "in" expression ";"
-definition_std_param: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE expression tags ";"
+definition_std_param: ID ["(" separated_list{ID, ","} ")"] DEF_TYPE expression_or_string tags ";"
 DEF_TYPE: "=" | "<-"
 
 // ARRAYS
@@ -95,12 +101,13 @@ array_or_dict: "{" separated_maybe_empty_list{_array_or_dict_entry, ","} "}"
 array: "{" separated_maybe_empty_list{generated_expression, ","} "}"
 dict: "{" separated_maybe_empty_list{dict_entry, ","} "}"
 _array_or_dict_entry: generated_expression | dict_entry
-dict_entry: expression ":" expression [loop]
+dict_entry: expression_or_string ":" expression [loop]
 
 // RANGE
 range: "[" expression ":" expression [":" expression] "]"
 
 // EXPRESSIONS
+?expression_or_string: expression | STRING  // no operation is allowed on strings
 ?expression: bool_expression
 
 ?bool_expression: bool_expression_or
@@ -112,21 +119,24 @@ _bool_expression_leaf: bool_expression_comparison | _other_expression
 bool_expression_comparison: _other_expression COMPARISON_OPERATOR _other_expression
 COMPARISON_OPERATOR:  "<" | ">" | "!=" | "<=" | ">=" | "=="
 
-_other_expression: subtraction
-?subtraction: _separated_list{sum, "-"}
-?sum: _separated_list{division, "+"}
-?division: _separated_list{product, "/"}
-?product: _separated_list{modulo, "*"}
-?modulo: _separated_list{exponent, "%"}
-?exponent: _separated_list{_maybe_unary_minus, "**"}
-_maybe_unary_minus: _maybe_call | unary_minus
-unary_minus: "-" _maybe_call
-_maybe_call: function_call | dot_call | array_call | _parenthesis
-function_call: _maybe_call "(" separated_maybe_empty_list{generated_expression, ","} ")"
+_other_expression: concatenation
+?concatenation: _separated_list{subsum, "|"}
+?subsum: subsum ("-" divprodmod)+ -> subtraction
+		| subsum ("+" divprodmod)+ -> sum
+		| divprodmod
+?divprodmod: divprodmod ("/" _maybe_uminus)+ -> division
+			| divprodmod ("*" _maybe_uminus)+ -> product
+			| divprodmod ("%" _maybe_uminus)+ -> modulo
+			| _maybe_uminus
+_maybe_uminus: unary_minus | exponent
+unary_minus: "-" exponent  // as in Python, unary_minus has greater precedence than exponent if in right operand, lesser if left: -2**-2**-2 = -(2**(-(2**(-2))))
+?exponent: _maybe_call ("**" _maybe_uminus)?  // do not use _separated_list as unary_minux has different precedence regarding the context
+
+_maybe_call: function_call | dot_call | array_call | _leaf_value  // TODO a1 = 1(5); should not be accepted
+function_call: _maybe_call "(" separated_list{generated_expression, ","} ")"
 dot_call: _maybe_call "." ID
-array_call: _maybe_call "[" expression "]"
-_parenthesis: "(" expression ")" | _leaf_value
-_leaf_value: path_root | INT | FLOAT | range | array_or_dict | STRING | import | TAG
+array_call: _maybe_call "[" expression_or_string "]"
+_leaf_value: path_root | INT | FLOAT | range | array_or_dict | import | TAG | "(" expression ")"
 
 // ACTIVATE/DEACTIVATE
 _activate.1: "activate" separated_list{_activation_id, ","} ["if" expression] ";"
@@ -142,11 +152,11 @@ _path: path_root | dot_call | array_call
 path_root: ID
 
 // INDEXES
-?index: "[" expression "]"
+?index: "[" expression_or_string "]"
 ?index_id: "[" ID "]"
 
 // IMPORT (old way to import csvs)
 import: "import" STRING
 
 // GENERATED EXPRESSIONS
-?generated_expression: expression loop?
+?generated_expression: expression_or_string loop?

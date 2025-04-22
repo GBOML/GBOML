@@ -13,14 +13,13 @@ class ObjType(Enum):
     max = "max"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Objective(GBOMLObject):
     type: ObjType
     name: Optional[str]
     expression: Expression
-    loop: Optional[Loop] = None
-    tags: set[str] = field(default_factory=set)
+    tags: frozenset[str] = field(default=frozenset())
 
-@dataclass
+@dataclass(frozen=True)
 class ObjActivation(Activation):
     pass

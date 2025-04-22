@@ -2,34 +2,18 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from gboml.ast.importable import Extends
-from gboml.ast.loops import Loop
 from gboml.ast.base import NamedGBOMLObject
 from gboml.ast.constraints import Constraint, CtrActivation
 from gboml.ast.variables import Definition
 
 
-@dataclass
-class HyperEdge(NamedGBOMLObject):
-    pass
 
-
-@dataclass
-class HyperEdgeDefinition(HyperEdge):
+@dataclass(frozen=True)
+class HyperEdgeDefinition(NamedGBOMLObject):
     name: str
-    import_from: Optional[Extends | HyperEdge] = None
-    parameters: list[Definition] = field(default_factory=list)
-    constraints: list[Constraint] = field(default_factory=list)
-    activations: list[CtrActivation] = field(default_factory=list)
-    tags: set[str] = field(default_factory=set)
-
-
-@dataclass
-class HyperEdgeGenerator(HyperEdge):
-    name: str
-    indices: list[str]
-    loop: Loop
-    import_from: Optional[Extends | HyperEdge] = None
-    parameters: list[Definition] = field(default_factory=list)
-    constraints: list[Constraint] = field(default_factory=list)
-    activations: list[CtrActivation] = field(default_factory=list)
-    tags: set[str] = field(default_factory=set)
+    indices: tuple[str]
+    import_from: Optional["Extends | HyperEdgeDefinition"] = None
+    parameters: tuple[Definition] = field(default=tuple())  # fine to *not* use default_factory as tuple/frozenset are immutable
+    constraints: tuple[Constraint] = field(default=tuple())
+    activations: tuple[CtrActivation] = field(default=tuple())
+    tags: frozenset[str] = field(default=frozenset())

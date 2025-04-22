@@ -10,10 +10,9 @@ from gboml.ast.import_file import ImportFile
 LeafValue = Array | ImportFile | str | Range | Dictionary | int | float
 Expression = BoolExpressionObj | ExpressionObj | LeafValue
 
-@dataclass
+@dataclass(frozen=True)
 class GeneratedExpression(GBOMLObject):
     value: Expression
-    loop: Loop
 
 
 PossiblyGeneratedExpression = Expression | GeneratedExpression

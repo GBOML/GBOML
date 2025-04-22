@@ -1,0 +1,12 @@
+#TIMEHORIZON 1
+
+#NODE H
+    #PARAMETERS
+        a = {y: 0};  // cannot use non-scalar as key
+    #VARIABLES
+        internal : x;
+        internal : y[T];
+    #CONSTRAINTS
+        x <= -4;
+    #OBJECTIVES
+        max : x;

@@ -18,7 +18,7 @@ redefined. This includes:
       #PARAMETERS
          a <- 1
          a <- 2
-  is transformed to
+  is transformed to ect -91999 --mt-deflate -strip 9999x0w.png
       #PARAMETERS
          a <- 2
 - Variable overriding. Only the last definition of a variable is kept.
@@ -41,13 +41,44 @@ redefined. This includes:
          internal: a @tag5 @tag6
 """
 import dataclasses
+from typing import Callable, Optional
+import warnings
 
 from gboml.ast import *
-from gboml.tools.tree_modifier import modify
+from gboml.tools.tree_modifier import modify, modify_hier
+
+def _warn_redefinition(old_def: VarOrParamDefinition, new_def: VarOrParamDefinition) -> None:
+    warnings.warn(f"Removed definition '{old_def.name}' {old_def.meta} since it is redefined later {new_def.meta}", SyntaxWarning, stacklevel=2)
+
+def _get_obj_below_loops(obj: GBOMLObject) -> GBOMLObject:
+    while isinstance(obj, Loop):
+        obj = obj.child
+    return obj
+
+def _replace_obj_below_loops(possible_loop: GBOMLObject, obj: GBOMLObject) -> GBOMLObject:
+    if not isinstance(possible_loop, Loop):
+        return obj
+    return dataclasses.replace(possible_loop, child=_replace_obj_below_loops(loop.child, obj))
 
 
 def remove_redundant_definitions(elem: AnyGBOMLObject) -> AnyGBOMLObject:
-    return modify(elem, {Node: _modify_node, HyperEdge: _modify_hyperedge})
+    if isinstance(elem, GBOMLGraph):
+        elem = _merge_attributes(elem, dict.fromkeys(('global_defs', 'nodes', 'hyperedges'), _merge_definitions))
+    return modify(elem, {
+        NodeDefinition: lambda node: _merge_attributes(node, {'variables': _merge_node_variables} | dict.fromkeys(('parameters', 'nodes', 'hyperedges'), _merge_definitions)),
+        HyperEdgeDefinition: lambda hedge: _merge_attributes(hedge, {'parameters': _merge_definitions})
+    })  # TODO see
+    # constraints: tuple[Constraint] = field(default=tuple())
+    # objectives: tuple[Objective] = field(default=tuple())
+    # activations: tuple[Activation] = field(default=tuple())
+
+
+def _merge_attributes(elem: AnyGBOMLObject, attrs_to_mergemethods: dict[str, Callable[[tuple[GBOMLObject]], Optional[tuple[GBOMLObject]]]]) -> AnyGBOMLObject:
+    todo = {}
+    for attr, merge_method in attrs_to_mergemethods.items():
+        if (defs := merge_method(getattr(elem, attr))) is not None:
+            todo[attr] = defs
+    return dataclasses.replace(elem, **todo) if todo else elem
 
 
 def _name_change(pdef: Definition, old_name: str, new_name: str):
@@ -55,23 +86,26 @@ def _name_change(pdef: Definition, old_name: str, new_name: str):
         if old_name in pdef.args:  # ignore if shadowed
             return pdef
 
-    def change_var(v: VarOrParam):
-        if v.path[0].name == old_name:
-            return dataclasses.replace(v, path=[dataclasses.replace(v.path[0], name=new_name)] + v.path[1:])
-        return v
+    def change_var(p: PathRoot, hier: list[ExpressionDotCall|ExpressionFunctionCall|ExpressionArrayCall]):
+        if p.name != old_name or hier and isinstance(hier[-1], ExpressionDotCall):
+            return p
+        else:
+            return dataclasses.replace(p, name=new_name)
 
-    return modify(pdef, {VarOrParam: change_var})
+    return modify_hier(pdef, {ExpressionDotCall, ExpressionFunctionCall, ExpressionArrayCall}, {PathRoot: change_var})
 
 
-def _merge_parameters(parameters: list[Definition]) -> list[Definition] | None:
+def _merge_definitions(parameters: tuple[Definition|NodeDefinition|HyperEdgeDefinition|Loop]) -> Optional[tuple[Definition|NodeDefinition|HyperEdgeDefinition|Loop]]:
     need_update = False
-    params: dict[str, list[Definition]] = {}
-    for p in parameters:
+    params: dict[str, list[Definition|NodeDefinition|HyperEdgeDefinition|Loop]] = {}
+    for possible_loop in parameters:
+        p = _get_obj_below_loops(possible_loop)
         if p.name in params:
             need_update = True
-            old_name = params[p.name][-1].name
+            old_obj = _get_obj_below_loops(params[p.name][-1])
+            old_name = old_obj.name
             new_name = f"${old_name}${len(params[p.name])}"
-            old_tags = params[p.name][-1].tags
+            old_tags = old_obj.tags
 
             new_p = _name_change(p, old_name, new_name)
             throw_old = new_p is p  # if there is no usage of the old value, we will throw it
@@ -81,19 +115,20 @@ def _merge_parameters(parameters: list[Definition]) -> list[Definition] | None:
                 new_p = dataclasses.replace(new_p, tags=old_tags | new_p.tags)
 
             if throw_old:
-                params[p.name] = [new_p]
+                _warn_redefinition(old_obj, new_p)
+                params[p.name] = [possible_loop if new_p is p else _replace_obj_below_loops(possible_loop, new_p)]
             else:
-                params[p.name][-1] = dataclasses.replace(params[p.name][-1], name=new_name, tags=set())
-                params[p.name].append(new_p)
+                params[p.name][-1] = _replace_obj_below_loops(params[p.name][-1], dataclasses.replace(old_obj, name=new_name, tags=frozenset()))
+                params[p.name].append(_replace_obj_below_loops(possible_loop, new_p))
         else:
-            params[p.name] = [p]
+            params[p.name] = [possible_loop]
 
     if need_update:
-        return [y for x in params.values() for y in x]
+        return tuple(y for x in params.values() for y in x)
     return None
 
 
-def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> list[VariableDefinition] | None:
+def _merge_node_variables(variables: tuple[VariableDefinition | ScopeChange]) -> Optional[tuple[VariableDefinition]]:
     need_update = False
     vars: dict[str, VariableDefinition] = {}
     for v in variables:
@@ -102,45 +137,14 @@ def _merge_node_variables(variables: list[VariableDefinition | ScopeChange]) -> 
                 if v.name not in vars:
                     vars[v.name] = v
                 else:
+                    _warn_redefinition(vars[v.name], v)
                     vars[v.name] = dataclasses.replace(v, tags=vars[v.name].tags | v.tags) if vars[v.name].tags != v.tags else v
                     need_update = True
             case ScopeChange():
                 if v.name not in vars:
                     raise RuntimeError(f"No variable named {v.name}")
                 need_update = True
-                vars[v.name].scope = v.scope
+                vars[v.name] = dataclasses.replace(vars[v.name], scope=v.scope)
     if need_update:
-        return list(vars.values())
+        return tuple(vars.values())
     return None
-
-
-def _modify_node(node: NodeDefinition | NodeGenerator) -> NodeDefinition | NodeGenerator:
-    todo = {}
-
-    params = _merge_parameters(node.parameters)
-    if params is not None:
-        todo["parameters"] = params
-
-    vars = _merge_node_variables(node.variables)
-    if vars is not None:
-        todo["vars"] = vars
-
-    if len(todo):
-        return dataclasses.replace(node, **todo)
-    return node
-
-
-def _modify_hyperedge(hyperedge: HyperEdgeDefinition | HyperEdgeGenerator) -> HyperEdgeDefinition | HyperEdgeGenerator:
-    params = _merge_parameters(hyperedge.parameters)
-    if params is not None:
-        return dataclasses.replace(hyperedge, parameters=params)
-    return hyperedge
-
-
-if __name__ == '__main__':
-    print(remove_redundant_definitions(NodeDefinition(name="lol", parameters=[
-        ConstantDefinition("a", 1, tags={"@t", "@t2"}),
-        ConstantDefinition("a", ExpressionOp(Operator.plus, [1, VarOrParam([VarOrParamLeaf("a")])]), tags={"@t2", "@t3"}),
-        ConstantDefinition("b", 1, tags={"@a"}),
-        ConstantDefinition("b", 2),
-    ])))

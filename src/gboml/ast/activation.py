@@ -11,8 +11,8 @@ class ActivationType(Enum):
     deactivate = "deactivate"
 
 
-@dataclass
+@dataclass(frozen=True)
 class Activation(GBOMLObject):
     type: ActivationType
-    what: list[str]
+    what: tuple[str]
     condition: Optional[Expression]

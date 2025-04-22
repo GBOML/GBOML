@@ -6,6 +6,7 @@ from enum import Enum
 from functools import partial
 
 from gboml.ast import *
+import gboml
 
 
 def _recursive_class_list_children(cls):
@@ -25,8 +26,9 @@ def _recursive_class_list_parents(cls):
 
 excluded_types = {
     typing.Optional[Meta],
+    Semantic,
     str, int, float,
-    list[str],
+    tuple[str],
     typing.Optional[str],
     types.NoneType
 }
@@ -34,7 +36,7 @@ excluded_types = {
 
 def _effective_types(typ):
     """
-        Lists GBOMLObject-subclasses "inside" other types, such as Optional, Union or list.
+        Lists GBOMLObject-subclasses "inside" other types, such as Optional, Union or tuple.
     """
     if isinstance(typ, str):
         typ = eval(typ)
@@ -42,7 +44,7 @@ def _effective_types(typ):
         typ = eval(typ.__forward_arg__)
     if typ in excluded_types or (inspect.isclass(typ) and issubclass(typ, Enum)):
         return
-    if isinstance(typ, types.GenericAlias) and typ.__origin__ in [list, set]:
+    if isinstance(typ, types.GenericAlias) and typ.__origin__ in [tuple, frozenset]:
         yield from _effective_types(typing.get_args(typ)[0])
         return
     if typing.get_origin(typ) == typing.Union or isinstance(typ, types.UnionType) or ("_name" in typ.__dict__ and typ._name == "Optional"):
@@ -90,9 +92,9 @@ def _compute_paths_to():
 
 
 """ All descendants of GBOMLObject"""
-all_gbomlobjects: set[typing.Type[GBOMLObject]] = set(_recursive_class_list_children(GBOMLObject))
+all_gbomlobjects: frozenset[typing.Type[GBOMLObject]] = frozenset(_recursive_class_list_children(GBOMLObject))
 """ Classes that have no children (i.e. the ones that are actually used)"""
-leaf_gbomlobjects: set[typing.Type[GBOMLObject]] = {cls for cls in all_gbomlobjects if len(cls.__subclasses__()) == 0}
+leaf_gbomlobjects: frozenset[typing.Type[GBOMLObject]] = frozenset(cls for cls in all_gbomlobjects if not cls.__subclasses__())
 """ GBOMLObject-subclasses used by given GBOMLObject-subclasses, recursively """
 types_inside = _compute_types_inside()
 """ all parents of class cls, including itself, from child to parent """
@@ -105,13 +107,13 @@ paths_to = _compute_paths_to()
 #       and it takes ~20ms. We probably shouldn't care.
 
 
-def _modify_list(l, by_before, by_after):
+def _modify_tuple(l: tuple, by_before, by_after):
     # we do not copy l if it is not modified
     copied = False
 
     for i in range(len(l)):
         cur = l[i]
-        out = modify(l[i], by_before, by_after)
+        out = modify(cur, by_before, by_after)
         if out is not cur:
             # first copy l if we need to modify it
             if copied is False:
@@ -119,7 +121,7 @@ def _modify_list(l, by_before, by_after):
                 copied = True
             l[i] = out
 
-    return l
+    return tuple(l)
 
 
 def _modify_gbomlobject(obj, by_before, by_after):
@@ -157,8 +159,8 @@ T = typing.TypeVar('T')
 
 
 def modify(element: T,
-           by_before: dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]] = None,
-           by_after: dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]] = None) -> T:
+           by_before: typing.Optional[dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]]] = None,
+           by_after: typing.Optional[dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]]] = None) -> T:
     """
         Recursively modifies a GBOMLGraph tree (or any part of it) according to rules set in the dict `by_before` and `by_after`.
         `by_...` entries should be in the form `(cls: fun)`, where cls is a class derivating from GBOMLObject and
@@ -176,12 +178,14 @@ def modify(element: T,
 
     match element:
         case GBOMLObject(): return _modify_gbomlobject(element, by_before, by_after)
-        case list(): return _modify_list(element, by_before, by_after)
+        case tuple(): return _modify_tuple(element, by_before, by_after)
         case int() | str() | float() | None: return element
         case other: raise RuntimeError(f"Unknown type {other.__class__}")
 
 
-def visit(element: typing.Any, call: dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject], None]]):
+def visit(element: typing.Any,
+          by_before: typing.Optional[dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject], None]]] = None,
+          by_after: typing.Optional[dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject], None]]] = None):
     """
         Recursively visit a GBOMLGraph tree (or any part of it), calling functions in the dict `call` each time it
         sees an object of the right type.
@@ -189,16 +193,23 @@ def visit(element: typing.Any, call: dict[typing.Type[AnyGBOMLObject], typing.Ca
         `fun` a callable function that takes as input the object being visited that is an instance of class `cls`.
         If multiple `cls` are valid, the class that is the nearest from the object is chosen.
     """
+    if by_before is None and by_after is None:
+        return element
+    if by_before is None:
+        by_before = {}
+    if by_after is None:
+        by_after = {}
+
     def _(f, v):
         f(v)
         return v
-    return modify(element, {x: partial(_, y) for x, y in call.items()})
+    return modify(element, {x: partial(_, y) for x, y in by_before.items()}, {x: partial(_, y) for x, y in by_after.items()})
 
 
 def modify_hier(element: T,
                 store_hier: set[typing.Type[AnyGBOMLObject]],
-                by_before: dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]] = None,
-                by_after: dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]] = None):
+                by_before: typing.Optional[dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]]] = None,
+                by_after: typing.Optional[dict[typing.Type[AnyGBOMLObject], typing.Callable[[T], AnyGBOMLObject]]] = None):
     """
         Recursively modifies a GBOMLGraph tree (or any part of it) according to rules set in the dict `by_before` and `by_after`.
         `by_...` entries should be in the form `(cls: fun)`, where cls is a class derivating from GBOMLObject and
@@ -224,7 +235,8 @@ def modify_hier(element: T,
         return x
 
     def pop(x):
-        hierarchy.pop()
+        if hierarchy:
+            hierarchy.pop()
         return x
 
     def push_and_f(f):
@@ -263,11 +275,17 @@ def modify_hier(element: T,
 
 def visit_hier(element: typing.Any,
                store_hier: set[typing.Type[AnyGBOMLObject]],
-               call: dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject, list[AnyGBOMLObject]], None]]):
-    """
-        Combine the effects of visit and modify_hier.
-    """
+               by_before: typing.Optional[dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject, list[AnyGBOMLObject]], None]]] = None,
+               by_after: typing.Optional[dict[typing.Type[AnyGBOMLObject], typing.Callable[[AnyGBOMLObject, list[AnyGBOMLObject]], None]]] = None):
+    """ Combine the effects of visit and modify_hier. """
+    if by_before is None and by_after is None:
+        return element
+    if by_before is None:
+        by_before = {}
+    if by_after is None:
+        by_after = {}
+
     def _(f, v, l):
         f(v, l)
         return v
-    return modify_hier(element, store_hier, {x: partial(_, f) for x, f in call.items()})
+    return modify_hier(element, store_hier, {x: partial(_, f) for x, f in by_before.items()}, {x: partial(_, f) for x, f in by_after.items()})

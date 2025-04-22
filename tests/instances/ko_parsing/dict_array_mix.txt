@@ -1,0 +1,9 @@
+#NODE H
+    #PARAMETERS
+        a = {2: 2, 2};
+    #VARIABLES
+        internal : x;
+    #CONSTRAINTS
+        x <= -4 + len(a);
+    #OBJECTIVES
+        max : x;

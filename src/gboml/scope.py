@@ -1,11 +1,75 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from enum import Enum
-from typing import Generic, TypeVar
+from typing import Generic, TypeVar, Type, ClassVar, Optional
 
-from gboml.ast import NodeDefinition, GBOMLGraph, VariableDefinition, Definition, NodeGenerator, NamedGBOMLObject, \
-    HyperEdge, HyperEdgeGenerator, HyperEdgeDefinition
+from gboml.ast import *
+from gboml.tools.tree_modifier import visit, visit_hier
 
 T = TypeVar('T', bound=NamedGBOMLObject)
+ObjectsWithScope = NodeDefinition|HyperEdgeDefinition|Loop|VarOrParamDefinition|FunctionDefinition
+HierTypes = ObjectsWithScope|Array|DictEntry|VarOrParamDefinition|ExpressionFunctionCall|Path
+
+def _obj_below_loops(obj: GBOMLObject) -> GBOMLObject:
+    while isinstance(obj, Loop):
+        obj = obj.child
+    return obj
+
+def _create_loopscope_from_attrs(scope: 'Scope', element: GBOMLObject, attrs: tuple[str]) -> None:
+    for attr in attrs:
+        for sub_ast in getattr(element, attr):
+            visit_hier(sub_ast, {GBOMLObject, Loop}, {Loop: lambda loop,hier: LoopScope(next((hier_item.semantic.scope for hier_item in reversed(hier[:-1]) if hier_item.semantic.scope is not None), scope), loop)})
+
+def _check_dup_names(ctrs: tuple[Constraint], acts: tuple[Activation], objs: tuple[Objective] = tuple()) -> None:
+    return # TODO
+    def check_dups(t):
+        seen = set()
+        if dups := [x for x in t if x.name in seen or seen.add(x.name)]:
+            raise KeyError(f"{list(map(lambda d: d.meta, dups))}: several {type(dups[0]).__name__} with the same name {set(map(lambda d: d.name, dups))}.")
+    
+    for a in acts:
+        pass
+    for t in (ctrs, acts, objs):
+        if not t:
+            continue
+        match _obj_below_loops(t[0]): # TODO all can be under loops (does activation make sense)
+            case Constraint() | Objective():
+                check_dups(filter(lambda e: e.name is not None, t))
+            case Activation():
+                pass
+
+def _check_redefinition(scope: 'Scope', meta: Meta, item: str) -> None:
+    try:
+        ans = scope[item]
+    except KeyError:
+        pass
+    else:
+        if isinstance(ans, ParentNodeScope|ChildNodeScope):
+            ans = ans.parent
+        raise KeyError(f"{meta}: Identifier {item} is already used {ans.ast.meta if ans else ''}.")
+
+
+def get_parent_from_hier(hier: list[HierTypes], _type: type[HierTypes]) -> Optional[HierTypes]:
+    return next((hier_item for hier_item in reversed(hier) if isinstance(hier_item, _type)), None)
+
+def get_scope_after_expr(elem: ExpressionFunctionCall|Path) -> Optional['Scope']:
+    """ Returns the scope after looking for expression 'elem' or None if it is impossible to know (e.g. a().x); Raises an error if cannot find the scope. """
+    names = []
+    if not isinstance(child := elem, PathRoot):
+        while isinstance(child, ExpressionDotCall):
+            names.append(child.rhs)
+            child = child.lhs
+        if not isinstance(child, PathRoot):
+            return None  # cannot check existence
+
+    try:
+        scope = elem.semantic.scope[child.name]  # child is sure to be PathRoot
+        while names:
+            if isinstance(scope, VarOrParamDefScope):
+                raise KeyError
+            scope = scope[names.pop()]
+    except KeyError:
+        raise RuntimeError(f"{elem} {elem.meta}: cannot be used in this scope.{' Did you set #TIMEHORIZON?' if isinstance(elem, PathRoot) and elem.name in ('t','T') else ''}")
+    return scope
 
 
 class OverrideBehavior(Enum):
@@ -13,198 +77,255 @@ class OverrideBehavior(Enum):
     fail = 1
     overwrite = 2
 
-
-@dataclass
+@dataclass(frozen=True)
 class Scope:
     parent: "Scope" = field(repr=False)
     name: str
-    path: list[str] = field(init=False)
-    content: dict[str, "Scope"] = field(init=False)
+    path: tuple[str] = field(init=False)
+    content: dict[str, "Scope"] = field(init=False, hash=False)
 
     def __post_init__(self):
-        self.path = self.parent.path + [self.name]
+        object.__setattr__(self, 'path', self.parent.path + (self.name,))  # needs to use __setattr__() to keep class frozen
 
-    def _add_to_scope(self, ast, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> "Scope | None":
-        if ast.name in self.content:
+    def _add_to_scope(self, ast, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> Optional['Scope']:
+        parent = self
+        while isinstance(ast, Loop):
+            parent = LoopScope(parent, ast)
+            ast = ast.child
+
+        if ast.name == 'parent':
+            raise KeyError(f"{ast.meta}: Identifier {ast.name} cannot be redefined (reserved keyword).")
+
+        try:
+            self[ast.name]
+        except KeyError:
+            pass
+        else:
             if whenPresent == OverrideBehavior.fail:
-                raise RuntimeError(f"Identifier {ast.name} is already used")
+                raise KeyError(f"{ast.meta}: Identifier {ast.name} is already used {scope.parent.ast.meta if isinstance(scope := self.content[ast.name], ParentNodeScope) else scope.ast.meta} GROS CACAA.")
             elif whenPresent == OverrideBehavior.ignore:
                 return None
-            else:
-                pass
 
-        self.content[ast.name] = wrapper(create_scope(ast, self))
+        self.content[ast.name] = wrapper(create_scope(ast, parent))
         return self.content[ast.name]
 
     def _add_all_to_scope(self, l, wrapper=lambda x: x, whenPresent: OverrideBehavior = OverrideBehavior.fail) -> list["Scope"]:
         return [y for x in l for y in [self._add_to_scope(x, wrapper, whenPresent)] if y is not None]
 
     def __getitem__(self, item):
-        return self.content[item]
+        if item == 'parent':
+            return ParentNodeScope(self.parent)
+        try:
+            return self.content[item]
+        except KeyError:
+            if isinstance(self, GlobalScope):
+                raise
+
+            glob = self.content['global'].parent if 'global' in self.content else None
+            try:
+                scope = self.parent[item]
+            except KeyError:
+                pass
+            else:
+                if isinstance(scope, EmptyScope) or glob is not None and not isinstance(scope, ChildNodeScope) and scope.ast in glob.ast.reserved_defs:
+                    return scope
+                else:
+                    raise
+
+            raise
+
+    def path_to_str(self):
+        return '.'.join(self.path)
 
 
-@dataclass
-class Unresolvable(Scope):
-    def __getitem__(self, item):
-        raise RuntimeError("Not resolved yet")
+@dataclass(frozen=True)
+class EmptyScope(Scope):
+    """ Used when tring to resolve a PathRoot referencing a parameter undirectly declared (function args, IndexingParameter in Loop) """
+    parent: "Scope" = field(init=False, default=None)
+    name: str
+    path: tuple[str] = field(init=False, default=tuple())
+    content: dict[str, "Scope"] = field(init=False, default_factory=dict)
 
+    def __post_init__(self):
+        pass
+    def __bool__(self):
+        return False
 
-@dataclass
-class NamedAstScope(Scope, Generic[T]):
-    name: str = field(init=False)
+@dataclass(frozen=True)
+class EmptyScopeVarid(EmptyScope):
+    pass
+@dataclass(frozen=True)
+class EmptyScopeArg(EmptyScope):
+    pass
+
+@dataclass(frozen=True)
+class AstScope(Scope, Generic[T]):
     ast: T
 
     def __post_init__(self):
-        self.name = self.ast.name
-        super(NamedAstScope, self).__post_init__()
+        super().__post_init__()
+        self.ast.semantic.scope = self
+        def f(elem):
+            elem.semantic.scope = self
+        visit(self.ast, dict.fromkeys((PathRoot, ExpressionDotCall, ExpressionFunctionCall), f))
 
 
-@dataclass
+@dataclass(frozen=True)
+class NamedAstScope(AstScope, Generic[T]):
+    name: str = field(init=False)
+
+    def __post_init__(self):
+        object.__setattr__(self, 'name', self.ast.name)
+        super().__post_init__()
+
+
+@dataclass(frozen=True)
 class ParentNodeScope(Scope):
     """ A child can only access the parameters of its parents """
     parent: "NodeScope" = field(repr=False)
     name: str = field(init=False)
 
     def __post_init__(self):
-        self.name = self.parent.name
-        self.path = self.parent.path
-        self.content = self.parent.content
+        object.__setattr__(self, 'name', self.parent.name)
+        object.__setattr__(self, 'path', self.parent.path)
+        object.__setattr__(self, 'content', self.parent.content)
 
     def __getitem__(self, item):
-        out = super(ParentNodeScope, self).__getitem__(item)
-        if not isinstance(out, ScopedDefinition):
+        out = super().__getitem__(item)
+        if not isinstance(out, ParentNodeScope | ScopedDefinition | ScopedFunctionDefinition | EmptyScope):
             raise KeyError(f"{item} is not accessible")
         return out
 
 
-@dataclass
+@dataclass(frozen=True)
 class ChildNodeScope(Scope):
     """ A parent can only access the vars of this child (not directly, but at least in child hyperedges) """
     parent: "NodeScope" = field(repr=False)
     name: str = field(init=False)
 
     def __post_init__(self):
-        self.name = self.parent.name
-        self.path = self.parent.path
-        self.content = self.parent.content
+        object.__setattr__(self, 'name', self.parent.name)
+        object.__setattr__(self, 'path', self.parent.path)
+        object.__setattr__(self, 'content', self.parent.content)
 
     def __getitem__(self, item):
-        out = super(ChildNodeScope, self).__getitem__(item)
+        out = super().__getitem__(item)
         if not isinstance(out, ScopedVariableDefinition):
             raise KeyError(f"{item} is not accessible")
         return out
 
 
-@dataclass
-class DefNodeScope(NamedAstScope[NodeDefinition]):
-    nodes: dict[str, "NodeScope"] = field(init=False, repr=False)
-    hyperedges: dict[str, "HyperEdgeScope"] = field(init=False, repr=False)
+@dataclass(frozen=True)
+class LoopScope(AstScope[Loop]):
+    name: str = field(init=False, default=None)
 
     def __post_init__(self):
-        super(DefNodeScope, self).__post_init__()
-        self.content = {}
+        object.__setattr__(self, 'path', self.parent.path)
+        object.__setattr__(self, 'content', self.parent.content)
+        super().__post_init__()
+        if not isinstance(self.ast, ImplicitLoop):
+            _check_redefinition(self.parent, self.ast.meta, self.ast.varid)
+
+    def __getitem__(self, item):
+        return EmptyScopeVarid(item) if item == self.ast.varid else self.parent[item]
+
+
+@dataclass(frozen=True)
+class NodeScope(NamedAstScope[NodeDefinition]):
+    nodes: dict[str, "NodeScope"] = field(init=False, repr=False, hash=False)
+    hyperedges: dict[str, "HyperEdgeScope"] = field(init=False, repr=False, hash=False)
+
+    def __post_init__(self):
+        object.__setattr__(self, 'content', {})
+        super().__post_init__()
+        
+        parents = [self.parent]
+        while not isinstance(parents[-1], GlobalScope):
+            parents.append(parents[-1].parent)
+        self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
+
         self._add_all_to_scope(self.ast.parameters)
         node_scopes = self._add_all_to_scope(self.ast.nodes, ChildNodeScope)
         self._add_all_to_scope(self.ast.variables)
 
-        parents = [self.parent]
-        while not isinstance(parents[-1], RootScope):
-            parents.append(parents[-1].parent)
-        self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
+        object.__setattr__(self, 'nodes', {x.parent.name: x.parent for x in node_scopes})
+        object.__setattr__(self, 'hyperedges', {h.name: HyperEdgeScope(self, h, list(self.nodes.values())) for h in self.ast.hyperedges})
 
-        self.nodes = {x.parent.name: x.parent for x in node_scopes}
-        self.hyperedges = {h.name: create_hyperedge_scope(h, self, list(self.nodes.values())) for h in self.ast.hyperedges}
-
-
-@dataclass
-class UnresolvedNodeGeneratorScope(NamedAstScope[NodeGenerator], Unresolvable):
-    def __post_init__(self):
-        super(UnresolvedNodeGeneratorScope, self).__post_init__()
-        # no resolved yet, nothing is accessible
-        self.content = {}
+        _create_loopscope_from_attrs(self, self.ast, ('constraints', 'objectives', 'parameters'))
+        _check_dup_names(self.ast.constraints, self.ast.activations, self.ast.objectives)
+        _check_redefinition(self, self.ast.meta, self.ast.name)
 
 
-NodeScope = DefNodeScope | UnresolvedNodeGeneratorScope
-
-
-@dataclass
-class DefHyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
-    _parent_nodes: list[NodeScope]
+@dataclass(frozen=True)
+class HyperEdgeScope(NamedAstScope[HyperEdgeDefinition]):
+    _parent_nodes: tuple[NodeScope]
 
     def __post_init__(self):
-        super(DefHyperEdgeScope, self).__post_init__()
-        self.content = {}
+        object.__setattr__(self, 'content', {})
+        super().__post_init__()
         self._add_all_to_scope(self.ast.parameters)
         self._add_all_to_scope(self._parent_nodes)
 
         parents = [self.parent]
-        while not isinstance(parents[-1], RootScope):
+        while not isinstance(parents[-1], GlobalScope):
             parents.append(parents[-1].parent)
         self._add_all_to_scope(parents, ParentNodeScope, OverrideBehavior.ignore)
 
+        _create_loopscope_from_attrs(self, self.ast, ('constraints', 'parameters'))
+        _check_dup_names(self.ast.constraints, self.ast.activations)
+        _check_redefinition(self, self.ast.meta, self.ast.name)
 
-@dataclass
-class UnresolvedHyperEdgeGeneratorScope(NamedAstScope[NodeGenerator], Unresolvable):
-    _parent_nodes: list[NodeScope]
 
+@dataclass(frozen=True)
+class VarOrParamDefScope(NamedAstScope[Definition]):
     def __post_init__(self):
-        super(UnresolvedHyperEdgeGeneratorScope, self).__post_init__()
-        # no resolved yet, nothing is accessible
-        self.content = {}
+        object.__setattr__(self, 'content', self.parent.content)
+        super().__post_init__()
+        _check_redefinition(self, self.ast.meta, self.ast.name)
 
+@dataclass(frozen=True)
+class ScopedDefinition(VarOrParamDefScope):
+    pass
 
-HyperEdgeScope = DefHyperEdgeScope | UnresolvedHyperEdgeGeneratorScope
-
-@dataclass
-class ScopedDefinition(NamedAstScope[NodeDefinition]):
+@dataclass(frozen=True)
+class ScopedFunctionDefinition(VarOrParamDefScope):
     def __post_init__(self):
-        super(ScopedDefinition, self).__post_init__()
-        self.content = self.parent.content
+        super().__post_init__()
+        for arg in self.ast.args:
+            _check_redefinition(self.parent, self.ast.meta, arg)
 
+    def __getitem__(self, item):
+        return EmptyScopeArg(item) if item in self.ast.args else self.parent[item]
 
-@dataclass
-class ScopedVariableDefinition(NamedAstScope[NodeDefinition]):
-    def __post_init__(self):
-        super(ScopedVariableDefinition, self).__post_init__()
-        self.content = self.parent.content
+@dataclass(frozen=True)
+class ScopedVariableDefinition(VarOrParamDefScope):
+    pass
 
 
 def create_scope(ast_or_scope: NamedGBOMLObject | Scope, parent: Scope) -> Scope:
     match ast_or_scope:
-        case NodeDefinition(): return DefNodeScope(parent, ast_or_scope)
-        case NodeGenerator(): return UnresolvedNodeGeneratorScope(parent, ast_or_scope)
+        case NodeDefinition(): return NodeScope(parent, ast_or_scope)
+        case FunctionDefinition(): return ScopedFunctionDefinition(parent, ast_or_scope)
         case Definition(): return ScopedDefinition(parent, ast_or_scope)
         case VariableDefinition(): return ScopedVariableDefinition(parent, ast_or_scope)
         case Scope(): return ast_or_scope
         case _: raise RuntimeError(f"Unknown Type {ast_or_scope.__class__}")
 
 
-def create_hyperedge_scope(ast: HyperEdge, parent: Scope, nodes_in_parent: list[NodeScope]) -> Scope:
-    match ast:
-        case HyperEdgeDefinition(): return DefHyperEdgeScope(parent, ast, nodes_in_parent)
-        case HyperEdgeGenerator(): return UnresolvedHyperEdgeGeneratorScope(parent, ast, nodes_in_parent)
-
-@dataclass
+@dataclass(frozen=True)
 class GlobalScope(Scope):
-    ast: GBOMLGraph = field(repr=False)
     name: str = field(init=False, default="global")
-
-    def __post_init__(self):
-        super(GlobalScope, self).__post_init__()
-        self.content = {}
-        self._add_all_to_scope(self.ast.global_defs)
-
-
-@dataclass
-class RootScope(Scope):
-    name: str = field(init=False, default="root")
-    path: list[str] = field(init=False, default_factory=lambda: [])
+    path: tuple[str] = field(init=False, default=tuple())
     parent: Scope = field(init=False, default=None)
     ast: GBOMLGraph = field(repr=False)
-    nodes: dict[str, NodeScope] = field(init=False, repr=False)
-    hyperedges: dict[str, HyperEdgeScope] = field(init=False, repr=False)
+    nodes: dict[str, NodeScope] = field(init=False, repr=False, hash=False)
+    hyperedges: dict[str, HyperEdgeScope] = field(init=False, repr=False, hash=False)
 
     def __post_init__(self):
-        self.content = {"global": GlobalScope(self, self.ast)}
-        self.nodes = {x.name: x for x in self._add_all_to_scope(self.ast.nodes)}
-        self.hyperedges = {h.name: create_hyperedge_scope(h, self, self.nodes.values()) for h in self.ast.hyperedges}
+        object.__setattr__(self, 'content', {})
+        self._add_all_to_scope(self.ast.global_defs)
+        self._add_all_to_scope(self.ast.reserved_defs)
+        _create_loopscope_from_attrs(self, self.ast, ('global_defs',))
+        object.__setattr__(self, 'nodes', {x.name: x for x in self._add_all_to_scope(self.ast.nodes)})
+        object.__setattr__(self, 'hyperedges', {h.name: HyperEdgeScope(self, h, tuple(self.nodes.values())) for h in self.ast.hyperedges})
+        self.ast.semantic.scope = self
