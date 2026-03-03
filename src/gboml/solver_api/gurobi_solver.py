@@ -168,7 +168,7 @@ def gurobi_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
 
             status = "optimal"
             solution = x.X
-            objective = model.getObjective().getValue()
+            objective = model.getObjective().getValue()+objective_offset
         elif status_code == 3:
 
             status = "infeasible"
@@ -181,7 +181,7 @@ def gurobi_solver(matrix_a_eq: coo_matrix, vector_b_eq: np.ndarray,
 
             status = "feasible"
             solution = x.X
-            objective = model.getObjective().getValue()
+            objective = model.getObjective().getValue()+objective_offset
         else:
 
             status = "unknown"
