@@ -34,6 +34,25 @@ import sys
 from time import gmtime, strftime, time
 
 
+def sparse_matrix_to_str(matrix, max_print: int = 50) -> str:
+    """The "--matrix" text of a sparse matrix: one "  (row, column)\tvalue" line per
+    stored element, the first and last half of them when there are more than
+    max_print. It does not depend on the versions of scipy and numpy (scipy 1.14
+    changed its own format, and with numpy 2 the indexes of scipy < 1.14 print as
+    np.int64(...)).
+    """
+    matrix = matrix.tocoo()
+    entries = list(zip(matrix.row, matrix.col, matrix.data))
+    if len(entries) > max_print:
+        half = max_print // 2
+        lines = [f"  ({int(r)}, {int(c)})\t{v}" for r, c, v in entries[:half]]
+        lines.append("  :\t:")
+        lines += [f"  ({int(r)}, {int(c)})\t{v}" for r, c, v in entries[-half:]]
+    else:
+        lines = [f"  ({int(r)}, {int(c)})\t{v}" for r, c, v in entries]
+    return "\n".join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(allow_abbrev=False,
                                      description='Compiler and solver for the '
@@ -116,9 +135,9 @@ def main():
         C_sum = np.asarray(C.sum(axis=0), dtype=float)
 
         if args.matrix:
-            print("Matrix A_eq ", A_eq)
+            print("Matrix A_eq ", sparse_matrix_to_str(A_eq))
             print("Vector b_eq ", b_eq)
-            print("Matrix A_ineq ", A_ineq)
+            print("Matrix A_ineq ", sparse_matrix_to_str(A_ineq))
             print("Vector b_ineq ", b_ineq)
             print("Vector C ", C_sum)
             print("Offset", indep_terms_c)

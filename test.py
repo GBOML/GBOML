@@ -439,6 +439,34 @@ class CompilerTests(unittest.TestCase):
         return_code = process.returncode
         self.assertEqual(return_code, 0)
 
+    def test_matrix_output_format(self):
+        """ test_matrix_output_format
+
+        Tests the text of the sparse matrices printed by --matrix: the same
+        whatever the versions of scipy and numpy (numpy 2 printed the indexes
+        as np.int64(...) through scipy < 1.14, scipy 1.14 changed its format)
+
+        """
+        from scipy.sparse import coo_matrix
+        from gboml.gboml_main import sparse_matrix_to_str
+
+        matrix = coo_matrix((np.array([-1.0, 2.5]),
+                             (np.array([0, 3], dtype=np.int64),
+                              np.array([9, 1], dtype=np.int64))),
+                            shape=(4, 10))
+        self.assertEqual(sparse_matrix_to_str(matrix),
+                         "  (0, 9)\t-1.0\n  (3, 1)\t2.5")
+        self.assertEqual(sparse_matrix_to_str(coo_matrix((0, 6))), "")
+
+        big = coo_matrix((np.arange(1.0, 61.0),
+                          (np.arange(60), np.zeros(60, dtype=int))),
+                         shape=(60, 1))
+        lines = sparse_matrix_to_str(big).split("\n")
+        self.assertEqual(len(lines), 51)
+        self.assertEqual(lines[0], "  (0, 0)\t1.0")
+        self.assertEqual(lines[25], "  :\t:")
+        self.assertEqual(lines[-1], "  (59, 0)\t60.0")
+
     # for t in [9:10]
     def test_precise_for(self):
         """ test_precise_for
